@@ -1,0 +1,3 @@
+[submodule "thirdparty/PowerRecomp"]
+	path = thirdparty/PowerRecomp
+	url = https://github.com/hedge-dev/PowerRecomp

@@ -1,0 +1,69 @@
+#pragma once
+
+#ifdef _MSVC
+    #define SWA_DLLEXPORT __declspec(dllexport)
+    #define SWA_DLLIMPORT __declspec(dllimport)
+#else
+    #define SWA_DLLEXPORT __attribute__((dllexport))
+    #define SWA_DLLIMPORT __attribute__((dllimport))
+#endif
+
+#ifdef SWA_IMPL
+#define SWA_API extern "C" SWA_DLLEXPORT
+#else
+#define SWA_API extern "C" SWA_DLLIMPORT
+#endif
+
+template<typename T>
+void ByteSwap(T& value)
+{
+    value = std::byteswap(value);
+}
+
+template<typename T>
+T RoundUp(const T& in_rValue, uint32_t in_round)
+{
+    return (in_rValue + in_round - 1) & ~(in_round - 1);
+}
+
+template<typename T>
+T RoundDown(const T& in_rValue, uint32_t in_round)
+{
+    return in_rValue & ~(in_round - 1);
+}
+
+inline bool FileExists(const char* path)
+{
+    const auto attributes = GetFileAttributesA(path);
+    return attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
+
+}
+
+inline bool DirectoryExists(const char* path)
+{
+    const auto attributes = GetFileAttributesA(path);
+    return attributes != INVALID_FILE_ATTRIBUTES && !!(attributes & FILE_ATTRIBUTE_DIRECTORY);
+}
+
+inline size_t StringHash(const std::string_view& str)
+{
+    return XXH3_64bits(str.data(), str.size());
+}
+
+template<typename TValue>
+constexpr size_t FirstBitLow(TValue value)
+{
+    constexpr size_t nbits = sizeof(TValue) * 8;
+    constexpr auto zero = TValue{};
+    constexpr auto one = static_cast<TValue>(1);
+
+    for (size_t i = 0; i < nbits; i++)
+    {
+        if ((value & (one << i)) != zero)
+        {
+            return i;
+        }
+    }
+
+    return 0;
+}
