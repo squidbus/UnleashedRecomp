@@ -13,6 +13,7 @@ struct CodeCache
     void* Find(uint32_t guest) const;
 };
 
-PPCFunc* KeFindHostFunction(uint32_t guest);
+SWA_API PPCFunc* KeFindHostFunction(uint32_t guest);
+SWA_API void KeInsertHostFunction(uint32_t guest, PPCFunc* function);
 
 extern CodeCache gCodeCache;

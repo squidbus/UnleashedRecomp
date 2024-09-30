@@ -4,6 +4,10 @@ file(GLOB "*.cpp")
 
 add_compile_definitions(SWA_IMPL)
 add_compile_definitions(SDL_MAIN_HANDLED)
+
+# Microsoft wtf?
+add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR )
+
 add_compile_options(
     "/D_HAS_EXCEPTIONS=0"
     "/fp:strict"
@@ -41,6 +45,7 @@ set(SWA_GPU_CXX_SOURCES
 
 set(SWA_APU_CXX_SOURCES
     "apu/audio.cpp"
+    "apu/driver/xaudio_driver.cpp"
 )
 
 set(SWA_HID_CXX_SOURCES

@@ -9,6 +9,7 @@
 #include <kernel/io/file_system.h>
 #include <file.h>
 #include <xex.h>
+#include <apu/audio.h>
 
 #define GAME_XEX_PATH "game:\\default.xex"
 
@@ -52,6 +53,8 @@ void KiSystemStartup()
 
     // OS mounts game data to D:
     XamContentCreateEx(0, "D", &gameContent, OPEN_EXISTING, nullptr, nullptr, 0, 0, nullptr);
+
+    XAudioInitializeSystem();
 }
 
 uint32_t LdrLoadModule(const char* path)

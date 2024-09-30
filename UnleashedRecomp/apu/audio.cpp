@@ -7,6 +7,7 @@
 uint32_t XAudioRegisterRenderDriverClient(XLPDWORD callback, XLPDWORD driver)
 {
     *driver = AUDIO_DRIVER_KEY;
+    XAudioRegisterClient(KeFindHostFunction(*callback), callback[1]);
     return 0;
 }
 
@@ -15,7 +16,8 @@ uint32_t XAudioUnregisterRenderDriverClient(DWORD driver)
     return 0;
 }
 
-uint32_t XAudioSubmitRenderDriverFrame(XLPDWORD callback, XLPDWORD driver)
+uint32_t XAudioSubmitRenderDriverFrame(uint32_t driver, void* samples)
 {
+    XAudioSubmitFrame(samples);
     return 0;
 }

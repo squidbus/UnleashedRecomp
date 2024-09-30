@@ -133,6 +133,21 @@ DWORD SetThreadIdealProcessorImpl(uint32_t hThread, DWORD dwIdealProcessor)
     return SetThreadIdealProcessor((HANDLE)hThread, dwIdealProcessor);
 }
 
+GUEST_FUNCTION_HOOK(sub_831B0ED0, memcpy);
+GUEST_FUNCTION_HOOK(sub_831CCB98, memcpy);
+GUEST_FUNCTION_HOOK(sub_831CEAE0, memcpy);
+GUEST_FUNCTION_HOOK(sub_831CEE04, memcpy);
+GUEST_FUNCTION_HOOK(sub_831CF2D0, memcpy);
+GUEST_FUNCTION_HOOK(sub_831CF660, memcpy);
+GUEST_FUNCTION_HOOK(sub_831B1358, memcpy);
+GUEST_FUNCTION_HOOK(sub_831B5E00, memmove);
+GUEST_FUNCTION_HOOK(sub_831B0BA0, memset);
+GUEST_FUNCTION_HOOK(sub_831CCAA0, memset);
+
+GUEST_FUNCTION_HOOK(sub_82BD4CA8, OutputDebugStringA);
+
 GUEST_FUNCTION_HOOK(sub_82DFA2E8, SetThreadNameImpl);
 GUEST_FUNCTION_HOOK(sub_82BD57A8, GetThreadPriorityImpl);
 GUEST_FUNCTION_HOOK(sub_82BD5910, SetThreadIdealProcessorImpl);
+
+GUEST_FUNCTION_STUB(sub_82BD58F8); // Some function that updates the TEB, don't really care since the field is not set

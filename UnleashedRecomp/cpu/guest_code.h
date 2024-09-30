@@ -1,6 +1,6 @@
 #pragma once
 #include "ppc_context.h"
-#include "memory.h"
+#include <kernel/memory.h>
 
 struct GuestCode 
 {
