@@ -524,7 +524,7 @@ uint32_t ObReferenceObjectByHandle(uint32_t handle, uint32_t objectType, XLPDWOR
 {
     //printf("Invoking method ObReferenceObjectByHandle\n");
     *object = handle;
-    return GetPPCContext()->lr == 0x82BD588C ? 0xFFFFFFFF : 0;
+    return 0;
 }
 
 void KeQueryBasePriorityThread()

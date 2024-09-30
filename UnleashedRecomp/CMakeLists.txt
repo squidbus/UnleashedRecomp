@@ -13,7 +13,7 @@ add_compile_options(
     "/fp:strict"
     "/GS-"
     "/EHa-"
-    "-march=haswell"
+    "-march=sandybridge"
     "-fno-strict-aliasing")
 
 
@@ -77,3 +77,5 @@ target_link_libraries(UnleashedRecomp PUBLIC
 )
 target_include_directories(UnleashedRecomp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})
+
+target_compile_definitions(PowerRecomp PRIVATE CONFIG_FILE_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/ppc/config/SWA.toml\")
