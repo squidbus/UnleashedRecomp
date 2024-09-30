@@ -35,3 +35,8 @@ void* CodeCache::Find(uint32_t guest) const
 {
     return *reinterpret_cast<void**>(bucket + static_cast<uint64_t>(guest) * 2);
 }
+
+PPCFunc* KeFindHostFunction(uint32_t guest)
+{
+    return static_cast<PPCFunc*>(gCodeCache.Find(guest));
+}

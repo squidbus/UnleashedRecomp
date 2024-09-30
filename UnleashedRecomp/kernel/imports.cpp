@@ -1,12 +1,13 @@
 #include <stdafx.h>
 #include <cpu/ppc_context.h>
 #include <cpu/guest_thread.h>
+#include <apu/audio.h>
+#include <apu/audio.h>
 #include "function.h"
 #include "xex.h"
 #include "xbox.h"
 #include "heap.h"
 #include "memory.h"
-// #include "audio.h"
 #include <memory>
 #include "xam.h"
 #include "xdm.h"
@@ -1507,26 +1508,26 @@ void XMACreateContext()
     printf("!!! STUB !!! XMACreateContext\n");
 }
 
-uint32_t XAudioRegisterRenderDriverClient(XLPDWORD callback, XLPDWORD driver)
-{
-    //printf("XAudioRegisterRenderDriverClient(): %x %x\n");
-
-    // *driver = apu::RegisterClient(callback[0], callback[1]);
-    return 0;
-}
-
-void XAudioUnregisterRenderDriverClient()
-{
-    printf("!!! STUB !!! XAudioUnregisterRenderDriverClient\n");
-}
-
-uint32_t XAudioSubmitRenderDriverFrame(uint32_t driver, void* samples)
-{
-    // printf("!!! STUB !!! XAudioSubmitRenderDriverFrame\n");
-    // apu::SubmitFrames(samples);
-
-    return 0;
-}
+//uint32_t XAudioRegisterRenderDriverClient(XLPDWORD callback, XLPDWORD driver)
+//{
+//    //printf("XAudioRegisterRenderDriverClient(): %x %x\n");
+//
+//    *driver = apu::RegisterClient(callback[0], callback[1]);
+//    return 0;
+//}
+//
+//void XAudioUnregisterRenderDriverClient()
+//{
+//    printf("!!! STUB !!! XAudioUnregisterRenderDriverClient\n");
+//}
+//
+//uint32_t XAudioSubmitRenderDriverFrame(uint32_t driver, void* samples)
+//{
+//    // printf("!!! STUB !!! XAudioSubmitRenderDriverFrame\n");
+//    apu::SubmitFrames(samples);
+//
+//    return 0;
+//}
 
 GUEST_FUNCTION_HOOK(__imp__XGetVideoMode, VdQueryVideoMode); // XGetVideoMode
 GUEST_FUNCTION_HOOK(__imp__XNotifyGetNext, XNotifyGetNext);

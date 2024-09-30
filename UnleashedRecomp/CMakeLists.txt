@@ -32,6 +32,10 @@ set(SWA_GPU_CXX_SOURCES
     "gpu/window.cpp"
 )
 
+set(SWA_APU_CXX_SOURCES
+    "apu/audio.cpp"
+)
+
 set(SWA_HID_CXX_SOURCES
     "hid/hid.cpp"
 )
@@ -42,6 +46,7 @@ set(SWA_CXX_SOURCES
     ${SWA_KERNEL_CXX_SOURCES}
     ${SWA_CPU_CXX_SOURCES}
     ${SWA_GPU_CXX_SOURCES}
+    ${SWA_APU_CXX_SOURCES}
     ${SWA_HID_CXX_SOURCES}
 )
 
