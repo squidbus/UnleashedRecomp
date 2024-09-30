@@ -136,8 +136,3 @@ DWORD SetThreadIdealProcessorImpl(uint32_t hThread, DWORD dwIdealProcessor)
 GUEST_FUNCTION_HOOK(sub_82DFA2E8, SetThreadNameImpl);
 GUEST_FUNCTION_HOOK(sub_82BD57A8, GetThreadPriorityImpl);
 GUEST_FUNCTION_HOOK(sub_82BD5910, SetThreadIdealProcessorImpl);
-
-void GuestThread::InitHooks()
-{
-
-}

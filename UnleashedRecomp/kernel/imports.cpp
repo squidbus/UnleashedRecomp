@@ -30,29 +30,9 @@ DWORD GuestTimeoutToMilliseconds(XLPQWORD timeout)
     return timeout ? (*timeout * -1) / 10000 : INFINITE;
 }
 
-void XboxKrnlVersion()
-{
-    printf("!!! STUB !!! XboxKrnlVersion\n");
-}
-
-void VdGpuClockInMHz()
-{
-    printf("!!! STUB !!! VdGpuClockInMHz\n");
-}
-
 void VdHSIOCalibrationLock()
 {
     printf("!!! STUB !!! VdHSIOCalibrationLock\n");
-}
-
-void VdGlobalXamDevice()
-{
-    printf("!!! STUB !!! VdGlobalXamDevice\n");
-}
-
-void VdGlobalDevice()
-{
-    printf("!!! STUB !!! VdGlobalDevice\n");
 }
 
 void KeCertMonitorData()

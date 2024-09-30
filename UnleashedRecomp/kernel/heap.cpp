@@ -103,7 +103,7 @@ uint32_t RtlSizeHeap(uint32_t heapHandle, uint32_t flags, uint32_t memoryPointer
     return 0;
 }
 
-uint32_t XAlloc(uint32_t size, uint32_t flags)
+SWA_API uint32_t XAlloc(uint32_t size, uint32_t flags)
 {
     void* ptr = (flags & 0x80000000) != 0 ?
         gUserHeap.AllocPhysical(size, (1ull << ((flags >> 24) & 0xF))) :
@@ -116,7 +116,7 @@ uint32_t XAlloc(uint32_t size, uint32_t flags)
     return gMemory.MapVirtual(ptr);
 }
 
-void XFree(uint32_t baseAddress, uint32_t flags)
+SWA_API void XFree(uint32_t baseAddress, uint32_t flags)
 {
     if (baseAddress != NULL)
         gUserHeap.Free(gMemory.Translate(baseAddress));

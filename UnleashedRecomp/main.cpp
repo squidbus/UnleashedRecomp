@@ -1,6 +1,7 @@
 #include <stdafx.h>
 #include <cpu/code_cache.h>
 #include <cpu/guest_thread.h>
+#include <gpu/video.h>
 #include <kernel/function.h>
 #include <kernel/memory.h>
 #include <kernel/heap.h>
@@ -18,7 +19,8 @@ Memory gMemory{ reinterpret_cast<void*>(0x100000000), 0x100000000 };
 Heap gUserHeap;
 CodeCache gCodeCache;
 
-int main()
+// Name inspired from nt's entry point
+void KiSystemStartup()
 {
 #ifdef _WIN32
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -50,16 +52,18 @@ int main()
 
     // OS mounts game data to D:
     XamContentCreateEx(0, "D", &gameContent, OPEN_EXISTING, nullptr, nullptr, 0, 0, nullptr);
+}
 
+uint32_t LdrLoadModule(const char* path)
+{
     auto loadResult = LoadFile(FileSystem::TransformPath(GAME_XEX_PATH));
     if (!loadResult.has_value())
     {
-        assert("Failed to load default.xex" && false);
-        return 1;
+        assert("Failed to load module" && false);
+        return 0;
     }
 
     auto* xex = reinterpret_cast<XEX_HEADER*>(loadResult->data());
-    auto headers = reinterpret_cast<XEX_OPTIONAL_HEADER*>(&xex[1]);
     auto security = reinterpret_cast<XEX2_SECURITY_INFO*>((char*)xex + xex->AddressOfSecurityInfo);
 
     gMemory.Alloc(security->ImageBase, security->SizeOfImage, MEM_COMMIT);
@@ -88,6 +92,17 @@ int main()
             destData += blocks[i].SizeOfPadding;
         }
     }
+
+    return entry;
+}
+
+int main()
+{
+    KiSystemStartup();
+
+    uint32_t entry = LdrLoadModule(FileSystem::TransformPath(GAME_XEX_PATH));
+
+    VdInitializeSystem();
 
     GuestThread::Start(entry);
 

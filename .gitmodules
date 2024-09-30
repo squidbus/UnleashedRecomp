@@ -1,3 +1,7 @@
 [submodule "thirdparty/PowerRecomp"]
 	path = thirdparty/PowerRecomp
 	url = https://github.com/hedge-dev/PowerRecomp
+[submodule "thirdparty/SDL"]
+	path = thirdparty/SDL
+	url = https://github.com/libsdl-org/SDL.git
+	branch = SDL2

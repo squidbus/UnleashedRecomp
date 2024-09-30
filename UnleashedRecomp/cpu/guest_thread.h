@@ -17,5 +17,4 @@ struct GuestThread
     static void SetThreadName(uint32_t id, const char* name);
     static void SetLastError(DWORD error);
     static PPCContext* Invoke(uint32_t address);
-    static void InitHooks();
 };

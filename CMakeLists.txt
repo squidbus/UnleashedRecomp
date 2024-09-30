@@ -12,6 +12,8 @@ endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+set(SDL_STATIC ON)
+
 add_subdirectory(${SWA_THIRDPARTY_ROOT})
 project("UnleashedRecomp-ALL")
 

@@ -31,7 +31,7 @@ uint32_t Memory::MapVirtual(void* host) const noexcept
     return static_cast<uint32_t>(static_cast<char*>(host) - base);
 }
 
-extern "C" void* MmGetHostAddress(uint32_t ptr)
+SWA_API void* MmGetHostAddress(uint32_t ptr)
 {
     return gMemory.Translate(ptr);
 }

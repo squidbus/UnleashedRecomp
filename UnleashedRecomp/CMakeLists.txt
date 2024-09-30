@@ -3,6 +3,7 @@ set(TARGET_NAME "SWA")
 file(GLOB "*.cpp")
 
 add_compile_definitions(SWA_IMPL)
+add_compile_definitions(SDL_MAIN_HANDLED)
 add_compile_options(
     "/D_HAS_EXCEPTIONS=0"
     "/fp:strict"
@@ -13,6 +14,11 @@ add_compile_options(
 
 
 file(GLOB SWA_RECOMPILED_SOURCES "ppc/*.cpp")
+
+set(SWA_PRECOMPILED_HEADERS 
+    "ppc/ppc_recomp_shared.h"
+    "stdafx.h"
+)
 
 set(SWA_KERNEL_CXX_SOURCES
     "kernel/imports.cpp"
@@ -30,6 +36,7 @@ set(SWA_CPU_CXX_SOURCES
 
 set(SWA_GPU_CXX_SOURCES
     "gpu/window.cpp"
+    "gpu/video.cpp"
 )
 
 set(SWA_APU_CXX_SOURCES
@@ -54,13 +61,14 @@ add_executable(UnleashedRecomp ${SWA_RECOMPILED_SOURCES} ${SWA_CXX_SOURCES})
 set_target_properties(UnleashedRecomp PROPERTIES OUTPUT_NAME ${TARGET_NAME})
 
 target_link_libraries(UnleashedRecomp PUBLIC 
-    PowerUtils 
-    o1heap 
-    xxHash::xxhash 
-    unordered_dense::unordered_dense 
+    PowerUtils
+    o1heap
+    xxHash::xxhash
+    unordered_dense::unordered_dense
+    SDL2::SDL2-static
     winmm
     ntdll
     comctl32
 )
 target_include_directories(UnleashedRecomp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_precompile_headers(UnleashedRecomp PUBLIC "ppc/ppc_recomp_shared.h")
+target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})

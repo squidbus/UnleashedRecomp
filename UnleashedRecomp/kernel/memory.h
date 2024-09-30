@@ -18,4 +18,5 @@ public:
     uint32_t MapVirtual(void* host) const noexcept;
 };
 
+SWA_API void* MmGetHostAddress(uint32_t ptr);
 extern Memory gMemory;
