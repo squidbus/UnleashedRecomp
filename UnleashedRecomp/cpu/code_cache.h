@@ -16,4 +16,4 @@ struct CodeCache
 SWA_API PPCFunc* KeFindHostFunction(uint32_t guest);
 SWA_API void KeInsertHostFunction(uint32_t guest, PPCFunc* function);
 
-extern CodeCache gCodeCache;
+extern CodeCache g_codeCache;

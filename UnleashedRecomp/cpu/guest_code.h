@@ -13,7 +13,7 @@ struct GuestCode
     inline static void Run(void* hostAddress, PPCContext* ctx)
     {
         ctx->fpscr.loadFromHost();
-        reinterpret_cast<PPCFunc*>(hostAddress)(*ctx, reinterpret_cast<uint8_t*>(gMemory.base));
+        reinterpret_cast<PPCFunc*>(hostAddress)(*ctx, reinterpret_cast<uint8_t*>(g_memory.base));
     }
 
     inline static void Run(void* hostAddress)

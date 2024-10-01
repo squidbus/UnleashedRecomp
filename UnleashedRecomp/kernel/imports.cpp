@@ -701,7 +701,7 @@ void KfAcquireSpinLock(uint32_t* spinLock)
     const auto ctx = GetPPCContext();
     //printf("!!! STUB !!! KfAcquireSpinLock\n");
 
-    while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(gMemory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
+    while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
     {
         Sleep(0);
     }
@@ -717,7 +717,7 @@ void MmFreePhysicalMemory(uint32_t type, uint32_t guestAddress)
 {
     //printf("!!! STUB !!! MmFreePhysicalMemory\n");
     if (guestAddress != NULL)
-        gUserHeap.Free(gMemory.Translate(guestAddress));
+        g_userHeap.Free(g_memory.Translate(guestAddress));
 }
 
 bool VdPersistDisplay(uint32_t a1, uint32_t* a2)
@@ -748,7 +748,7 @@ void KeAcquireSpinLockAtRaisedIrql(uint32_t* spinLock)
     const auto ctx = GetPPCContext();
     //printf("!!! STUB !!! KeAcquireSpinLockAtRaisedIrql\n");
 
-    while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(gMemory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
+    while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
     {
         Sleep(0);
     }
@@ -891,7 +891,7 @@ uint32_t MmAllocatePhysicalMemoryEx(
     uint32_t alignment)
 {
     printf("MmAllocatePhysicalMemoryEx(): %x %x %x %x %x %x\n", flags, size, protect, minAddress, maxAddress, alignment);
-    return gMemory.MapVirtual(gUserHeap.AllocPhysical(size, alignment));
+    return g_memory.MapVirtual(g_userHeap.AllocPhysical(size, alignment));
 }
 
 void ObDeleteSymbolicLink()
@@ -997,7 +997,7 @@ DWORD XMsgInProcessCall(uint32_t app, uint32_t message, XDWORD* param1, XDWORD* 
 
     if (message == 0x7001B)
     {
-        uint32_t* ptr = (uint32_t*)gMemory.Translate(param1[1]);
+        uint32_t* ptr = (uint32_t*)g_memory.Translate(param1[1]);
         ptr[0] = 0;
         ptr[1] = 0;
     }

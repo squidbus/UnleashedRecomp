@@ -10,15 +10,16 @@
 #include <file.h>
 #include <xex.h>
 #include <apu/audio.h>
+#include <hid/hid.h>
 
 #define GAME_XEX_PATH "game:\\default.xex"
 
 const size_t XMAIOBegin = 0x7FEA0000;
 const size_t XMAIOEnd = XMAIOBegin + 0x0000FFFF;
 
-Memory gMemory{ reinterpret_cast<void*>(0x100000000), 0x100000000 };
-Heap gUserHeap;
-CodeCache gCodeCache;
+Memory g_memory{ reinterpret_cast<void*>(0x100000000), 0x100000000 };
+Heap g_userHeap;
+CodeCache g_codeCache;
 
 // Name inspired from nt's entry point
 void KiSystemStartup()
@@ -27,11 +28,11 @@ void KiSystemStartup()
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 #endif
 
-    gMemory.Alloc(0x10000, 0x1000, MEM_COMMIT);
-    gUserHeap.Init();
-    gCodeCache.Init();
+    g_memory.Alloc(0x10000, 0x1000, MEM_COMMIT);
+    g_userHeap.Init();
+    g_codeCache.Init();
 
-    gMemory.Alloc(XMAIOBegin, 0xFFFF, MEM_COMMIT);
+    g_memory.Alloc(XMAIOBegin, 0xFFFF, MEM_COMMIT);
 
     const auto gameContent = XamMakeContent(XCONTENTTYPE_RESERVED, "Game");
     const auto updateContent = XamMakeContent(XCONTENTTYPE_RESERVED, "Update");
@@ -55,6 +56,7 @@ void KiSystemStartup()
     XamContentCreateEx(0, "D", &gameContent, OPEN_EXISTING, nullptr, nullptr, 0, 0, nullptr);
 
     XAudioInitializeSystem();
+    hid::Init();
 }
 
 uint32_t LdrLoadModule(const char* path)
@@ -69,7 +71,7 @@ uint32_t LdrLoadModule(const char* path)
     auto* xex = reinterpret_cast<XEX_HEADER*>(loadResult->data());
     auto security = reinterpret_cast<XEX2_SECURITY_INFO*>((char*)xex + xex->AddressOfSecurityInfo);
 
-    gMemory.Alloc(security->ImageBase, security->SizeOfImage, MEM_COMMIT);
+    g_memory.Alloc(security->ImageBase, security->SizeOfImage, MEM_COMMIT);
 
     auto format = Xex2FindOptionalHeader<XEX_FILE_FORMAT_INFO>(xex, XEX_HEADER_FILE_FORMAT_INFO);
     auto entry = *Xex2FindOptionalHeader<uint32_t>(xex, XEX_HEADER_ENTRY_POINT);
@@ -79,7 +81,7 @@ uint32_t LdrLoadModule(const char* path)
     if (format->CompressionType == 1)
     {
         auto srcData = (char*)xex + xex->SizeOfHeader;
-        auto destData = (char*)gMemory.Translate(security->ImageBase);
+        auto destData = (char*)g_memory.Translate(security->ImageBase);
 
         auto numBlocks = (format->SizeOfHeader / sizeof(XEX_BASIC_FILE_COMPRESSION_INFO)) - 1;
         auto blocks = reinterpret_cast<const XEX_BASIC_FILE_COMPRESSION_INFO*>(format + 1);

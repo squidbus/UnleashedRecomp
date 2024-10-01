@@ -8,11 +8,11 @@ constexpr size_t RESERVED_END = 0xA0000000;
 
 void Heap::Init()
 {
-    gMemory.Alloc(0x20000, RESERVED_BEGIN - 0x20000, MEM_COMMIT);
-    heap = o1heapInit(gMemory.Translate(0x20000), RESERVED_BEGIN - 0x20000);
+    g_memory.Alloc(0x20000, RESERVED_BEGIN - 0x20000, MEM_COMMIT);
+    heap = o1heapInit(g_memory.Translate(0x20000), RESERVED_BEGIN - 0x20000);
 
-    gMemory.Alloc(RESERVED_END, 0x100000000 - RESERVED_END, MEM_COMMIT);
-    physicalHeap = o1heapInit(gMemory.Translate(RESERVED_END), 0x100000000 - RESERVED_END);
+    g_memory.Alloc(RESERVED_END, 0x100000000 - RESERVED_END, MEM_COMMIT);
+    physicalHeap = o1heapInit(g_memory.Translate(RESERVED_END), 0x100000000 - RESERVED_END);
 }
 
 void* Heap::Alloc(size_t size)
@@ -62,35 +62,35 @@ size_t Heap::Size(void* ptr)
 
 uint32_t RtlAllocateHeap(uint32_t heapHandle, uint32_t flags, uint32_t size)
 {
-    void* ptr = gUserHeap.Alloc(size);
+    void* ptr = g_userHeap.Alloc(size);
     if ((flags & 0x8) != 0)
         memset(ptr, 0, size);
 
     assert(ptr);
-    return gMemory.MapVirtual(ptr);
+    return g_memory.MapVirtual(ptr);
 }
 
 uint32_t RtlReAllocateHeap(uint32_t heapHandle, uint32_t flags, uint32_t memoryPointer, uint32_t size)
 {
-    void* ptr = gUserHeap.Alloc(size);
+    void* ptr = g_userHeap.Alloc(size);
     if ((flags & 0x8) != 0)
         memset(ptr, 0, size);
 
     if (memoryPointer != 0)
     {
-        void* oldPtr = gMemory.Translate(memoryPointer);
-        memcpy(ptr, oldPtr, std::min<size_t>(size, gUserHeap.Size(oldPtr)));
-        gUserHeap.Free(oldPtr);
+        void* oldPtr = g_memory.Translate(memoryPointer);
+        memcpy(ptr, oldPtr, std::min<size_t>(size, g_userHeap.Size(oldPtr)));
+        g_userHeap.Free(oldPtr);
     }
 
     assert(ptr);
-    return gMemory.MapVirtual(ptr);
+    return g_memory.MapVirtual(ptr);
 }
 
 uint32_t RtlFreeHeap(uint32_t heapHandle, uint32_t flags, uint32_t memoryPointer)
 {
     if (memoryPointer != NULL)
-        gUserHeap.Free(gMemory.Translate(memoryPointer));
+        g_userHeap.Free(g_memory.Translate(memoryPointer));
 
     return true;
 }
@@ -98,7 +98,7 @@ uint32_t RtlFreeHeap(uint32_t heapHandle, uint32_t flags, uint32_t memoryPointer
 uint32_t RtlSizeHeap(uint32_t heapHandle, uint32_t flags, uint32_t memoryPointer)
 {
     if (memoryPointer != NULL)
-        return (uint32_t)gUserHeap.Size(gMemory.Translate(memoryPointer));
+        return (uint32_t)g_userHeap.Size(g_memory.Translate(memoryPointer));
 
     return 0;
 }
@@ -106,20 +106,20 @@ uint32_t RtlSizeHeap(uint32_t heapHandle, uint32_t flags, uint32_t memoryPointer
 SWA_API uint32_t XAlloc(uint32_t size, uint32_t flags)
 {
     void* ptr = (flags & 0x80000000) != 0 ?
-        gUserHeap.AllocPhysical(size, (1ull << ((flags >> 24) & 0xF))) :
-        gUserHeap.Alloc(size);
+        g_userHeap.AllocPhysical(size, (1ull << ((flags >> 24) & 0xF))) :
+        g_userHeap.Alloc(size);
 
     if ((flags & 0x40000000) != 0)
         memset(ptr, 0, size);
 
     assert(ptr);
-    return gMemory.MapVirtual(ptr);
+    return g_memory.MapVirtual(ptr);
 }
 
 SWA_API void XFree(uint32_t baseAddress, uint32_t flags)
 {
     if (baseAddress != NULL)
-        gUserHeap.Free(gMemory.Translate(baseAddress));
+        g_userHeap.Free(g_memory.Translate(baseAddress));
 }
 
 GUEST_FUNCTION_STUB(sub_82BD7788); // HeapCreate

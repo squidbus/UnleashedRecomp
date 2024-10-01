@@ -1,9 +1,8 @@
 #pragma once
-
-union SDL_Event;
-namespace hid
+namespace hid::detail 
 {
     void Init();
+
     uint32_t GetState(uint32_t dwUserIndex, XAMINPUT_STATE* pState);
     uint32_t SetState(uint32_t dwUserIndex, XAMINPUT_VIBRATION* pVibration);
 

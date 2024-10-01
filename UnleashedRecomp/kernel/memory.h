@@ -19,4 +19,4 @@ public:
 };
 
 SWA_API void* MmGetHostAddress(uint32_t ptr);
-extern Memory gMemory;
+extern Memory g_memory;

@@ -24,30 +24,30 @@ DWORD GuestThread::Start(uint32_t function)
 
 DWORD GuestThread::Start(const GuestThreadParameter& parameter)
 {
-    auto* thread = (uint8_t*)gUserHeap.Alloc(TOTAL_SIZE);
+    auto* thread = (uint8_t*)g_userHeap.Alloc(TOTAL_SIZE);
 
     const auto procMask = (uint8_t)(parameter.flags >> 24);
     const auto cpuNumber = procMask == 0 ? 0 : 7 - std::countl_zero(procMask);
 
     memset(thread, 0, TOTAL_SIZE);
 
-    *(uint32_t*)thread = std::byteswap(gMemory.MapVirtual(thread + PCR_SIZE)); // tls pointer
-    *(uint32_t*)(thread + 0x100) = std::byteswap(gMemory.MapVirtual(thread + PCR_SIZE + TLS_SIZE)); // teb pointer
+    *(uint32_t*)thread = std::byteswap(g_memory.MapVirtual(thread + PCR_SIZE)); // tls pointer
+    *(uint32_t*)(thread + 0x100) = std::byteswap(g_memory.MapVirtual(thread + PCR_SIZE + TLS_SIZE)); // teb pointer
     *(thread + 0x10C) = cpuNumber;
 
     *(uint32_t*)(thread + PCR_SIZE + 0x10) = 0xFFFFFFFF; // that one TLS entry that felt quirky
     *(uint32_t*)(thread + PCR_SIZE + TLS_SIZE + 0x14C) = std::byteswap(GetCurrentThreadId()); // thread id
 
     PPCContext ppcContext{};
-    ppcContext.fn = (uint8_t*)gCodeCache.bucket;
-    ppcContext.r1.u64 = gMemory.MapVirtual(thread + PCR_SIZE + TLS_SIZE + TEB_SIZE + STACK_SIZE); // stack pointer
+    ppcContext.fn = (uint8_t*)g_codeCache.bucket;
+    ppcContext.r1.u64 = g_memory.MapVirtual(thread + PCR_SIZE + TLS_SIZE + TEB_SIZE + STACK_SIZE); // stack pointer
     ppcContext.r3.u64 = parameter.value;
-    ppcContext.r13.u64 = gMemory.MapVirtual(thread);
+    ppcContext.r13.u64 = g_memory.MapVirtual(thread);
 
     SetPPCContext(ppcContext);
 
-    GuestCode::Run(gCodeCache.Find(parameter.function), &ppcContext, gMemory.Translate(0), gMemory.Translate(ppcContext.r1.u32));
-    gUserHeap.Free(thread);
+    GuestCode::Run(g_codeCache.Find(parameter.function), &ppcContext, g_memory.Translate(0), g_memory.Translate(ppcContext.r1.u32));
+    g_userHeap.Free(thread);
 
     return (DWORD)ppcContext.r3.u64;
 }
@@ -99,7 +99,7 @@ void GuestThread::SetThreadName(uint32_t id, const char* name)
 
 void GuestThread::SetLastError(DWORD error)
 {
-    auto* thread = (char*)gMemory.Translate(GetPPCContext()->r13.u32);
+    auto* thread = (char*)g_memory.Translate(GetPPCContext()->r13.u32);
     if (*(DWORD*)(thread + 0x150))
     {
         // Program doesn't want errors
@@ -113,14 +113,14 @@ void GuestThread::SetLastError(DWORD error)
 PPCContext* GuestThread::Invoke(uint32_t address)
 {
     auto* ctx = GetPPCContext();
-    GuestCode::Run(gCodeCache.Find(address), ctx);
+    GuestCode::Run(g_codeCache.Find(address), ctx);
 
     return ctx;
 }
 
 void SetThreadNameImpl(uint32_t a1, uint32_t threadId, uint32_t* name)
 {
-    GuestThread::SetThreadName(threadId, (const char*)gMemory.Translate(std::byteswap(*name)));
+    GuestThread::SetThreadName(threadId, (const char*)g_memory.Translate(std::byteswap(*name)));
 }
 
 int GetThreadPriorityImpl(uint32_t hThread)
@@ -132,19 +132,6 @@ DWORD SetThreadIdealProcessorImpl(uint32_t hThread, DWORD dwIdealProcessor)
 {
     return SetThreadIdealProcessor((HANDLE)hThread, dwIdealProcessor);
 }
-
-GUEST_FUNCTION_HOOK(sub_831B0ED0, memcpy);
-GUEST_FUNCTION_HOOK(sub_831CCB98, memcpy);
-GUEST_FUNCTION_HOOK(sub_831CEAE0, memcpy);
-GUEST_FUNCTION_HOOK(sub_831CEE04, memcpy);
-GUEST_FUNCTION_HOOK(sub_831CF2D0, memcpy);
-GUEST_FUNCTION_HOOK(sub_831CF660, memcpy);
-GUEST_FUNCTION_HOOK(sub_831B1358, memcpy);
-GUEST_FUNCTION_HOOK(sub_831B5E00, memmove);
-GUEST_FUNCTION_HOOK(sub_831B0BA0, memset);
-GUEST_FUNCTION_HOOK(sub_831CCAA0, memset);
-
-GUEST_FUNCTION_HOOK(sub_82BD4CA8, OutputDebugStringA);
 
 GUEST_FUNCTION_HOOK(sub_82DFA2E8, SetThreadNameImpl);
 GUEST_FUNCTION_HOOK(sub_82BD57A8, GetThreadPriorityImpl);

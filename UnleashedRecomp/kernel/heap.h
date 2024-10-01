@@ -35,4 +35,4 @@ struct Heap
     }
 };
 
-extern Heap gUserHeap;
+extern Heap g_userHeap;

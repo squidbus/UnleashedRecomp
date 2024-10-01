@@ -1,22 +1,23 @@
 #include <stdafx.h>
 #include "hid.h"
+#include "hid_detail.h"
 
-DWORD hid::GetState(DWORD dwUserIndex, XAMINPUT_STATE* pState)
+void hid::Init()
 {
-    return 1;
+    detail::Init();
 }
 
-DWORD hid::SetState(DWORD dwUserIndex, XAMINPUT_VIBRATION* pVibration)
+uint32_t hid::GetState(uint32_t dwUserIndex, XAMINPUT_STATE* pState)
 {
-    return 1;
+    return detail::GetState(dwUserIndex, pState);
 }
 
-DWORD hid::GetCapabilities(DWORD dwUserIndex, XAMINPUT_CAPABILITIES* pCaps)
+uint32_t hid::SetState(uint32_t dwUserIndex, XAMINPUT_VIBRATION* pVibration)
 {
-    return 1;
+    return detail::SetState(dwUserIndex, pVibration);
 }
 
-int hid::OnSDLEvent(void*, SDL_Event* event)
+uint32_t hid::GetCapabilities(uint32_t dwUserIndex, XAMINPUT_CAPABILITIES* pCaps)
 {
-    return 0;
+    return detail::GetCapabilities(dwUserIndex, pCaps);
 }
