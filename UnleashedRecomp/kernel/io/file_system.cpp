@@ -11,7 +11,7 @@ bool FindHandleCloser(void* handle)
     return false;
 }
 
-static uint32_t CreateFileImpl(
+SWA_API uint32_t XCreateFileA(
     LPCSTR lpFileName,
     DWORD dwDesiredAccess,
     DWORD dwShareMode,
@@ -34,7 +34,7 @@ static uint32_t CreateFileImpl(
     return handle;
 }
 
-static DWORD GetFileSizeImpl(
+static DWORD XGetFileSizeA(
     uint32_t hFile,
     LPDWORD lpFileSizeHigh)
 {
@@ -45,7 +45,7 @@ static DWORD GetFileSizeImpl(
     return fileSize;
 }
 
-BOOL GetFileSizeExImpl(
+BOOL XGetFileSizeExA(
     uint32_t hFile,
     PLARGE_INTEGER lpFileSize)
 {
@@ -56,7 +56,7 @@ BOOL GetFileSizeExImpl(
     return result;
 }
 
-BOOL ReadFileImpl(
+BOOL XReadFile(
     uint32_t hFile,
     LPVOID lpBuffer,
     DWORD nNumberOfBytesToRead,
@@ -93,7 +93,7 @@ BOOL ReadFileImpl(
     return result;
 }
 
-DWORD SetFilePointerImpl(
+DWORD XSetFilePointer(
     uint32_t hFile,
     LONG lDistanceToMove,
     PLONG lpDistanceToMoveHigh,
@@ -107,7 +107,7 @@ DWORD SetFilePointerImpl(
     return result;
 }
 
-BOOL SetFilePointerExImpl(
+BOOL XSetFilePointerEx(
     uint32_t hFile,
     LONG lDistanceToMove,
     PLARGE_INTEGER lpNewFilePointer,
@@ -123,7 +123,7 @@ BOOL SetFilePointerExImpl(
     return result;
 }
 
-uint32_t FindFirstFileImpl(
+uint32_t XFindFirstFileA(
     LPCSTR lpFileName,
     LPWIN32_FIND_DATAA lpFindFileData)
 {
@@ -144,7 +144,7 @@ uint32_t FindFirstFileImpl(
     return GUEST_HANDLE(ObInsertObject(handle, FindHandleCloser));
 }
 
-uint32_t FindNextFileImpl(uint32_t Handle, LPWIN32_FIND_DATAA lpFindFileData)
+uint32_t XFindNextFileA(uint32_t Handle, LPWIN32_FIND_DATAA lpFindFileData)
 {
     auto* handle = ObQueryObject(HOST_HANDLE(Handle));
     auto& data = *lpFindFileData;
@@ -159,7 +159,7 @@ uint32_t FindNextFileImpl(uint32_t Handle, LPWIN32_FIND_DATAA lpFindFileData)
     return result;
 }
 
-BOOL ReadFileExImpl(
+BOOL XReadFileEx(
     uint32_t hFile,
     LPVOID lpBuffer,
     DWORD nNumberOfBytesToRead,
@@ -186,12 +186,12 @@ BOOL ReadFileExImpl(
     return result;
 }
 
-DWORD GetFileAttributesAImpl(LPCSTR lpFileName)
+DWORD XGetFileAttributesA(LPCSTR lpFileName)
 {
     return GetFileAttributesA(FileSystem::TransformPath(lpFileName));
 }
 
-BOOL WriteFileImpl(
+BOOL XWriteFile(
     uint32_t hFile,
     LPCVOID lpBuffer,
     DWORD nNumberOfBytesToWrite,
@@ -230,15 +230,20 @@ const char* FileSystem::TransformPath(const char* path)
     return relativePath != nullptr ? relativePath + 2 : path;
 }
 
-GUEST_FUNCTION_HOOK(sub_82BD4668, CreateFileImpl);
-GUEST_FUNCTION_HOOK(sub_82BD4600, GetFileSizeImpl);
-GUEST_FUNCTION_HOOK(sub_82BD5608, GetFileSizeExImpl);
-GUEST_FUNCTION_HOOK(sub_82BD4478, ReadFileImpl);
-GUEST_FUNCTION_HOOK(sub_831CD3E8, SetFilePointerImpl);
-GUEST_FUNCTION_HOOK(sub_831CE888, SetFilePointerExImpl);
-GUEST_FUNCTION_HOOK(sub_831CDC58, FindFirstFileImpl);
-GUEST_FUNCTION_HOOK(sub_831CDC00, FindNextFileImpl);
-GUEST_FUNCTION_HOOK(sub_831CDF40, ReadFileExImpl);
-GUEST_FUNCTION_HOOK(sub_831CD6E8, GetFileAttributesAImpl);
-GUEST_FUNCTION_HOOK(sub_831CE3F8, CreateFileImpl);
-GUEST_FUNCTION_HOOK(sub_82BD4860, WriteFileImpl);
+SWA_API const char* XExpandFilePathA(const char* path)
+{
+    return FileSystem::TransformPath(path);
+}
+
+GUEST_FUNCTION_HOOK(sub_82BD4668, XCreateFileA);
+GUEST_FUNCTION_HOOK(sub_82BD4600, XGetFileSizeA);
+GUEST_FUNCTION_HOOK(sub_82BD5608, XGetFileSizeExA);
+GUEST_FUNCTION_HOOK(sub_82BD4478, XReadFile);
+GUEST_FUNCTION_HOOK(sub_831CD3E8, XSetFilePointer);
+GUEST_FUNCTION_HOOK(sub_831CE888, XSetFilePointerEx);
+GUEST_FUNCTION_HOOK(sub_831CDC58, XFindFirstFileA);
+GUEST_FUNCTION_HOOK(sub_831CDC00, XFindNextFileA);
+GUEST_FUNCTION_HOOK(sub_831CDF40, XReadFileEx);
+GUEST_FUNCTION_HOOK(sub_831CD6E8, XGetFileAttributesA);
+GUEST_FUNCTION_HOOK(sub_831CE3F8, XCreateFileA);
+GUEST_FUNCTION_HOOK(sub_82BD4860, XWriteFile);
