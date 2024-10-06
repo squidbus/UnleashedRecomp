@@ -9,6 +9,7 @@
 #include <xbox.h>
 #include <xxhash.h>
 #include <ankerl/unordered_dense.h>
+#include <ddspp.h>
 
 #include "framework.h"
 #include "Mutex.h"

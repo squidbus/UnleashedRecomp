@@ -6,13 +6,14 @@ add_compile_definitions(SWA_IMPL)
 add_compile_definitions(SDL_MAIN_HANDLED)
 
 # Microsoft wtf?
-add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR )
+add_compile_definitions(
+    _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR 
+    _HAS_EXCEPTIONS=0)
 
 add_compile_options(
-    "/D_HAS_EXCEPTIONS=0"
     "/fp:strict"
     "/GS-"
-    "/EHa-"
+    "/EHs-c-"
     "-march=sandybridge"
     "-fno-strict-aliasing")
 
@@ -41,6 +42,7 @@ set(SWA_CPU_CXX_SOURCES
 set(SWA_GPU_CXX_SOURCES
     "gpu/window.cpp"
     "gpu/video.cpp"
+    "gpu/rhi/rt64_d3d12.cpp"
 )
 
 set(SWA_APU_CXX_SOURCES
@@ -76,8 +78,15 @@ target_link_libraries(UnleashedRecomp PUBLIC
     winmm
     ntdll
     comctl32
+    d3d12
+    dxgi
 )
-target_include_directories(UnleashedRecomp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(UnleashedRecomp PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR} 
+    ${SWA_THIRDPARTY_ROOT}/ddspp 
+    ${SWA_THIRDPARTY_ROOT}/D3D12MemoryAllocator/include
+    ${SWA_THIRDPARTY_ROOT}/D3D12MemoryAllocator/src)
+
 target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})
 
 target_compile_definitions(PowerRecomp PRIVATE CONFIG_FILE_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/ppc/config/SWA.toml\")

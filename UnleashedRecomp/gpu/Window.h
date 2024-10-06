@@ -3,8 +3,8 @@
 
 struct Window
 {
-    static SDL_Window* s_window;
-    static void* s_windowHandle;
+    static inline SDL_Window* s_window;
+    static inline HWND s_windowHandle;
 
     static void Init();
 };

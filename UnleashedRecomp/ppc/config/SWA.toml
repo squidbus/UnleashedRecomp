@@ -78,3 +78,18 @@ invalid_instructions = [
     { data = 0x831C8B50, size = 8 },
     { data = 0x00485645, size = 44 } # End of .text
 ]
+
+[[midasm_hook]]
+name = "HalfPixelOffsetMidAsmHook"
+address = 0x82E9FD64
+registers = ["f9", "f0"]
+
+[[midasm_hook]]
+name = "IndexBufferLengthMidAsmHook"
+address = 0x82E26244
+registers = ["r3"]
+
+[[midasm_hook]]
+name = "SetShadowResolutionMidAsmHook"
+address = 0x82BAD87C
+registers = ["r11"]

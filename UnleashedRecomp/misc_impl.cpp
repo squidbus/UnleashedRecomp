@@ -1,19 +1,6 @@
 #include "stdafx.h"
 #include <kernel/function.h>
 
-// TODO: Multiplatform support
-void CriErrNotify1(const char* message)
-{
-    OutputDebugStringA(message);
-    OutputDebugStringA("\n");
-}
-
-void CriErrNotify2(uint32_t category, const char* message)
-{
-    OutputDebugStringA(message);
-    OutputDebugStringA("\n");
-}
-
 BOOL QueryPerformanceCounterImpl(LARGE_INTEGER* lpPerformanceCount)
 {
     BOOL result = QueryPerformanceCounter(lpPerformanceCount);
@@ -53,13 +40,21 @@ GUEST_FUNCTION_HOOK(sub_831CCAA0, memset);
 
 GUEST_FUNCTION_HOOK(sub_82BD4CA8, OutputDebugStringA);
 
-#ifdef _DEBUG
-GUEST_FUNCTION_HOOK(sub_8312EB48, CriErrNotify1);
-GUEST_FUNCTION_HOOK(sub_83185B00, CriErrNotify1);
-GUEST_FUNCTION_HOOK(sub_831683E0, CriErrNotify2);
-#endif
-
 GUEST_FUNCTION_HOOK(sub_82BD4AC8, QueryPerformanceCounterImpl);
 GUEST_FUNCTION_HOOK(sub_831CD040, QueryPerformanceFrequencyImpl);
 
 GUEST_FUNCTION_HOOK(sub_82BD4BC0, GlobalMemoryStatusImpl);
+
+// Movie player stubs
+GUEST_FUNCTION_STUB(sub_82AE3638);
+GUEST_FUNCTION_STUB(sub_82AE2BF8);
+
+// Logo skip
+PPC_FUNC(sub_82547DF0)
+{
+    ctx.r4.u64 = 0;
+    ctx.r5.u64 = 0;
+    ctx.r6.u64 = 1;
+    ctx.r7.u64 = 0;
+    sub_825517C8(ctx, base);
+}
