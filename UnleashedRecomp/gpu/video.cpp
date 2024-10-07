@@ -249,6 +249,9 @@ static std::vector<std::unique_ptr<RenderTexture>> g_tempTextures[NUM_FRAMES];
 static std::vector<std::unique_ptr<RenderBuffer>> g_tempBuffers[NUM_FRAMES];
 static std::vector<uint32_t> g_tempDescriptorIndices[NUM_FRAMES];
 
+static RenderBufferReference g_quadIndexBuffer;
+static uint32_t g_quadCount;
+
 static void SetRenderState(GuestDevice* device, uint32_t value)
 {
 }
@@ -799,6 +802,8 @@ static void Present()
 
     g_dirtyStates = DirtyStates(true);
     g_uploadAllocators[g_frame].reset();
+    g_quadIndexBuffer = {};
+    g_quadCount = 0;
 
     BeginCommandList();
 }
@@ -906,7 +911,6 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     //desc.multisampling.sampleCount = multiSample != 0 ? RenderSampleCount::COUNT_4 : RenderSampleCount::COUNT_1;
     desc.format = ConvertFormat(format);
     desc.flags = desc.format == RenderFormat::D32_FLOAT ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::RENDER_TARGET;
-    desc.committed = true;
 
     auto surface = g_userHeap.AllocPhysical<GuestSurface>(desc.format == RenderFormat::D32_FLOAT ? 
         ResourceType::DepthStencil : ResourceType::RenderTarget);
@@ -1310,6 +1314,7 @@ static RenderPrimitiveTopology ConvertPrimitiveType(uint32_t primitiveType)
     case D3DPT_LINESTRIP:
         return RenderPrimitiveTopology::LINE_STRIP;   
     case D3DPT_TRIANGLELIST:
+    case D3DPT_QUADLIST:
         return RenderPrimitiveTopology::TRIANGLE_LIST;  
     case D3DPT_TRIANGLESTRIP:
         return RenderPrimitiveTopology::TRIANGLE_STRIP;
@@ -1326,8 +1331,7 @@ static void SetPrimitiveType(uint32_t primitiveType)
 
 static bool TemporarySkipRendering(uint32_t primitiveType)
 {
-    return primitiveType == D3DPT_QUADLIST ||
-        primitiveType == D3DPT_TRIANGLEFAN ||
+    return primitiveType == D3DPT_TRIANGLEFAN ||
         g_pipelineState.vertexShader == nullptr ||
         g_pipelineState.vertexShader->shader == nullptr;
 }
@@ -1399,8 +1403,47 @@ static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_
     g_inputSlots[0].stride = vertexStreamZeroStride;
     g_dirtyStates.vertexStreamFirst = 0;
 
-    FlushRenderState(device);
-    g_commandLists[g_frame]->drawInstanced(primitiveCount, 1, 0, 0);
+    if (primitiveType == D3DPT_QUADLIST)
+    {
+        static std::vector<uint16_t> quadIndexData;
+        const uint32_t quadCount = primitiveCount / 4;
+        const uint32_t triangleCount = quadCount * 6;
+
+        if (quadIndexData.size() < triangleCount)
+        {
+            const size_t oldQuadCount = quadIndexData.size() / 6;
+            quadIndexData.resize(triangleCount);
+
+            for (size_t i = oldQuadCount; i < quadCount; i++)
+            {
+                quadIndexData[i * 6 + 0] = static_cast<uint16_t>(i * 4 + 0);
+                quadIndexData[i * 6 + 1] = static_cast<uint16_t>(i * 4 + 1);
+                quadIndexData[i * 6 + 2] = static_cast<uint16_t>(i * 4 + 2);
+
+                quadIndexData[i * 6 + 3] = static_cast<uint16_t>(i * 4 + 0);
+                quadIndexData[i * 6 + 4] = static_cast<uint16_t>(i * 4 + 2);
+                quadIndexData[i * 6 + 5] = static_cast<uint16_t>(i * 4 + 3);
+            }
+        }
+
+        if (g_quadIndexBuffer == NULL || g_quadCount < quadCount)
+        {
+            g_quadIndexBuffer = g_uploadAllocators[g_frame].allocate<false>(quadIndexData.data(), triangleCount * 2, 2);
+            g_quadCount = quadCount;
+        }
+
+        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.buffer, g_quadIndexBuffer);
+        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, g_quadCount * 12);
+        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, RenderFormat::R16_UINT);
+
+        FlushRenderState(device);
+        g_commandLists[g_frame]->drawIndexedInstanced(triangleCount, 1, 0, 0, 0);
+    }
+    else
+    {
+        FlushRenderState(device);
+        g_commandLists[g_frame]->drawInstanced(primitiveCount, 1, 0, 0);
+    }
 }
 
 static const char* ConvertDeclUsage(uint32_t usage)
