@@ -62,7 +62,7 @@ static bool g_scissorTestEnable = false;
 static RenderRect g_scissorRect;
 static RenderVertexBufferView g_vertexBufferViews[16];
 static RenderInputSlot g_inputSlots[16];
-static RenderIndexBufferView g_indexBufferView;
+static RenderIndexBufferView g_indexBufferView({}, 0, RenderFormat::R16_UINT);
 
 struct DirtyStates
 {
@@ -104,6 +104,7 @@ static void SetDirtyValue(bool& dirtyState, T& dest, const T& src)
     }
 }
 
+static bool g_vulkan = false;
 static std::unique_ptr<RenderInterface> g_interface;
 static std::unique_ptr<RenderDevice> g_device;
 
@@ -122,6 +123,8 @@ static std::unique_ptr<RenderCommandList> g_copyCommandList;
 static std::unique_ptr<RenderCommandFence> g_copyCommandFence;
 
 static std::unique_ptr<RenderSwapChain> g_swapChain;
+static std::unique_ptr<RenderCommandSemaphore> g_acquireSemaphores[NUM_FRAMES];
+static uint32_t g_backBufferIndex;
 static GuestSurface* g_backBuffer;
 
 struct std::unique_ptr<RenderDescriptorSet> g_textureDescriptorSet;
@@ -201,7 +204,7 @@ struct UploadAllocator
         auto& buffer = buffers[index];
         if (buffer.buffer == nullptr)
         {
-            buffer.buffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(UploadBuffer::SIZE));
+            buffer.buffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(UploadBuffer::SIZE, RenderBufferFlag::CONSTANT | RenderBufferFlag::VERTEX | RenderBufferFlag::INDEX));
             buffer.memory = reinterpret_cast<uint8_t*>(buffer.buffer->map());
         }
         
@@ -472,7 +475,7 @@ static void CreateHostDevice()
 
     Window::Init();
 
-    g_interface = CreateD3D12Interface();
+    g_interface = g_vulkan ? CreateVulkanInterface() : CreateD3D12Interface();
     g_device = g_interface->createDevice();
 
     g_queue = g_device->createCommandQueue(RenderCommandListType::DIRECT);
@@ -488,6 +491,13 @@ static void CreateHostDevice()
     g_copyCommandFence = g_device->createCommandFence();
 
     g_swapChain = g_queue->createSwapChain(Window::s_windowHandle, 2, RenderFormat::R8G8B8A8_UNORM);
+    g_swapChain->resize();
+
+    if (g_vulkan)
+    {
+        for (auto& acquireSemaphore : g_acquireSemaphores)
+            acquireSemaphore = g_device->createCommandSemaphore();
+    }
 
     RenderPipelineLayoutBuilder pipelineLayoutBuilder;
     pipelineLayoutBuilder.begin(false, true);
@@ -512,9 +522,16 @@ static void CreateHostDevice()
     g_samplerDescriptorSet = descriptorSetBuilder.create(g_device.get());
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
 
-    pipelineLayoutBuilder.addRootDescriptor(0, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
-    pipelineLayoutBuilder.addRootDescriptor(1, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
-    pipelineLayoutBuilder.addRootDescriptor(2, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
+    if (g_vulkan)
+    {
+        pipelineLayoutBuilder.addPushConstant(0, 4, 24, RenderShaderStageFlag::VERTEX | RenderShaderStageFlag::PIXEL);
+    }
+    else
+    {
+        pipelineLayoutBuilder.addRootDescriptor(0, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
+        pipelineLayoutBuilder.addRootDescriptor(1, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
+        pipelineLayoutBuilder.addRootDescriptor(2, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
+    }
     pipelineLayoutBuilder.end();
     
     g_pipelineLayout = pipelineLayoutBuilder.create(g_device.get());
@@ -528,9 +545,9 @@ static void BeginCommandList()
     g_pipelineState.renderTargetFormat = g_backBuffer->format;
     g_pipelineState.depthStencilFormat = RenderFormat::UNKNOWN;
 
-    uint32_t textureIndex = 0;
-    g_swapChain->acquireTexture(nullptr, &textureIndex);
-    g_backBuffer->texture = g_swapChain->getTexture(textureIndex);
+    bool acquired = g_swapChain->acquireTexture(g_acquireSemaphores[g_frame].get(), &g_backBufferIndex);
+    assert(acquired);
+    g_backBuffer->texture = g_swapChain->getTexture(g_backBufferIndex);
 
     auto& commandList = g_commandLists[g_frame];
 
@@ -779,9 +796,22 @@ static void Present()
     auto& commandList = g_commandLists[g_frame];
     commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(g_backBuffer->texture, RenderTextureLayout::PRESENT));
     commandList->end();
-    
-    g_queue->executeCommandLists(commandList.get(), g_commandFences[g_frame].get());
-    g_swapChain->present(0, nullptr, 0);
+
+    if (g_vulkan)
+    {
+        const RenderCommandList* commandLists[] = { commandList.get() };
+        RenderCommandSemaphore* waitSemaphores[] = { g_acquireSemaphores[g_frame].get()};
+        g_queue->executeCommandLists(
+            commandLists, std::size(commandLists), 
+            waitSemaphores, std::size(waitSemaphores), 
+            nullptr, 0, 
+            g_commandFences[g_frame].get());
+    }
+    else
+    {
+        g_queue->executeCommandLists(commandList.get(), g_commandFences[g_frame].get());
+    }
+    g_swapChain->present(g_backBufferIndex, nullptr, 0);
 
     g_frame = g_nextFrame;
     g_nextFrame = (g_frame + 1) % NUM_FRAMES;
@@ -856,10 +886,11 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
     desc.mipLevels = levels;
     desc.arraySize = 1;
     desc.format = ConvertFormat(format);
+    desc.flags = (desc.format == RenderFormat::D32_FLOAT) ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::NONE;
     texture->texture = g_device->createTexture(desc);
 
     RenderTextureViewDesc viewDesc;
-    viewDesc.format = desc.format == RenderFormat::D32_FLOAT ? RenderFormat::R32_FLOAT : desc.format;
+    viewDesc.format = desc.format;
     viewDesc.dimension = texture->type == ResourceType::VolumeTexture ? RenderTextureViewDimension::TEXTURE_3D : RenderTextureViewDimension::TEXTURE_2D;
     viewDesc.mipLevels = levels;
     texture->textureView = texture->texture->createTextureView(viewDesc);
@@ -878,7 +909,7 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
 static GuestBuffer* CreateVertexBuffer(uint32_t length) 
 {
     auto buffer = g_userHeap.AllocPhysical<GuestBuffer>(ResourceType::VertexBuffer);
-    buffer->buffer = g_device->createBuffer(RenderBufferDesc::VertexBuffer(length, RenderHeapType::DEFAULT));
+    buffer->buffer = g_device->createBuffer(RenderBufferDesc::VertexBuffer(length, RenderHeapType::DEFAULT, RenderBufferFlag::INDEX));
     buffer->dataSize = length;
 #ifdef _DEBUG 
     buffer->buffer->setName(std::format("Vertex Buffer {:X}", g_memory.MapVirtual(buffer)));
@@ -1204,7 +1235,7 @@ static void FlushRenderState(GuestDevice* device)
     constexpr size_t BOOL_MASK = 0x100000000000000ull;
     if ((device->dirtyFlags[4].get() & BOOL_MASK) != 0)
     {
-        uint32_t booleans = device->vertexShaderBoolConstants   [0].get() & 0xFF;
+        uint32_t booleans = device->vertexShaderBoolConstants[0].get() & 0xFF;
         booleans |= (device->pixelShaderBoolConstants[0].get() & 0xFF) << 16;
 
         SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.booleans, booleans);
@@ -1250,15 +1281,30 @@ static void FlushRenderState(GuestDevice* device)
 
                 SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.samplerIndices[i], descriptorIndex);
             }
+
+            device->dirtyFlags[3] = device->dirtyFlags[3].get() & ~mask;
         }
     }
 
     auto& uploadAllocator = g_uploadAllocators[g_frame];
 
+    auto setRootDescriptor = [&](RenderBufferReference reference, size_t index)
+        {
+            if (g_vulkan)
+            {
+                uint64_t address = reference.ref->getDeviceAddress() + reference.offset;
+                commandList->setGraphicsPushConstants(0, &address, 8 * index, 8);
+            }
+            else
+            {
+                commandList->setGraphicsRootDescriptor(reference, index);
+            }
+        };
+
     if (g_dirtyStates.sharedConstants)
     {
         auto sharedConstants = uploadAllocator.allocate<false>(&g_sharedConstants, sizeof(g_sharedConstants), 0x100);
-        commandList->setGraphicsRootDescriptor(sharedConstants, 2);
+        setRootDescriptor(sharedConstants, 2);
     }
 
     if (g_dirtyStates.scissorRect)
@@ -1275,8 +1321,7 @@ static void FlushRenderState(GuestDevice* device)
     if (g_dirtyStates.vertexShaderConstants || device->dirtyFlags[0] != 0)
     {
         auto vertexShaderConstants = uploadAllocator.allocate<true>(device->vertexShaderFloatConstants, 0x1000, 0x100);
-        commandList->setGraphicsRootDescriptor(vertexShaderConstants, 0);
-
+        setRootDescriptor(vertexShaderConstants, 0);
         device->dirtyFlags[0] = 0;
     }
 
@@ -1289,14 +1334,13 @@ static void FlushRenderState(GuestDevice* device)
             g_inputSlots + g_dirtyStates.vertexStreamFirst);
     }
 
-    if (g_dirtyStates.indices)
+    if (g_dirtyStates.indices && (!g_vulkan || g_indexBufferView.buffer.ref != nullptr))
         commandList->setIndexBuffer(&g_indexBufferView);
 
     if (g_dirtyStates.pixelShaderConstants || device->dirtyFlags[1] != 0)
     {
         auto pixelShaderConstants = uploadAllocator.allocate<true>(device->pixelShaderFloatConstants, 0xE00, 0x100);
-        commandList->setGraphicsRootDescriptor(pixelShaderConstants, 1);
-
+        setRootDescriptor(pixelShaderConstants, 1);
         device->dirtyFlags[1] = 0;
     }
 
@@ -1555,14 +1599,60 @@ static GuestVertexDeclaration* CreateVertexDeclaration(GuestVertexElement* verte
         static std::vector<RenderInputElement> inputElements;
         inputElements.clear();
 
+        struct Location
+        {
+            uint32_t usage;
+            uint32_t usageIndex;
+            uint32_t location;
+        };
+
+        constexpr Location locations[] =
+        {
+            { D3DDECLUSAGE_POSITION, 0, 0 },
+            { D3DDECLUSAGE_NORMAL, 0, 1 },
+            { D3DDECLUSAGE_TANGENT, 0, 2 },
+            { D3DDECLUSAGE_BINORMAL, 0, 3 },
+            { D3DDECLUSAGE_TEXCOORD, 0, 4 },
+            { D3DDECLUSAGE_TEXCOORD, 1, 5 },
+            { D3DDECLUSAGE_TEXCOORD, 2, 6 },
+            { D3DDECLUSAGE_TEXCOORD, 3, 7 },
+            { D3DDECLUSAGE_COLOR, 0, 8 },
+            { D3DDECLUSAGE_BLENDINDICES, 0, 9 },
+            { D3DDECLUSAGE_BLENDWEIGHT, 0, 10 },
+            { D3DDECLUSAGE_COLOR, 1, 11 },
+            { D3DDECLUSAGE_TEXCOORD, 4, 12 },
+            { D3DDECLUSAGE_TEXCOORD, 5, 13 },
+            { D3DDECLUSAGE_TEXCOORD, 6, 14 },
+            { D3DDECLUSAGE_TEXCOORD, 7, 15 },
+            { D3DDECLUSAGE_POSITION, 1, 15 }
+        };
+
         vertexElement = vertexElements;
         while (vertexElement->stream != 0xFF && vertexElement->type != D3DDECLTYPE_UNUSED)
         {
+            if (vertexElement->usage == D3DDECLUSAGE_POSITION && vertexElement->usageIndex == 2)
+            {
+                ++vertexElement;
+                continue;
+            }
+
             auto& inputElement = inputElements.emplace_back();
             
             inputElement.semanticName = ConvertDeclUsage(vertexElement->usage);
             inputElement.semanticIndex = vertexElement->usageIndex;
-            inputElement.location = (vertexElement->usage * 4) + vertexElement->usageIndex;
+            inputElement.location = ~0;
+
+            for (auto& location : locations)
+            {
+                if (location.usage == vertexElement->usage && location.usageIndex == vertexElement->usageIndex)
+                {
+                    inputElement.location = location.location;
+                    break;
+                }
+            }
+
+            assert(inputElement.location != ~0);
+
             inputElement.format = ConvertDeclType(vertexElement->type);
             inputElement.slotIndex = vertexElement->stream;
             inputElement.alignedByteOffset = vertexElement->offset;
@@ -1611,7 +1701,18 @@ static GuestVertexDeclaration* CreateVertexDeclaration(GuestVertexElement* verte
 
         auto addInputElement = [&](uint32_t usage, uint32_t usageIndex)
             {
-                uint32_t location = (usage * 4) + usageIndex;
+                uint32_t location = ~0;
+
+                for (auto& alsoLocation : locations)
+                {
+                    if (alsoLocation.usage == usage && alsoLocation.usageIndex == usageIndex)
+                    {
+                        location = alsoLocation.location;
+                        break;
+                    }
+                }
+
+                assert(location != ~0);
 
                 for (auto& inputElement : inputElements)
                 {
@@ -1642,7 +1743,6 @@ static GuestVertexDeclaration* CreateVertexDeclaration(GuestVertexElement* verte
         addInputElement(D3DDECLUSAGE_TEXCOORD, 2);
         addInputElement(D3DDECLUSAGE_TEXCOORD, 3);
         addInputElement(D3DDECLUSAGE_COLOR, 0);
-        addInputElement(D3DDECLUSAGE_COLOR, 1);
         addInputElement(D3DDECLUSAGE_BLENDWEIGHT, 0);
         addInputElement(D3DDECLUSAGE_BLENDINDICES, 0);
 
@@ -1671,11 +1771,30 @@ static void SetVertexDeclaration(GuestDevice* device, GuestVertexDeclaration* ve
     device->vertexDeclaration = vertexDeclaration;
 }
 
+static std::unique_ptr<RenderShader> CreateShader(const uint32_t* function)
+{
+    if (*function == 0)
+    {
+        const uint32_t dxilSize = *(function + 1);
+        const uint32_t spirvSize = *(function + 2);
+
+        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(function + 3);
+        if (g_vulkan)
+        {
+            return g_device->createShader(bytes + dxilSize, spirvSize, "main", RenderShaderFormat::SPIRV);
+        }
+        else
+        {
+            return g_device->createShader(bytes, dxilSize, "main", RenderShaderFormat::DXIL);
+        }
+    }
+    return nullptr;
+}
+
 static GuestShader* CreateVertexShader(const uint32_t* function) 
 {
     auto vertexShader = g_userHeap.AllocPhysical<GuestShader>(ResourceType::VertexShader);
-    if (*function == 0x43425844)
-        vertexShader->shader = g_device->createShader(function, function[6], "main", RenderShaderFormat::DXIL);
+    vertexShader->shader = CreateShader(function);
 
     return vertexShader;
 }
@@ -1705,15 +1824,14 @@ static void SetStreamSource(GuestDevice* device, uint32_t index, GuestBuffer* bu
 static void SetIndices(GuestDevice* device, GuestBuffer* buffer) 
 {
     SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.buffer, buffer != nullptr ? buffer->buffer->at(0) : RenderBufferReference{});
-    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, buffer != nullptr ? buffer->format : RenderFormat::UNKNOWN);
+    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, buffer != nullptr ? buffer->format : RenderFormat::R16_UINT);
     SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, buffer != nullptr ? buffer->dataSize : 0u);
 }
 
 static GuestShader* CreatePixelShader(const uint32_t* function)
 {
     auto pixelShader = g_userHeap.AllocPhysical<GuestShader>(ResourceType::PixelShader);
-    if (*function == 0x43425844)
-        pixelShader->shader = g_device->createShader(function, function[6], "main", RenderShaderFormat::DXIL);
+    pixelShader->shader = CreateShader(function);
 
     return pixelShader;
 }
@@ -2031,6 +2149,7 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
             desc.mipLevels = ddsDesc.numMips;
             desc.arraySize = ddsDesc.type == ddspp::TextureType::Cubemap ? ddsDesc.arraySize * 6 : ddsDesc.arraySize;
             desc.format = ConvertDXGIFormat(ddsDesc.format);
+            desc.flags = ddsDesc.type == ddspp::TextureType::Cubemap ? RenderTextureFlag::CUBE : RenderTextureFlag::NONE;
             texture->texture = g_device->createTexture(desc);
 #ifdef _DEBUG
             texture->texture->setName(reinterpret_cast<char*>(g_memory.Translate(pictureData->name + 2)));
@@ -2108,6 +2227,8 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
 
             ExecuteCopyCommandList([&]
                 {
+                    g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture.get(), RenderTextureLayout::COPY_DEST));
+
                     for (size_t i = 0; i < slices.size(); i++)
                     {
                         auto& slice = slices[i];

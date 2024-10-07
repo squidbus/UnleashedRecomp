@@ -21,6 +21,7 @@ namespace RT64 {
         virtual void unmap(uint32_t subresource = 0, const RenderRange *writtenRange = nullptr) = 0;
         virtual std::unique_ptr<RenderBufferFormattedView> createBufferFormattedView(RenderFormat format) = 0;
         virtual void setName(const std::string &name) = 0;
+        virtual uint64_t getDeviceAddress() const = 0;
 
         // Concrete implementation shortcuts.
         inline RenderBufferReference at(uint64_t offset) const {
@@ -104,7 +105,6 @@ namespace RT64 {
 
     struct RenderCommandList {
         virtual ~RenderCommandList() { }
-        virtual bool isOpen() = 0;
         virtual void begin() = 0;
         virtual void end() = 0;
         virtual void barriers(RenderBarrierStages stages, const RenderBufferBarrier *bufferBarriers, uint32_t bufferBarriersCount, const RenderTextureBarrier *textureBarriers, uint32_t textureBarriersCount) = 0;
@@ -114,14 +114,14 @@ namespace RT64 {
         virtual void drawIndexedInstanced(uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) = 0;
         virtual void setPipeline(const RenderPipeline *pipeline) = 0;
         virtual void setComputePipelineLayout(const RenderPipelineLayout *pipelineLayout) = 0;
-        virtual void setComputePushConstants(uint32_t rangeIndex, const void *data) = 0;
+        virtual void setComputePushConstants(uint32_t rangeIndex, const void *data, uint32_t offset = 0, uint32_t size = 0) = 0;
         virtual void setComputeDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) = 0;
         virtual void setGraphicsPipelineLayout(const RenderPipelineLayout *pipelineLayout) = 0;
-        virtual void setGraphicsPushConstants(uint32_t rangeIndex, const void *data) = 0;
+        virtual void setGraphicsPushConstants(uint32_t rangeIndex, const void *data, uint32_t offset = 0, uint32_t size = 0) = 0;
         virtual void setGraphicsDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) = 0;
         virtual void setGraphicsRootDescriptor(RenderBufferReference bufferReference, uint32_t rootDescriptorIndex) = 0;
         virtual void setRaytracingPipelineLayout(const RenderPipelineLayout *pipelineLayout) = 0;
-        virtual void setRaytracingPushConstants(uint32_t rangeIndex, const void *data) = 0;
+        virtual void setRaytracingPushConstants(uint32_t rangeIndex, const void *data, uint32_t offset = 0, uint32_t size = 0) = 0;
         virtual void setRaytracingDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) = 0;
         virtual void setIndexBuffer(const RenderIndexBufferView *view) = 0;
         virtual void setVertexBuffers(uint32_t startSlot, const RenderVertexBufferView *views, uint32_t viewCount, const RenderInputSlot *inputSlots) = 0;

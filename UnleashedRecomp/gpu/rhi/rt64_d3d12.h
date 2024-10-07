@@ -159,7 +159,6 @@ namespace RT64 {
 
         D3D12CommandList(D3D12Device *device, RenderCommandListType type);
         ~D3D12CommandList() override;
-        bool isOpen() override;
         void begin() override;
         void end() override;
         void barriers(RenderBarrierStages stages, const RenderBufferBarrier *bufferBarriers, uint32_t bufferBarriersCount, const RenderTextureBarrier *textureBarriers, uint32_t textureBarriersCount) override;
@@ -169,14 +168,14 @@ namespace RT64 {
         void drawIndexedInstanced(uint32_t indexCountPerInstance, uint32_t instanceCount, uint32_t startIndexLocation, int32_t baseVertexLocation, uint32_t startInstanceLocation) override;
         void setPipeline(const RenderPipeline *pipeline) override;
         void setComputePipelineLayout(const RenderPipelineLayout *pipelineLayout) override;
-        void setComputePushConstants(uint32_t rangeIndex, const void *data) override;
+        void setComputePushConstants(uint32_t rangeIndex, const void *data, uint32_t offset = 0, uint32_t size = 0) override;
         void setComputeDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) override;
         void setGraphicsPipelineLayout(const RenderPipelineLayout *pipelineLayout) override;
-        void setGraphicsPushConstants(uint32_t rangeIndex, const void *data) override;
+        void setGraphicsPushConstants(uint32_t rangeIndex, const void *data, uint32_t offset = 0, uint32_t size = 0) override;
         void setGraphicsDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) override;
         void setGraphicsRootDescriptor(RenderBufferReference bufferReference, uint32_t rootDescriptorIndex) override;
         void setRaytracingPipelineLayout(const RenderPipelineLayout *pipelineLayout) override;
-        void setRaytracingPushConstants(uint32_t rangeIndex, const void *data) override;
+        void setRaytracingPushConstants(uint32_t rangeIndex, const void *data, uint32_t offset = 0, uint32_t size = 0) override;
         void setRaytracingDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) override;
         void setIndexBuffer(const RenderIndexBufferView *view) override;
         void setVertexBuffers(uint32_t startSlot, const RenderVertexBufferView *views, uint32_t viewCount, const RenderInputSlot *inputSlots) override;
@@ -250,6 +249,7 @@ namespace RT64 {
         void unmap(uint32_t subresource, const RenderRange *writtenRange) override;
         std::unique_ptr<RenderBufferFormattedView> createBufferFormattedView(RenderFormat format) override;
         void setName(const std::string &name) override;
+        uint64_t getDeviceAddress() const override;
     };
 
     struct D3D12BufferFormattedView : RenderBufferFormattedView {

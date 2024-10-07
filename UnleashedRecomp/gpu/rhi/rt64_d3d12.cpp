@@ -1441,10 +1441,6 @@ namespace RT64 {
         }
     }
 
-    bool D3D12CommandList::isOpen() {
-        return open;
-    }
-
     void D3D12CommandList::begin() {
         assert(!open);
 
@@ -1622,13 +1618,18 @@ namespace RT64 {
         activeComputePipelineLayout = interfacePipelineLayout;
     }
 
-    void D3D12CommandList::setComputePushConstants(uint32_t rangeIndex, const void *data) {
+    void D3D12CommandList::setComputePushConstants(uint32_t rangeIndex, const void *data, uint32_t offset, uint32_t size) {
         assert(activeComputePipelineLayout != nullptr);
         assert(rangeIndex < activeComputePipelineLayout->pushConstantRanges.size());
 
         const RenderPushConstantRange &range = activeComputePipelineLayout->pushConstantRanges[rangeIndex];
         assert((range.offset == 0) && "Offset behavior should be verified when compared to Vulkan.");
-        d3d->SetComputeRoot32BitConstants(rangeIndex, (range.size + sizeof(uint32_t) - 1) / sizeof(uint32_t), data, 0);
+
+        if (size == 0) {
+            size = range.size;
+        }
+
+        d3d->SetComputeRoot32BitConstants(rangeIndex, (size + sizeof(uint32_t) - 1) / sizeof(uint32_t), data, (offset + sizeof(uint32_t) - 1) / sizeof(uint32_t));
     }
 
     void D3D12CommandList::setComputeDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) {
@@ -1643,13 +1644,18 @@ namespace RT64 {
         activeGraphicsPipelineLayout = interfacePipelineLayout;
     }
 
-    void D3D12CommandList::setGraphicsPushConstants(uint32_t rangeIndex, const void *data) {
+    void D3D12CommandList::setGraphicsPushConstants(uint32_t rangeIndex, const void *data, uint32_t offset, uint32_t size) {
         assert(activeGraphicsPipelineLayout != nullptr);
         assert(rangeIndex < activeGraphicsPipelineLayout->pushConstantRanges.size());
 
         const RenderPushConstantRange &range = activeGraphicsPipelineLayout->pushConstantRanges[rangeIndex];
         assert((range.offset == 0) && "Offset behavior should be verified when compared to Vulkan.");
-        d3d->SetGraphicsRoot32BitConstants(rangeIndex, (range.size + sizeof(uint32_t) - 1) / sizeof(uint32_t), data, 0);
+
+        if (size == 0) {
+            size = range.size;
+        }
+
+        d3d->SetGraphicsRoot32BitConstants(rangeIndex, (size + sizeof(uint32_t) - 1) / sizeof(uint32_t), data, (offset + sizeof(uint32_t) - 1) / sizeof(uint32_t));
     }
 
     void D3D12CommandList::setGraphicsDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) {
@@ -1664,8 +1670,8 @@ namespace RT64 {
         setComputePipelineLayout(pipelineLayout);
     }
 
-    void D3D12CommandList::setRaytracingPushConstants(uint32_t rangeIndex, const void *data) {
-        setComputePushConstants(rangeIndex, data);
+    void D3D12CommandList::setRaytracingPushConstants(uint32_t rangeIndex, const void *data, uint32_t offset, uint32_t size) {
+        setComputePushConstants(rangeIndex, data, offset, size);
     }
 
     void D3D12CommandList::setRaytracingDescriptorSet(RenderDescriptorSet *descriptorSet, uint32_t setIndex) {
@@ -2302,6 +2308,10 @@ namespace RT64 {
         setObjectName(d3d, name);
     }
 
+    uint64_t D3D12Buffer::getDeviceAddress() const {
+        return d3d->GetGPUVirtualAddress();
+    }
+
     // D3D12BufferFormattedView
 
     D3D12BufferFormattedView::D3D12BufferFormattedView(D3D12Buffer *buffer, RenderFormat format) {
@@ -2675,7 +2685,9 @@ namespace RT64 {
         psoDesc.PS.BytecodeLength = (pixelShader != nullptr) ? pixelShader->d3d.size() : 0;
         psoDesc.SampleMask = UINT_MAX;
         psoDesc.SampleDesc.Count = desc.multisampling.sampleCount;
-        psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
+        if (desc.primitiveTopology == RenderPrimitiveTopology::LINE_STRIP || desc.primitiveTopology == RenderPrimitiveTopology::TRIANGLE_STRIP) {
+            psoDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
+        }
         psoDesc.PrimitiveTopologyType = toTopologyType(desc.primitiveTopology);
         psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
         psoDesc.RasterizerState.DepthClipEnable = desc.depthClipEnabled;

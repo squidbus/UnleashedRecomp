@@ -43,6 +43,7 @@ set(SWA_GPU_CXX_SOURCES
     "gpu/window.cpp"
     "gpu/video.cpp"
     "gpu/rhi/rt64_d3d12.cpp"
+    "gpu/rhi/rt64_vulkan.cpp"
 )
 
 set(SWA_APU_CXX_SOURCES
@@ -85,7 +86,12 @@ target_include_directories(UnleashedRecomp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR} 
     ${SWA_THIRDPARTY_ROOT}/ddspp 
     ${SWA_THIRDPARTY_ROOT}/D3D12MemoryAllocator/include
-    ${SWA_THIRDPARTY_ROOT}/D3D12MemoryAllocator/src)
+    ${SWA_THIRDPARTY_ROOT}/D3D12MemoryAllocator/src
+    ${SWA_THIRDPARTY_ROOT}/volk
+    ${SWA_THIRDPARTY_ROOT}/Vulkan-Headers/include
+    ${SWA_THIRDPARTY_ROOT}/VulkanMemoryAllocator/include
+    ${SWA_THIRDPARTY_ROOT}/VulkanMemoryAllocator/src
+)
 
 target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})
 

@@ -405,7 +405,8 @@ namespace RT64 {
             RENDER_TARGET = 1U << 0,
             DEPTH_TARGET = 1U << 1,
             STORAGE = 1U << 2,
-            UNORDERED_ACCESS = 1U << 3
+            UNORDERED_ACCESS = 1U << 3,
+            CUBE = 1U << 4
         };
     };
 
