@@ -59,6 +59,7 @@ namespace RT64 {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME,
         VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
+        VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 #   ifdef VULKAN_OBJECT_NAMES_ENABLED
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME
 #   endif
@@ -3466,6 +3467,11 @@ namespace RT64 {
         robustnessFeatures.pNext = featuresChain;
         featuresChain = &robustnessFeatures;
 
+        VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
+        bufferDeviceAddressFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+        bufferDeviceAddressFeatures.pNext = featuresChain;
+        featuresChain = &bufferDeviceAddressFeatures;
+
         VkPhysicalDeviceFeatures2 deviceFeatures = {};
         deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
         deviceFeatures.pNext = featuresChain;
@@ -3473,10 +3479,8 @@ namespace RT64 {
 
         void *createDeviceChain = nullptr;
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeatures = {};
-        VkPhysicalDeviceBufferDeviceAddressFeaturesEXT bufferDeviceFeatures = {};
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures = {};
         const bool rtSupported = supportedOptionalExtensions.find(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) != supportedOptionalExtensions.end();
-        const bool bufferDeviceAddressSupported = rtSupported;
         if (rtSupported) {
             rtPipelineProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
 
@@ -3488,11 +3492,6 @@ namespace RT64 {
             rtPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
             rtPipelineFeatures.rayTracingPipeline = true;
             createDeviceChain = &rtPipelineFeatures;
-
-            bufferDeviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR;
-            bufferDeviceFeatures.pNext = createDeviceChain;
-            bufferDeviceFeatures.bufferDeviceAddress = true;
-            createDeviceChain = &bufferDeviceFeatures;
 
             accelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
             accelerationStructureFeatures.pNext = createDeviceChain;
@@ -3535,6 +3534,12 @@ namespace RT64 {
         if (nullDescriptor) {
             robustnessFeatures.pNext = createDeviceChain;
             createDeviceChain = &robustnessFeatures;
+        }
+
+        const bool bufferDeviceAddress = bufferDeviceAddressFeatures.bufferDeviceAddress;
+        if (bufferDeviceAddress) {
+            bufferDeviceAddressFeatures.pNext = createDeviceChain;
+            createDeviceChain = &bufferDeviceAddressFeatures;
         }
 
         // Retrieve the information for the queue families.
@@ -3646,7 +3651,7 @@ namespace RT64 {
         vmaFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
 
         VmaAllocatorCreateInfo allocatorInfo = {};
-        allocatorInfo.flags |= bufferDeviceAddressSupported ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0;
+        allocatorInfo.flags |= bufferDeviceAddress ? VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT : 0;
         allocatorInfo.physicalDevice = physicalDevice;
         allocatorInfo.device = vk;
         allocatorInfo.pVulkanFunctions = &vmaFunctions;
