@@ -271,7 +271,7 @@ static void FlushBarriers()
 {
     if (!g_barriers.empty())
     {
-        g_commandLists[g_frame]->barriers(RenderBarrierStage::GRAPHICS, g_barriers);
+        g_commandLists[g_frame]->barriers(RenderBarrierStage::GRAPHICS | RenderBarrierStage::COPY, g_barriers);
         g_barriers.clear();
     }
 }
