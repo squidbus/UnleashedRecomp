@@ -41,22 +41,23 @@ class VoiceCallback : public IXAudio2VoiceCallback
     void OnVoiceError(void* pBufferContext, HRESULT Error) override {}
 } gVoiceCallback;
 
-inline PPC_FUNC(DriverLoop)
+PPC_FUNC(DriverLoop)
 {
     GuestThread::SetThreadName(GetCurrentThreadId(), "Audio Driver");
 
-    auto* cpu = GetPPCContext();
     while (true)
     {
         if (!g_clientCallback)
         {
+            // NOTE: This if statement doesn't get compiled in without this barrier. What?
+            _ReadBarrier();
             continue;
         }
 
         WaitForSingleObject(g_audioSemaphore, INFINITE);
 
-        cpu->r3.u64 = g_clientCallbackParam;
-        GuestCode::Run(g_clientCallback, cpu);
+        ctx.r3.u64 = g_clientCallbackParam;
+        GuestCode::Run(g_clientCallback, &ctx);
     }
 }
 
