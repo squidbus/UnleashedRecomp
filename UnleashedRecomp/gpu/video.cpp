@@ -178,6 +178,14 @@ struct UploadBuffer
 
     std::unique_ptr<RenderBuffer> buffer;
     uint8_t* memory = nullptr;
+    uint64_t deviceAddress = 0;
+};
+
+struct UploadAllocation
+{
+    RenderBufferReference bufferReference;
+    uint8_t* memory = nullptr;
+    uint64_t deviceAddress = 0;
 };
 
 struct UploadAllocator
@@ -186,7 +194,7 @@ struct UploadAllocator
     uint32_t index = 0;
     uint32_t offset = 0;
 
-    std::pair<RenderBufferReference, uint8_t*> allocate(uint32_t size, uint32_t alignment)
+    UploadAllocation allocate(uint32_t size, uint32_t alignment)
     {
         assert(size <= UploadBuffer::SIZE);
 
@@ -206,22 +214,23 @@ struct UploadAllocator
         {
             buffer.buffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(UploadBuffer::SIZE, RenderBufferFlag::CONSTANT | RenderBufferFlag::VERTEX | RenderBufferFlag::INDEX));
             buffer.memory = reinterpret_cast<uint8_t*>(buffer.buffer->map());
+            buffer.deviceAddress = buffer.buffer->getDeviceAddress();
         }
         
         auto ref = buffer.buffer->at(offset);
         offset += size;
 
-        return { ref, buffer.memory + ref.offset };
+        return { ref, buffer.memory + ref.offset, buffer.deviceAddress + ref.offset };
     }
 
     template<bool TByteSwap, typename T>
-    RenderBufferReference allocate(const T* memory, uint32_t size, uint32_t alignment)
+    UploadAllocation allocate(const T* memory, uint32_t size, uint32_t alignment)
     {
         auto result = allocate(size, alignment);
 
         if constexpr (TByteSwap)
         {
-            auto destination = reinterpret_cast<T*>(result.second);
+            auto destination = reinterpret_cast<T*>(result.memory);
 
             for (size_t i = 0; i < size; i += sizeof(T))
             {
@@ -232,10 +241,10 @@ struct UploadAllocator
         }
         else
         {
-            memcpy(result.second, memory, size);
+            memcpy(result.memory, memory, size);
         }
 
-        return result.first;
+        return result;
     }
 
     void reset()
@@ -1288,17 +1297,12 @@ static void FlushRenderState(GuestDevice* device)
 
     auto& uploadAllocator = g_uploadAllocators[g_frame];
 
-    auto setRootDescriptor = [&](RenderBufferReference reference, size_t index)
+    auto setRootDescriptor = [&](const UploadAllocation& allocation, size_t index)
         {
             if (g_vulkan)
-            {
-                uint64_t address = reference.ref->getDeviceAddress() + reference.offset;
-                commandList->setGraphicsPushConstants(0, &address, 8 * index, 8);
-            }
+                commandList->setGraphicsPushConstants(0, &allocation.deviceAddress, 8 * index, 8);
             else
-            {
-                commandList->setGraphicsRootDescriptor(reference, index);
-            }
+                commandList->setGraphicsRootDescriptor(allocation.bufferReference, index);
         };
 
     if (g_dirtyStates.sharedConstants)
@@ -1443,7 +1447,7 @@ static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_
 
     auto& vertexBufferView = g_vertexBufferViews[0];
     vertexBufferView.size = primitiveCount * vertexStreamZeroStride;
-    vertexBufferView.buffer = g_uploadAllocators[g_frame].allocate<true>(reinterpret_cast<uint32_t*>(vertexStreamZeroData), vertexBufferView.size, 0x4);
+    vertexBufferView.buffer = g_uploadAllocators[g_frame].allocate<true>(reinterpret_cast<uint32_t*>(vertexStreamZeroData), vertexBufferView.size, 0x4).bufferReference;
     g_inputSlots[0].stride = vertexStreamZeroStride;
     g_dirtyStates.vertexStreamFirst = 0;
 
@@ -1472,7 +1476,7 @@ static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_
 
         if (g_quadIndexBuffer == NULL || g_quadCount < quadCount)
         {
-            g_quadIndexBuffer = g_uploadAllocators[g_frame].allocate<false>(quadIndexData.data(), triangleCount * 2, 2);
+            g_quadIndexBuffer = g_uploadAllocators[g_frame].allocate<false>(quadIndexData.data(), triangleCount * 2, 2).bufferReference;
             g_quadCount = quadCount;
         }
 
