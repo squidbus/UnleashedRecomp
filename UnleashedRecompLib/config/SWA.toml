@@ -1,6 +1,6 @@
 [main]
 file_path = "../private/default.xex"
-out_directory_path = ".."
+out_directory_path = "../ppc"
 switch_table_file_path = "SWA_switch_tables.toml"
 
 skip_lr = true

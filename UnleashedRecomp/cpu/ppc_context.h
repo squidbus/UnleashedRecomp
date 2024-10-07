@@ -1,6 +1,4 @@
 #pragma once
-#include "ppc/ppc_context.h"
-#include "ppc/ppc_recomp_shared.h"
 
 inline thread_local PPCContext* gPPCContext;
 

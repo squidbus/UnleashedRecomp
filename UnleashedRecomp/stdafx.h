@@ -10,6 +10,7 @@
 #include <xxhash.h>
 #include <ankerl/unordered_dense.h>
 #include <ddspp.h>
+#include <ppc/ppc_recomp_shared.h>
 
 #include "framework.h"
 #include "Mutex.h"
