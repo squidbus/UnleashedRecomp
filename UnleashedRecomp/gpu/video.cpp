@@ -124,6 +124,7 @@ static std::unique_ptr<RenderCommandFence> g_copyCommandFence;
 
 static std::unique_ptr<RenderSwapChain> g_swapChain;
 static std::unique_ptr<RenderCommandSemaphore> g_acquireSemaphores[NUM_FRAMES];
+static std::unique_ptr<RenderCommandSemaphore> g_renderSemaphores[NUM_FRAMES];
 static uint32_t g_backBufferIndex;
 static GuestSurface* g_backBuffer;
 
@@ -263,6 +264,17 @@ static std::vector<uint32_t> g_tempDescriptorIndices[NUM_FRAMES];
 
 static RenderBufferReference g_quadIndexBuffer;
 static uint32_t g_quadCount;
+
+static std::vector<RenderTextureBarrier> g_barriers;
+
+static void FlushBarriers()
+{
+    if (!g_barriers.empty())
+    {
+        g_commandLists[g_frame]->barriers(RenderBarrierStage::GRAPHICS, g_barriers);
+        g_barriers.clear();
+    }
+}
 
 static void SetRenderState(GuestDevice* device, uint32_t value)
 {
@@ -506,6 +518,9 @@ static void CreateHostDevice()
     {
         for (auto& acquireSemaphore : g_acquireSemaphores)
             acquireSemaphore = g_device->createCommandSemaphore();
+
+        for (auto& renderSemaphore : g_renderSemaphores)
+            renderSemaphore = g_device->createCommandSemaphore();
     }
 
     RenderPipelineLayoutBuilder pipelineLayoutBuilder;
@@ -556,12 +571,13 @@ static void BeginCommandList()
 
     bool acquired = g_swapChain->acquireTexture(g_acquireSemaphores[g_frame].get(), &g_backBufferIndex);
     assert(acquired);
+
     g_backBuffer->texture = g_swapChain->getTexture(g_backBufferIndex);
+    g_backBuffer->pendingBarrier = true;
 
     auto& commandList = g_commandLists[g_frame];
 
     commandList->begin();
-    commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(g_backBuffer->texture, RenderTextureLayout::COLOR_WRITE));
     commandList->setGraphicsPipelineLayout(g_pipelineLayout.get());
     commandList->setGraphicsDescriptorSet(g_textureDescriptorSet.get(), 0);
     commandList->setGraphicsDescriptorSet(g_textureDescriptorSet.get(), 1);
@@ -802,25 +818,31 @@ static uint32_t HashVertexDeclaration(uint32_t vertexDeclaration)
 
 static void Present() 
 {
+    g_barriers.emplace_back(g_backBuffer->texture, RenderTextureLayout::PRESENT);
+    FlushBarriers();
+
     auto& commandList = g_commandLists[g_frame];
-    commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(g_backBuffer->texture, RenderTextureLayout::PRESENT));
     commandList->end();
 
     if (g_vulkan)
     {
         const RenderCommandList* commandLists[] = { commandList.get() };
         RenderCommandSemaphore* waitSemaphores[] = { g_acquireSemaphores[g_frame].get()};
+        RenderCommandSemaphore* signalSemaphores[] = { g_renderSemaphores[g_frame].get()};
+
         g_queue->executeCommandLists(
             commandLists, std::size(commandLists), 
             waitSemaphores, std::size(waitSemaphores), 
-            nullptr, 0, 
+            signalSemaphores, std::size(signalSemaphores),
             g_commandFences[g_frame].get());
+
+        g_swapChain->present(g_backBufferIndex, signalSemaphores, std::size(signalSemaphores));
     }
     else
     {
         g_queue->executeCommandLists(commandList.get(), g_commandFences[g_frame].get());
+        g_swapChain->present(g_backBufferIndex, nullptr, 0);
     }
-    g_swapChain->present(g_backBufferIndex, nullptr, 0);
 
     g_frame = g_nextFrame;
     g_nextFrame = (g_frame + 1) % NUM_FRAMES;
@@ -969,31 +991,18 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
     const bool isDepthStencil = (flags & 0x4) != 0;
     const auto surface = isDepthStencil ? g_depthStencil : g_renderTarget;
 
-    RenderTextureBarrier srcBarriers[] =
-    {
-        RenderTextureBarrier(surface->texture, RenderTextureLayout::COPY_SOURCE),
-        RenderTextureBarrier(texture->texture.get(), RenderTextureLayout::COPY_DEST)
-    };
+    g_barriers.emplace_back(surface->texture, RenderTextureLayout::COPY_SOURCE);
+    g_barriers.emplace_back(texture->texture.get(), RenderTextureLayout::COPY_DEST);
+    FlushBarriers();
 
-    auto& commandList = g_commandLists[g_frame];
+    g_commandLists[g_frame]->copyTexture(texture->texture.get(), surface->texture);
 
-    commandList->barriers(RenderBarrierStage::GRAPHICS, srcBarriers, std::size(srcBarriers));
-    commandList->copyTexture(texture->texture.get(), surface->texture);
-
-    RenderTextureBarrier dstBarriers[] =
-    {
-        RenderTextureBarrier(surface->texture, isDepthStencil ? RenderTextureLayout::DEPTH_WRITE : RenderTextureLayout::COLOR_WRITE),
-        RenderTextureBarrier(texture->texture.get(), RenderTextureLayout::SHADER_READ)
-    };
-
-    commandList->barriers(RenderBarrierStage::GRAPHICS, dstBarriers, std::size(dstBarriers));
+    surface->pendingBarrier = true;
+    texture->pendingBarrier = true;
 }
 
 static void SetRenderTarget(GuestDevice* device, uint32_t index, GuestSurface* renderTarget) 
 {
-    if (renderTarget != nullptr)
-        g_commandLists[g_frame]->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(renderTarget->texture, RenderTextureLayout::COLOR_WRITE));
-
     SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_renderTarget, renderTarget);
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.renderTargetFormat, renderTarget != nullptr ? renderTarget->format : RenderFormat::UNKNOWN);
 }
@@ -1005,15 +1014,26 @@ static GuestSurface* GetDepthStencilSurface(GuestDevice* device)
 
 static void SetDepthStencilSurface(GuestDevice* device, GuestSurface* depthStencil) 
 {
-    if (depthStencil != nullptr)
-        g_commandLists[g_frame]->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(depthStencil->texture, RenderTextureLayout::DEPTH_WRITE));
-
     SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_depthStencil, depthStencil);
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.depthStencilFormat, depthStencil != nullptr ? depthStencil->format : RenderFormat::UNKNOWN);
 }
 
 static void FlushFramebuffer()
 {
+    auto& commandList = g_commandLists[g_frame];
+
+    if (g_renderTarget != nullptr && g_renderTarget->pendingBarrier)
+    {
+        g_barriers.emplace_back(g_renderTarget->texture, RenderTextureLayout::COLOR_WRITE);
+        g_renderTarget->pendingBarrier = false;
+    }
+
+    if (g_depthStencil != nullptr && g_depthStencil->pendingBarrier)
+    {
+        g_barriers.emplace_back(g_depthStencil->texture, RenderTextureLayout::DEPTH_WRITE);
+        g_depthStencil->pendingBarrier = false;
+    }
+
     if (g_dirtyStates.renderTargetAndDepthStencil)
     {
         GuestSurface* framebufferContainer = nullptr;
@@ -1034,8 +1054,6 @@ static void FlushFramebuffer()
             framebufferContainer = g_depthStencil;
             framebufferKey = nullptr;
         }
-
-        auto& commandList = g_commandLists[g_frame];
 
         if (framebufferContainer != nullptr)
         {
@@ -1066,6 +1084,8 @@ static void FlushFramebuffer()
 
         g_dirtyStates.renderTargetAndDepthStencil = false;
     }
+
+    FlushBarriers();
 }
 
 static void Clear(GuestDevice* device, uint32_t flags, uint32_t, be<float>* color, double z) 
@@ -1105,8 +1125,11 @@ static void GetViewport(GuestDevice* device, GuestViewport* viewport)
 
 static void SetTexture(GuestDevice* device, uint32_t index, GuestTexture* texture) 
 {
-    if (texture != nullptr)
-        g_commandLists[g_frame]->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(texture->texture.get(), RenderTextureLayout::SHADER_READ));
+    if (texture != nullptr && texture->pendingBarrier)
+    {
+        g_barriers.emplace_back(texture->texture.get(), RenderTextureLayout::SHADER_READ);
+        texture->pendingBarrier = false;
+    }
 
     SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.textureIndices[index], texture != nullptr ? texture->descriptorIndex : NULL);
 }
