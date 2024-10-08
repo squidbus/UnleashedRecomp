@@ -116,6 +116,7 @@ static uint32_t g_nextFrame = 1;
 static std::unique_ptr<RenderCommandQueue> g_queue;
 static std::unique_ptr<RenderCommandList> g_commandLists[NUM_FRAMES];
 static std::unique_ptr<RenderCommandFence> g_commandFences[NUM_FRAMES];
+static bool g_commandListStates[NUM_FRAMES];
 
 static Mutex g_copyMutex;
 static std::unique_ptr<RenderCommandQueue> g_copyQueue;
@@ -123,6 +124,8 @@ static std::unique_ptr<RenderCommandList> g_copyCommandList;
 static std::unique_ptr<RenderCommandFence> g_copyCommandFence;
 
 static std::unique_ptr<RenderSwapChain> g_swapChain;
+static bool g_swapChainValid;
+
 static std::unique_ptr<RenderCommandSemaphore> g_acquireSemaphores[NUM_FRAMES];
 static std::unique_ptr<RenderCommandSemaphore> g_renderSemaphores[NUM_FRAMES];
 static uint32_t g_backBufferIndex;
@@ -512,16 +515,12 @@ static void CreateHostDevice()
     g_copyCommandFence = g_device->createCommandFence();
 
     g_swapChain = g_queue->createSwapChain(Window::s_windowHandle, 2, RenderFormat::R8G8B8A8_UNORM);
-    g_swapChain->resize();
 
-    if (g_vulkan)
-    {
-        for (auto& acquireSemaphore : g_acquireSemaphores)
-            acquireSemaphore = g_device->createCommandSemaphore();
-
-        for (auto& renderSemaphore : g_renderSemaphores)
-            renderSemaphore = g_device->createCommandSemaphore();
-    }
+    for (auto& acquireSemaphore : g_acquireSemaphores)
+        acquireSemaphore = g_device->createCommandSemaphore();
+    
+    for (auto& renderSemaphore : g_renderSemaphores)
+        renderSemaphore = g_device->createCommandSemaphore();
 
     RenderPipelineLayoutBuilder pipelineLayoutBuilder;
     pipelineLayoutBuilder.begin(false, true);
@@ -561,6 +560,18 @@ static void CreateHostDevice()
     g_pipelineLayout = pipelineLayoutBuilder.create(g_device.get());
 }
 
+static void WaitForGPU()
+{
+    for (size_t i = 0; i < NUM_FRAMES; i++)
+    {
+        if (g_commandListStates[i])
+        {
+            g_queue->waitForCommandFence(g_commandFences[i].get());
+            g_commandListStates[i] = false;
+        }
+    }
+}
+
 static void BeginCommandList()
 {
     g_renderTarget = g_backBuffer;
@@ -569,11 +580,25 @@ static void BeginCommandList()
     g_pipelineState.renderTargetFormat = g_backBuffer->format;
     g_pipelineState.depthStencilFormat = RenderFormat::UNKNOWN;
 
-    bool acquired = g_swapChain->acquireTexture(g_acquireSemaphores[g_frame].get(), &g_backBufferIndex);
-    assert(acquired);
+    g_swapChainValid = !g_swapChain->needsResize();
+    if (g_swapChainValid)
+    {
+        g_swapChainValid = g_swapChain->acquireTexture(g_acquireSemaphores[g_frame].get(), &g_backBufferIndex);
+        if (g_swapChainValid)
+        {
+            g_backBuffer->texture = g_swapChain->getTexture(g_backBufferIndex);
+            g_backBuffer->pendingBarrier = true;
+        }
+    }
+    else
+    {
+        WaitForGPU();
+        g_backBuffer->framebuffers.clear();
+        g_swapChain->resize();
+    }
 
-    g_backBuffer->texture = g_swapChain->getTexture(g_backBufferIndex);
-    g_backBuffer->pendingBarrier = true;
+    if (!g_swapChainValid)
+        g_backBuffer->texture = g_backBuffer->textureHolder.get();
 
     auto& commandList = g_commandLists[g_frame];
 
@@ -585,22 +610,16 @@ static void BeginCommandList()
     commandList->setGraphicsDescriptorSet(g_samplerDescriptorSet.get(), 3);
 }
 
-static void ExecuteDummyNextFrame()
-{
-    auto& commandList = g_commandLists[g_nextFrame];
-    commandList->begin();
-    commandList->end();
-    g_queue->executeCommandLists(commandList.get(), g_commandFences[g_nextFrame].get());
-}
-
 static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, be<uint32_t>* a6)
 {
     CreateHostDevice();
 
     g_backBuffer = g_userHeap.AllocPhysical<GuestSurface>(ResourceType::RenderTarget);
+    g_backBuffer->width = 1280;
+    g_backBuffer->height = 720;
     g_backBuffer->format = RenderFormat::R8G8B8A8_UNORM;
+    g_backBuffer->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(16, 16, 1, g_backBuffer->format, RenderTextureFlag::RENDER_TARGET));
 
-    ExecuteDummyNextFrame();
     BeginCommandList();
 
     auto device = g_userHeap.AllocPhysical<GuestDevice>();
@@ -792,16 +811,8 @@ static void GetIndexBufferDesc(GuestBuffer* buffer, GuestBufferDesc* desc)
 
 static void GetSurfaceDesc(GuestSurface* surface, GuestSurfaceDesc* desc) 
 {
-    if (surface->textureHolder != nullptr)
-    {
-        desc->width = surface->width;
-        desc->height = surface->height;
-    }
-    else
-    {
-        desc->width = 1280;
-        desc->height = 720;
-    }
+    desc->width = surface->width;
+    desc->height = surface->height;
 }
 
 static void GetVertexDeclaration(GuestVertexDeclaration* vertexDeclaration, GuestVertexElement* vertexElements, be<uint32_t>* count) 
@@ -818,36 +829,43 @@ static uint32_t HashVertexDeclaration(uint32_t vertexDeclaration)
 
 static void Present() 
 {
-    g_barriers.emplace_back(g_backBuffer->texture, RenderTextureLayout::PRESENT);
+    if (g_swapChainValid)
+        g_barriers.emplace_back(g_backBuffer->texture, RenderTextureLayout::PRESENT);
+    
     FlushBarriers();
 
     auto& commandList = g_commandLists[g_frame];
     commandList->end();
 
-    if (g_vulkan)
+    if (g_swapChainValid)
     {
         const RenderCommandList* commandLists[] = { commandList.get() };
-        RenderCommandSemaphore* waitSemaphores[] = { g_acquireSemaphores[g_frame].get()};
-        RenderCommandSemaphore* signalSemaphores[] = { g_renderSemaphores[g_frame].get()};
+        RenderCommandSemaphore* waitSemaphores[] = { g_acquireSemaphores[g_frame].get() };
+        RenderCommandSemaphore* signalSemaphores[] = { g_renderSemaphores[g_frame].get() };
 
         g_queue->executeCommandLists(
-            commandLists, std::size(commandLists), 
-            waitSemaphores, std::size(waitSemaphores), 
+            commandLists, std::size(commandLists),
+            waitSemaphores, std::size(waitSemaphores),
             signalSemaphores, std::size(signalSemaphores),
             g_commandFences[g_frame].get());
 
-        g_swapChain->present(g_backBufferIndex, signalSemaphores, std::size(signalSemaphores));
+        g_swapChainValid = g_swapChain->present(g_backBufferIndex, signalSemaphores, std::size(signalSemaphores));
     }
     else
     {
         g_queue->executeCommandLists(commandList.get(), g_commandFences[g_frame].get());
-        g_swapChain->present(g_backBufferIndex, nullptr, 0);
     }
+
+    g_commandListStates[g_frame] = true;
 
     g_frame = g_nextFrame;
     g_nextFrame = (g_frame + 1) % NUM_FRAMES;
 
-    g_queue->waitForCommandFence(g_commandFences[g_frame].get());
+    if (g_commandListStates[g_frame])
+    {
+        g_queue->waitForCommandFence(g_commandFences[g_frame].get());
+        g_commandListStates[g_frame] = false;
+    }
 
     {
         std::lock_guard lock(g_tempMutex);
@@ -1258,8 +1276,29 @@ static void FlushRenderState(GuestDevice* device)
 
     auto& commandList = g_commandLists[g_frame];
 
+    bool renderingToBackBuffer = g_renderTarget == g_backBuffer && 
+        g_backBuffer->texture != g_backBuffer->textureHolder.get();
+
     if (g_dirtyStates.viewport)
-        commandList->setViewports(g_viewport);
+    {
+        if (renderingToBackBuffer)
+        {
+            uint32_t width = g_swapChain->getWidth();
+            uint32_t height = g_swapChain->getHeight();
+
+            commandList->setViewports(RenderViewport(
+                g_viewport.x * width / 1280.0f,
+                g_viewport.y * height / 720.0f,
+                g_viewport.width * width / 1280.0f,
+                g_viewport.height * height / 720.0f,
+                g_viewport.minDepth,
+                g_viewport.maxDepth));
+        }
+        else
+        {
+            commandList->setViewports(g_viewport);
+        }
+    }
 
     if (g_dirtyStates.pipelineState)
         commandList->setPipeline(CreateGraphicsPipeline(g_pipelineState));
@@ -1336,11 +1375,22 @@ static void FlushRenderState(GuestDevice* device)
 
     if (g_dirtyStates.scissorRect)
     {
-        const auto scissorRect = g_scissorTestEnable ? g_scissorRect : RenderRect(
+        auto scissorRect = g_scissorTestEnable ? g_scissorRect : RenderRect(
             g_viewport.x,
             g_viewport.y,
             g_viewport.x + g_viewport.width,
             g_viewport.y + g_viewport.height);
+
+        if (renderingToBackBuffer)
+        {
+            uint32_t width = g_swapChain->getWidth();
+            uint32_t height = g_swapChain->getHeight();
+
+            scissorRect.left = scissorRect.left * width / 1280;
+            scissorRect.top = scissorRect.top * height / 720;
+            scissorRect.right = scissorRect.right * width / 1280;
+            scissorRect.bottom = scissorRect.bottom * height / 720;
+        }
 
         commandList->setScissors(scissorRect);
     }
@@ -1807,13 +1857,9 @@ static std::unique_ptr<RenderShader> CreateShader(const uint32_t* function)
 
         const uint8_t* bytes = reinterpret_cast<const uint8_t*>(function + 3);
         if (g_vulkan)
-        {
             return g_device->createShader(bytes + dxilSize, spirvSize, "main", RenderShaderFormat::SPIRV);
-        }
         else
-        {
             return g_device->createShader(bytes, dxilSize, "main", RenderShaderFormat::DXIL);
-        }
     }
     return nullptr;
 }
