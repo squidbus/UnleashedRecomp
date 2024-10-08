@@ -1357,10 +1357,17 @@ static void FlushRenderState(GuestDevice* device)
             const auto addressU = ConvertTextureAddressMode((device->samplerStates[i].data[0].get() >> 10) & 0x7);
             const auto addressV = ConvertTextureAddressMode((device->samplerStates[i].data[0].get() >> 13) & 0x7);
             const auto addressW = ConvertTextureAddressMode((device->samplerStates[i].data[0].get() >> 16) & 0x7);
-            const auto magFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 19) & 0x3);
-            const auto minFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 21) & 0x3);
-            const auto mipFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 23) & 0x3);
+            auto magFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 19) & 0x3);
+            auto minFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 21) & 0x3);
+            auto mipFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 23) & 0x3);
             const auto borderColor = ConvertBorderColor(device->samplerStates[i].data[5].get() & 0x3);
+
+            bool anisotropyEnabled = mipFilter == RenderFilter::LINEAR;
+            if (anisotropyEnabled)
+            {
+                magFilter = RenderFilter::LINEAR;
+                minFilter = RenderFilter::LINEAR;
+            }
 
             auto& samplerDesc = g_samplerDescs[i];
 
@@ -1372,6 +1379,7 @@ static void FlushRenderState(GuestDevice* device)
             SetDirtyValue(dirty, samplerDesc.minFilter, minFilter);
             SetDirtyValue(dirty, samplerDesc.magFilter, magFilter);
             SetDirtyValue(dirty, samplerDesc.mipmapMode, RenderMipmapMode(mipFilter));
+            SetDirtyValue(dirty, samplerDesc.anisotropyEnabled, anisotropyEnabled);
             SetDirtyValue(dirty, samplerDesc.borderColor, borderColor);
 
             if (dirty)
