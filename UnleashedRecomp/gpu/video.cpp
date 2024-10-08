@@ -40,6 +40,7 @@ struct PipelineState
     uint8_t vertexStrides[16]{};
     RenderFormat renderTargetFormat{};
     RenderFormat depthStencilFormat{};
+    RenderSampleCounts sampleCount = RenderSampleCount::COUNT_1;
 };
 
 struct SharedConstants
@@ -1023,7 +1024,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     desc.depth = 1;
     desc.mipLevels = 1;
     desc.arraySize = 1;
-    //desc.multisampling.sampleCount = multiSample != 0 ? RenderSampleCount::COUNT_4 : RenderSampleCount::COUNT_1;
+    desc.multisampling.sampleCount = multiSample != 0 ? RenderSampleCount::COUNT_2 : RenderSampleCount::COUNT_1;
     desc.format = ConvertFormat(format);
     desc.flags = desc.format == RenderFormat::D32_FLOAT ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::RENDER_TARGET;
 
@@ -1035,6 +1036,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     surface->width = width;
     surface->height = height;
     surface->format = desc.format;
+    surface->sampleCount = desc.multisampling.sampleCount;
 
     return surface;
 }
@@ -1043,12 +1045,17 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
 {
     const bool isDepthStencil = (flags & 0x4) != 0;
     const auto surface = isDepthStencil ? g_depthStencil : g_renderTarget;
+    const bool multiSampling = surface->sampleCount != RenderSampleCount::COUNT_1;
 
-    g_barriers.emplace_back(surface->texture, RenderTextureLayout::COPY_SOURCE);
-    g_barriers.emplace_back(texture->texture.get(), RenderTextureLayout::COPY_DEST);
+    g_barriers.emplace_back(surface->texture, multiSampling ? RenderTextureLayout::RESOLVE_SOURCE : RenderTextureLayout::COPY_SOURCE);
+    g_barriers.emplace_back(texture->texture.get(), multiSampling ? RenderTextureLayout::RESOLVE_DEST : RenderTextureLayout::COPY_DEST);
     FlushBarriers();
 
-    g_commandLists[g_frame]->copyTexture(texture->texture.get(), surface->texture);
+    auto& commandList = g_commandLists[g_frame];
+    if (multiSampling)
+        commandList->resolveTexture(texture->texture.get(), surface->texture);
+    else 
+        commandList->copyTexture(texture->texture.get(), surface->texture);
 
     surface->pendingBarrier = true;
     texture->pendingBarrier = true;
@@ -1058,6 +1065,7 @@ static void SetRenderTarget(GuestDevice* device, uint32_t index, GuestSurface* r
 {
     SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_renderTarget, renderTarget);
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.renderTargetFormat, renderTarget != nullptr ? renderTarget->format : RenderFormat::UNKNOWN);
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.sampleCount, renderTarget != nullptr ? renderTarget->sampleCount : RenderSampleCount::COUNT_1);
 }
 
 static GuestSurface* GetDepthStencilSurface(GuestDevice* device) 
@@ -1223,6 +1231,7 @@ static RenderPipeline* CreateGraphicsPipeline(const PipelineState& pipelineState
         desc.renderTargetBlend[0].renderTargetWriteMask = pipelineState.colorWriteEnable;
         desc.renderTargetCount = pipelineState.renderTargetFormat != RenderFormat::UNKNOWN ? 1 : 0;
         desc.depthTargetFormat = pipelineState.depthStencilFormat;
+        desc.multisampling.sampleCount = pipelineState.sampleCount;
         desc.inputElements = pipelineState.vertexDeclaration->inputElements.get();
         desc.inputElementsCount = pipelineState.vertexDeclaration->inputElementCount;
 

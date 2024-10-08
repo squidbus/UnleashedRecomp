@@ -149,6 +149,7 @@ struct GuestSurface : GuestResource
     RenderFormat format = RenderFormat::UNKNOWN;
     ankerl::unordered_dense::map<const RenderTexture*, std::unique_ptr<RenderFramebuffer>> framebuffers;
     bool pendingBarrier = true;
+    RenderSampleCounts sampleCount = RenderSampleCount::COUNT_1;
 };
 
 enum GuestDeclType
