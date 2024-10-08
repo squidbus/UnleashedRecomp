@@ -3630,6 +3630,10 @@ namespace RT64 {
         return countsSupported;
     }
 
+    void D3D12Device::waitIdle() const {
+        assert(false && "Use fences to replicate wait idle behavior on D3D12.");
+    }
+
     void D3D12Device::release() {
         if (d3d != nullptr) {
             d3d->Release();

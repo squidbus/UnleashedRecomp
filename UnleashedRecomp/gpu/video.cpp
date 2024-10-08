@@ -3,6 +3,7 @@
 #include <kernel/function.h>
 #include <kernel/heap.h>
 #include <cpu/code_cache.h>
+#include <cpu/guest_code.h>
 #include <kernel/memory.h>
 #include <xxHashMap.h>
 
@@ -562,13 +563,50 @@ static void CreateHostDevice()
 
 static void WaitForGPU()
 {
-    for (size_t i = 0; i < NUM_FRAMES; i++)
+    if (g_vulkan)
     {
-        if (g_commandListStates[i])
+        g_device->waitIdle();
+    }
+    else 
+    {
+        for (size_t i = 0; i < NUM_FRAMES; i++)
         {
-            g_queue->waitForCommandFence(g_commandFences[i].get());
-            g_commandListStates[i] = false;
+            if (g_commandListStates[i])
+            {
+                g_queue->waitForCommandFence(g_commandFences[i].get());
+                g_commandListStates[i] = false;
+            }
         }
+        g_queue->executeCommandLists(nullptr, g_commandFences[0].get());
+        g_queue->waitForCommandFence(g_commandFences[0].get());
+    }
+}
+
+static PPCRegister g_r3;
+static PPCRegister g_r4;
+static PPCRegister g_r5;
+
+PPC_FUNC_IMPL(__imp__sub_8258C8A0);
+PPC_FUNC(sub_8258C8A0)
+{
+    g_r3 = ctx.r3;
+    g_r4 = ctx.r4;
+    g_r5 = ctx.r5;
+    __imp__sub_8258C8A0(ctx, base);
+}
+
+static void ResizeSwapChain()
+{
+    WaitForGPU();
+    g_backBuffer->framebuffers.clear();
+
+    if (g_swapChain->resize() && g_r3.u32 != NULL)
+    {
+        auto ctx = GetPPCContext();
+        ctx->r3 = g_r3;
+        ctx->r4 = g_r4;
+        ctx->r5 = g_r5;
+        GuestCode::Run(__imp__sub_8258C8A0, ctx);
     }
 }
 
@@ -585,20 +623,17 @@ static void BeginCommandList()
     {
         g_swapChainValid = g_swapChain->acquireTexture(g_acquireSemaphores[g_frame].get(), &g_backBufferIndex);
         if (g_swapChainValid)
-        {
             g_backBuffer->texture = g_swapChain->getTexture(g_backBufferIndex);
-            g_backBuffer->pendingBarrier = true;
-        }
     }
     else
     {
-        WaitForGPU();
-        g_backBuffer->framebuffers.clear();
-        g_swapChain->resize();
+        ResizeSwapChain();
     }
 
     if (!g_swapChainValid)
         g_backBuffer->texture = g_backBuffer->textureHolder.get();
+
+    g_backBuffer->pendingBarrier = true;
 
     auto& commandList = g_commandLists[g_frame];
 
@@ -1052,6 +1087,8 @@ static void FlushFramebuffer()
         g_depthStencil->pendingBarrier = false;
     }
 
+    FlushBarriers();
+
     if (g_dirtyStates.renderTargetAndDepthStencil)
     {
         GuestSurface* framebufferContainer = nullptr;
@@ -1102,8 +1139,6 @@ static void FlushFramebuffer()
 
         g_dirtyStates.renderTargetAndDepthStencil = false;
     }
-
-    FlushBarriers();
 }
 
 static void Clear(GuestDevice* device, uint32_t flags, uint32_t, be<float>* color, double z) 
@@ -2338,8 +2373,10 @@ void SetShadowResolutionMidAsmHook(PPCRegister& r11)
 
 static void SetResolution(be<uint32_t>* device)
 {
-    device[46] = 1920;
-    device[47] = 1080;
+    uint32_t width = g_swapChain->getWidth();
+    uint32_t height = g_swapChain->getHeight();
+    device[46] = width == 0 ? 880 : width;
+    device[47] = height == 0 ? 720 : height;
 }
 
 static uint32_t StubFunction()
