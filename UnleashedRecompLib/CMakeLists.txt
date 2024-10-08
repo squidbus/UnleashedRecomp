@@ -6,7 +6,7 @@ add_compile_options(
     "-fno-strict-aliasing")
 
 file(GLOB SWA_RECOMPILED_SOURCES "ppc/*.cpp")
-add_library(UnleashedRecompLib ${SWA_RECOMPILED_SOURCES})
+add_library(UnleashedRecompLib "main.cpp" ${SWA_RECOMPILED_SOURCES})
 
 target_include_directories(UnleashedRecompLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
