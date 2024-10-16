@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.20)
 
+include($ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 set(SWA_THIRDPARTY_ROOT ${CMAKE_SOURCE_DIR}/thirdparty)
 set(CMAKE_CXX_STANDARD 23)
 set(BUILD_SHARED_LIBS OFF)
@@ -11,8 +12,6 @@ if (POLICY CMP0141)
 endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
-set(SDL_STATIC ON)
 
 add_subdirectory(${SWA_THIRDPARTY_ROOT})
 project("UnleashedRecomp-ALL")

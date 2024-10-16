@@ -1,25 +1,6 @@
 [submodule "thirdparty/PowerRecomp"]
 	path = thirdparty/PowerRecomp
 	url = https://github.com/hedge-dev/PowerRecomp
-[submodule "thirdparty/SDL"]
-	path = thirdparty/SDL
-	url = https://github.com/libsdl-org/SDL.git
-	branch = SDL2
-[submodule "thirdparty/unordered_dense"]
-	path = thirdparty/unordered_dense
-	url = https://github.com/martinus/unordered_dense.git
-[submodule "thirdparty/D3D12MemoryAllocator"]
-	path = thirdparty/D3D12MemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
 [submodule "thirdparty/ddspp"]
 	path = thirdparty/ddspp
 	url = https://github.com/redorav/ddspp.git
-[submodule "thirdparty/Vulkan-Headers"]
-	path = thirdparty/Vulkan-Headers
-	url = https://github.com/KhronosGroup/Vulkan-Headers
-[submodule "thirdparty/VulkanMemoryAllocator"]
-	path = thirdparty/VulkanMemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
-[submodule "thirdparty/volk"]
-	path = thirdparty/volk
-	url = https://github.com/zeux/volk.git
