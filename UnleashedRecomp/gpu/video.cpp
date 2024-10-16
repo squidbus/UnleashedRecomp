@@ -1936,7 +1936,7 @@ static void SetVertexDeclaration(GuestDevice* device, GuestVertexDeclaration* ve
         SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.inputLayoutFlags, vertexDeclaration->inputLayoutFlags);
     }
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexDeclaration, vertexDeclaration);
-    device->vertexDeclaration = vertexDeclaration;
+    device->vertexDeclaration = g_memory.MapVirtual(vertexDeclaration);
 }
 
 static GuestShader* CreateShader(const be<uint32_t>* function, ResourceType resourceType)
@@ -2425,8 +2425,6 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
             pictureData->texture = g_memory.MapVirtual(texture);
             pictureData->type = 0;
         }
-
-        pictureData->flags |= 0x1;
     }
 }
 

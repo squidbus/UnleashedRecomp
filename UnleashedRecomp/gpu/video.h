@@ -30,7 +30,7 @@ struct GuestDevice
     be<uint32_t> pixelShaderBoolConstants[0x4];
 
     uint8_t padding27A0[0x68C];
-    struct GuestVertexDeclaration* vertexDeclaration;
+    be<uint32_t> vertexDeclaration;
     uint8_t padding2E30[0x2FD0];
 };
 
