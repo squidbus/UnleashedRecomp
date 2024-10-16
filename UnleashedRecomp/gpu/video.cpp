@@ -281,6 +281,44 @@ static void FlushBarriers()
     }
 }
 
+struct ShaderCacheHeader
+{
+    uint32_t version;
+    uint32_t shaderCount;
+    uint32_t reserved0;
+    uint32_t reserved1;
+};
+
+struct ShaderCacheEntry
+{
+    XXH64_hash_t hash;
+    uint32_t dxilOffset;
+    uint32_t dxilSize;
+    uint32_t spirvOffset;
+    uint32_t spirvSize;
+    GuestShader* shader = nullptr;
+};
+
+static std::unique_ptr<uint8_t[]> g_shaderCache;
+
+static void LoadShaderCache()
+{
+    FILE* file = fopen("ShaderCache.bin", "rb");
+    if (file)
+    {
+        fseek(file, 0, SEEK_END);
+        long fileSize = ftell(file);
+        fseek(file, 0, SEEK_SET);
+        g_shaderCache = std::make_unique<uint8_t[]>(fileSize);
+        fread(g_shaderCache.get(), 1, fileSize, file);
+        fclose(file);
+    }
+    else
+    {
+        MessageBox(nullptr, TEXT("Unable to locate ShaderCache.bin in root directory."), TEXT("SWA"), MB_ICONERROR);
+    }
+}
+
 static void SetRenderState(GuestDevice* device, uint32_t value)
 {
 }
@@ -500,6 +538,7 @@ static void CreateHostDevice()
         g_inputSlots[i].index = i;
 
     Window::Init();
+    LoadShaderCache();
 
     g_interface = g_vulkan ? CreateVulkanInterface() : CreateD3D12Interface();
     g_device = g_interface->createDevice();
@@ -1024,7 +1063,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     desc.depth = 1;
     desc.mipLevels = 1;
     desc.arraySize = 1;
-    desc.multisampling.sampleCount = multiSample != 0 ? RenderSampleCount::COUNT_2 : RenderSampleCount::COUNT_1;
+    //desc.multisampling.sampleCount = (desc.format != RenderFormat::D32_FLOAT && multiSample != 0) ? RenderSampleCount::COUNT_2 : RenderSampleCount::COUNT_1;
     desc.format = ConvertFormat(format);
     desc.flags = desc.format == RenderFormat::D32_FLOAT ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::RENDER_TARGET;
 
@@ -1900,28 +1939,50 @@ static void SetVertexDeclaration(GuestDevice* device, GuestVertexDeclaration* ve
     device->vertexDeclaration = vertexDeclaration;
 }
 
-static std::unique_ptr<RenderShader> CreateShader(const uint32_t* function)
+static GuestShader* CreateShader(const be<uint32_t>* function, ResourceType resourceType)
 {
-    if (*function == 0)
-    {
-        const uint32_t dxilSize = *(function + 1);
-        const uint32_t spirvSize = *(function + 2);
+    XXH64_hash_t hash = XXH3_64bits(function, function[1] + function[2]);
 
-        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(function + 3);
-        if (g_vulkan)
-            return g_device->createShader(bytes + dxilSize, spirvSize, "main", RenderShaderFormat::SPIRV);
+    auto shaderCache = reinterpret_cast<ShaderCacheHeader*>(g_shaderCache.get());
+    auto begin = reinterpret_cast<ShaderCacheEntry*>(shaderCache + 1);
+    auto end = begin + shaderCache->shaderCount;
+    auto findResult = std::lower_bound(begin, end, hash, [](ShaderCacheEntry& lhs, XXH64_hash_t rhs)
+        {
+            return lhs.hash < rhs;
+        });
+
+    GuestShader* shader = nullptr;
+
+    if (findResult != end && findResult->hash == hash)
+    {
+        if (findResult->shader == nullptr)
+        {
+            shader = g_userHeap.AllocPhysical<GuestShader>(resourceType);
+
+            if (g_vulkan)
+                shader->shader = g_device->createShader(g_shaderCache.get() + findResult->spirvOffset, findResult->spirvSize, "main", RenderShaderFormat::SPIRV);
+            else
+                shader->shader = g_device->createShader(g_shaderCache.get() + findResult->dxilOffset, findResult->dxilSize, "main", RenderShaderFormat::DXIL);
+
+            findResult->shader = shader;
+        }
         else
-            return g_device->createShader(bytes, dxilSize, "main", RenderShaderFormat::DXIL);
+        {
+            shader = findResult->shader;
+        }
     }
-    return nullptr;
+
+    if (shader == nullptr)
+        shader = g_userHeap.AllocPhysical<GuestShader>(resourceType);
+    else
+        shader->AddRef();
+
+    return shader;
 }
 
-static GuestShader* CreateVertexShader(const uint32_t* function) 
+static GuestShader* CreateVertexShader(const be<uint32_t>* function) 
 {
-    auto vertexShader = g_userHeap.AllocPhysical<GuestShader>(ResourceType::VertexShader);
-    vertexShader->shader = CreateShader(function);
-
-    return vertexShader;
+    return CreateShader(function, ResourceType::VertexShader);
 }
 
 static void SetVertexShader(GuestDevice* device, GuestShader* shader)
@@ -1953,12 +2014,9 @@ static void SetIndices(GuestDevice* device, GuestBuffer* buffer)
     SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, buffer != nullptr ? buffer->dataSize : 0u);
 }
 
-static GuestShader* CreatePixelShader(const uint32_t* function)
+static GuestShader* CreatePixelShader(const be<uint32_t>* function)
 {
-    auto pixelShader = g_userHeap.AllocPhysical<GuestShader>(ResourceType::PixelShader);
-    pixelShader->shader = CreateShader(function);
-
-    return pixelShader;
+    return CreateShader(function, ResourceType::PixelShader);
 }
 
 static void SetPixelShader(GuestDevice* device, GuestShader* shader)
