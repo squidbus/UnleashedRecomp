@@ -7,6 +7,8 @@
         "volk",
         "vulkan-headers",
         "vulkan-memory-allocator",
-        "xxhash"
+        "xxhash",
+        "pkgconf",
+        "tomlplusplus"
     ]
 }

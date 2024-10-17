@@ -63,6 +63,8 @@ find_package(VulkanHeaders CONFIG)
 find_package(volk CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 
 target_link_libraries(UnleashedRecomp PRIVATE
     comctl32
@@ -81,6 +83,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     unordered_dense::unordered_dense
     winmm
     xxHash::xxhash
+    PkgConfig::tomlplusplus
 )
 
 target_include_directories(UnleashedRecomp PRIVATE

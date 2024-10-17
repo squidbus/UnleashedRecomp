@@ -11,6 +11,7 @@
 #include <ankerl/unordered_dense.h>
 #include <ddspp.h>
 #include <ppc/ppc_recomp_shared.h>
+#include <toml++/toml.hpp>
 
 #include "framework.h"
 #include "Mutex.h"
