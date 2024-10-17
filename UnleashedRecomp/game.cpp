@@ -125,6 +125,36 @@ void ResetScoreOnRestartMidAsmHook()
 
 #pragma endregion
 
+#pragma region Loading Hooks
+
+// Loading screen hook.
+PPC_FUNC_IMPL(__imp__sub_824DCF38);
+PPC_FUNC(sub_824DCF38)
+{
+    /* Force the Werehog transition ID
+       to use a different transition. */
+    if (!Config::WerehogHubTransformVideo)
+    {
+        /*
+            0 - Tails Electric NOW LOADING
+            1 - No Transition
+            2 - Werehog Transition
+            3 - Tails Electric NOW LOADING w/ Info (requires context)
+            4 - Arrows In/Out
+            5 - NOW LOADING
+            6 - Theatre Mode
+            7 - NOW LOADING
+            8 - Black Screen
+        */
+        if (ctx.r4.u32 == 2)
+            ctx.r4.u32 = 4;
+    }
+
+    __imp__sub_824DCF38(ctx, base);
+}
+
+#pragma endregion
+
 #pragma region Miscellaneous Hooks
 
 bool DisableHintsMidAsmHook()
