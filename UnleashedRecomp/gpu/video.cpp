@@ -2444,6 +2444,11 @@ void SetShadowResolutionMidAsmHook(PPCRegister& r11)
     r11.u64 = 4096;
 }
 
+void Primitive2DHalfPixelOffsetMidAsmHook(PPCRegister& f13)
+{
+    f13.f64 = 0.0;
+}
+
 static void SetResolution(be<uint32_t>* device)
 {
     uint32_t width = g_swapChain->getWidth();
