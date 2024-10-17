@@ -72,6 +72,11 @@ void CSDOffsetMidAsmHook(PPCRegister& f1, PPCRegister& f2)
     }
 }
 
+bool DisableHintsMidAsmHook()
+{
+    return !Config::Hints;
+}
+
 /* Hook function that gets the game region
    and force result to zero for Japanese
    to display the correct logos. */

@@ -131,3 +131,15 @@ name = "CSDOffsetMidAsmHook"
 address = 0x830C0A78
 registers = ["f1", "f2"]
 return = true
+
+# Disable hint volumes
+[[midasm_hook]]
+name = "DisableHintsMidAsmHook"
+address = 0x827A2504
+jump_address_on_true = 0x827A251C
+
+# Disable hint rings
+[[midasm_hook]]
+name = "DisableHintsMidAsmHook"
+address = 0x827A2E34
+jump_address_on_true = 0x827A2E4C
