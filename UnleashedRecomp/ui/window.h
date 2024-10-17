@@ -13,8 +13,8 @@ public:
 
     inline static bool s_isFocused;
 
-    inline static int s_width;
-    inline static int s_height;
+    inline static int s_width = 1280;
+    inline static int s_height = 720;
 
     static SDL_Surface* GetIconSurface(void* pIconBmp = nullptr, size_t iconSize = 0)
     {
@@ -81,7 +81,7 @@ public:
         }
     }
 
-    static void SetWindowDimensions(int w, int h)
+    static void SetWindowDimensions(int w = -1, int h = -1)
     {
         auto width = w <= 0 ? Config::Width : w;
         auto height = h <= 0 ? Config::Height : h;
@@ -96,6 +96,9 @@ public:
         SDL_SetWindowSize(s_window, width, height);
         SDL_SetWindowMinimumSize(s_window, 640, 480);
         SDL_SetWindowPosition(s_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
+        s_width = width;
+        s_height = height;
 
         if (!isPendingMaximise)
             return;

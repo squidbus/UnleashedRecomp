@@ -1,6 +1,7 @@
 #pragma once
 
 #define NOMINMAX
+
 #include <windows.h>
 #include <mutex>
 #include <vector>
@@ -14,5 +15,5 @@
 #include <toml++/toml.hpp>
 
 #include "framework.h"
-#include "Mutex.h"
-#include "Config.h"
+#include "mutex.h"
+#include "config.h"

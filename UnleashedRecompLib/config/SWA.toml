@@ -108,3 +108,15 @@ registers = ["f13"]
 name = "GracefulLoopExitMidAsmHook"
 address = 0x822C1018
 return_on_true = true
+
+[[midasm_hook]]
+name = "CameraAspectRatioMidAsmHook"
+address = 0x82468E84
+registers = ["r31"]
+jump_address_on_true = 0x82468E88
+jump_address_on_false = 0x82468EE0
+
+[[midasm_hook]]
+name = "CameraBoostAspectRatioMidAsmHook"
+address = 0x8246BDA8
+registers = ["r31", "f0"]

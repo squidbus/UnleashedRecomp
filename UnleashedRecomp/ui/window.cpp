@@ -87,7 +87,7 @@ void Window::Init()
     SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
     SDL_AddEventWatch(Window_OnSDLEvent, s_window);
 
-    s_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, SDL_WINDOW_RESIZABLE);
+    s_window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Window::s_width, Window::s_height, SDL_WINDOW_RESIZABLE);
 
     if (auto icon = GetIconSurface())
     {
@@ -95,6 +95,7 @@ void Window::Init()
         SDL_FreeSurface(icon);
     }
 
+    SetWindowDimensions();
     SetFullscreen(Config::Fullscreen);
 
     SDL_SysWMinfo info;
