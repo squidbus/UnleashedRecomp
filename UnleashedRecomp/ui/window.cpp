@@ -79,6 +79,8 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
 
 void Window::Init()
 {
+    /* TODO: move this since it'll have to change
+             on soft reboot from the options menu. */
     auto title = Config::Language == ELanguage_Japanese
         ? "Sonic World Adventure"
         : "SONIC UNLEASHED";

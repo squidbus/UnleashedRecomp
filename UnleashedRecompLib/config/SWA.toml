@@ -24,7 +24,7 @@ savevmx_64_address = 0x831B34E4
 longjmp_address = 0x831B6790
 setjmp_address = 0x831B6AB0
 
-# These functions do not exist in .pdata and 
+# These functions do not exist in .pdata and do
 # not analyze properly due to having jump tables
 functions = [
     { address = 0x824E7EF0, size = 0x98 },
@@ -131,6 +131,10 @@ name = "CSDOffsetMidAsmHook"
 address = 0x830C0A78
 registers = ["f1", "f2"]
 return = true
+
+[[midasm_hook]]
+name = "ResetScoreOnRestartMidAsmHook"
+address = 0x82304374
 
 # Disable hint volumes
 [[midasm_hook]]

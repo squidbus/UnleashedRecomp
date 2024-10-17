@@ -8,8 +8,9 @@ namespace SWA
     class CInputState // : public Hedgehog::Base::CSynchronizedObject
     {
     public:
+        // TODO: use g_memory.Translate?
         // TODO: Hedgehog::Base::TSynchronizedPtr<CInputState>*
-        inline static xpointer<CInputState>* ms_pInstance = (xpointer<CInputState>*)g_memory.Translate(0x833671EC);
+        inline static xpointer<CInputState>* ms_pInstance = (xpointer<CInputState>*)0x1833671EC;
 
         // TODO: Hedgehog::Base::TSynchronizedPtr<CInputState>
         static CInputState* GetInstance();

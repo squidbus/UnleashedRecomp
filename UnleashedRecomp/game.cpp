@@ -5,6 +5,8 @@
 
 constexpr float m_baseAspectRatio = 16.0f / 9.0f;
 
+uint32_t m_lastCheckpointScore = 0;
+
 void Game::Exit()
 {
     s_isSignalExit = true;
@@ -15,6 +17,8 @@ bool GracefulLoopExitMidAsmHook()
     // TODO (Sajid): investigate XAM handle closing causing assertion failure here.
     return Game::s_isSignalExit;
 }
+
+#pragma region Aspect Ratio Hooks
 
 bool CameraAspectRatioMidAsmHook(PPCRegister& r31)
 {
@@ -72,6 +76,57 @@ void CSDOffsetMidAsmHook(PPCRegister& f1, PPCRegister& f2)
     }
 }
 
+#pragma endregion
+
+#pragma region Score Hooks
+
+/* Hook function for when checkpoints are activated
+   to preserve the current checkpoint score. */
+PPC_FUNC_IMPL(__imp__sub_82624308);
+PPC_FUNC(sub_82624308)
+{
+    __imp__sub_82624308(ctx, base);
+
+    if (Config::ScoreBehaviour != EScoreBehaviour_CheckpointRetain)
+        return;
+
+    auto pGameDocument = SWA::CGameDocument::GetInstance();
+
+    if (!pGameDocument)
+        return;
+
+    m_lastCheckpointScore = pGameDocument->m_pMember->m_Score;
+}
+
+/* Hook function that resets the score
+   and restore the last checkpoint score. */
+PPC_FUNC_IMPL(__imp__sub_8245F048);
+PPC_FUNC(sub_8245F048)
+{
+    __imp__sub_8245F048(ctx, base);
+
+    if (Config::ScoreBehaviour != EScoreBehaviour_CheckpointRetain)
+        return;
+
+    auto pGameDocument = SWA::CGameDocument::GetInstance();
+
+    if (!pGameDocument)
+        return;
+
+    printf("Resetting score to %d\n", m_lastCheckpointScore);
+
+    pGameDocument->m_pMember->m_Score = m_lastCheckpointScore;
+}
+
+void ResetScoreOnRestartMidAsmHook()
+{
+    m_lastCheckpointScore = 0;
+}
+
+#pragma endregion
+
+#pragma region Miscellaneous Hooks
+
 bool DisableHintsMidAsmHook()
 {
     return !Config::Hints;
@@ -91,3 +146,5 @@ PPC_FUNC(sub_825197C0)
 
     __imp__sub_825197C0(ctx, base);
 }
+
+#pragma endregion

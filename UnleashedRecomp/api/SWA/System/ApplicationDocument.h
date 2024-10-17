@@ -5,8 +5,9 @@ namespace SWA
     class CApplicationDocument // : public Hedgehog::Base::CSynchronizedObject
     {
     public:
+        // TODO: use g_memory.Translate?
         // TODO: Hedgehog::Base::TSynchronizedPtr<CApplicationDocument>*
-        inline static xpointer<CApplicationDocument>* ms_pInstance = (xpointer<CApplicationDocument>*)g_memory.Translate(0x833678A0);
+        inline static xpointer<CApplicationDocument>* ms_pInstance = (xpointer<CApplicationDocument>*)0x1833678A0;
 
         // TODO: Hedgehog::Base::TSynchronizedPtr<CApplicationDocument>
         static CApplicationDocument* GetInstance();
