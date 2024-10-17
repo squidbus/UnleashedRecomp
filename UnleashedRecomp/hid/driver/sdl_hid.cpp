@@ -135,7 +135,7 @@ inline Controller* FindController(int which)
     return nullptr;
 }
 
-int OnSDLEvent(void*, SDL_Event* event)
+int HID_OnSDLEvent(void*, SDL_Event* event)
 {
     if (event->type >= SDL_CONTROLLERAXISMOTION && event->type < SDL_FINGERDOWN)
     {
@@ -185,7 +185,7 @@ void hid::detail::Init()
 
     SDL_InitSubSystem(SDL_INIT_EVENTS);
 
-    SDL_AddEventWatch(OnSDLEvent, nullptr);
+    SDL_AddEventWatch(HID_OnSDLEvent, nullptr);
 
     SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
 }
