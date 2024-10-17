@@ -16,9 +16,9 @@ public:
     inline static int s_width;
     inline static int s_height;
 
-    static SDL_Surface* GetIconSurface(void* pIconBmp = nullptr)
+    static SDL_Surface* GetIconSurface(void* pIconBmp = nullptr, size_t iconSize = 0)
     {
-        auto rw = SDL_RWFromMem(pIconBmp ? pIconBmp : (void*)g_icon, g_icon_size);
+        auto rw = SDL_RWFromMem(pIconBmp ? pIconBmp : (void*)g_icon, pIconBmp ? iconSize : g_icon_size);
         auto surface = SDL_LoadBMP_RW(rw, 1);
 
         if (!surface)
