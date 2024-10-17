@@ -147,3 +147,8 @@ jump_address_on_true = 0x827A251C
 name = "DisableHintsMidAsmHook"
 address = 0x827A2E34
 jump_address_on_true = 0x827A2E4C
+
+[[midasm_hook]]
+name = "SetXButtonHomingMidAsmHook"
+address = 0x8237AC88
+registers = ["r30"]
