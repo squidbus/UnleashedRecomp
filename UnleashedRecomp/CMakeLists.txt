@@ -7,6 +7,14 @@ add_compile_definitions(SDL_MAIN_HANDLED)
 # Microsoft wtf?
 add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
+# Copy default config to build directory.
+file(INSTALL
+    DESTINATION "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
+    TYPE FILE
+    FILES "res/config.toml"
+    RENAME "${TARGET_NAME}.toml"
+)
+
 BIN2H(SOURCE_FILE "res/icon.bmp" HEADER_FILE "res/icon.h" ARRAY_TYPE "unsigned char" VARIABLE_NAME "g_icon")
 
 set(SWA_PRECOMPILED_HEADERS
@@ -48,6 +56,7 @@ set(SWA_UI_CXX_SOURCES
 )
 
 set(SWA_CXX_SOURCES
+    "config.cpp"
     "game.cpp"
     "main.cpp"
     "misc_impl.cpp"

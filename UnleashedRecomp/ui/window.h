@@ -29,8 +29,8 @@ public:
 
     static bool IsDisplayResolution(int w, int h, bool isExact = true)
     {
-        auto width = w <= 0 ? Config::Width : w;
-        auto height = h <= 0 ? Config::Height : h;
+        auto width = w <= 0 ? Config::WindowWidth : w;
+        auto height = h <= 0 ? Config::WindowHeight : h;
 
         SDL_Rect displayRect;
         if (SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(s_window), &displayRect) == ERROR_SUCCESS)
@@ -73,7 +73,7 @@ public:
             if (SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(s_window), &displayRect) == ERROR_SUCCESS)
             {
                 // Maximise window if the config resolution is greater than the display.
-                if (IsDisplayResolution(Config::Width, Config::Height, false))
+                if (IsDisplayResolution(s_width, s_height, false))
                     SDL_MaximizeWindow(s_window);
             }
 
@@ -83,8 +83,8 @@ public:
 
     static void SetWindowDimensions(int w = -1, int h = -1)
     {
-        auto width = w <= 0 ? Config::Width : w;
-        auto height = h <= 0 ? Config::Height : h;
+        auto width = w <= 0 ? Config::WindowWidth : w;
+        auto height = h <= 0 ? Config::WindowHeight : h;
         auto isPendingMaximise = false;
 
         if (IsDisplayResolution(width, height))

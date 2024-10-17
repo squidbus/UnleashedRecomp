@@ -1,18 +1,17 @@
 #pragma once
 
-// TODO (Hyper): use toml.
+// TODO: move this outside of the game directory?
+#define TOML_FILE "SWA.toml"
 
-#define INI_FILE "SWA.ini"
+#define TOML_BEGIN_SECTION(name) if (auto pSection = toml[name].as_table()) { const auto& section = *pSection;
+#define TOML_END_SECTION() }
 
-#define INI_BEGIN_SECTION(section) { std::string CurrentSection = section;
-#define INI_END_SECTION() }
-
-#define INI_READ_STRING(var)     var = BasicIni::Get(ini, CurrentSection, #var, var)
-#define INI_READ_BOOLEAN(var)    var = BasicIni::GetBoolean(ini, CurrentSection, #var, var)
-#define INI_READ_FLOAT(var)      var = BasicIni::GetFloat(ini, CurrentSection, #var, var)
-#define INI_READ_INTEGER(var)    var = BasicIni::GetInteger(ini, CurrentSection, #var, var)
-#define INI_READ_DOUBLE(var)     var = BasicIni::GetDouble(ini, CurrentSection, #var, var)
-#define INI_READ_ENUM(type, var) var = (type)BasicIni::GetInteger(ini, CurrentSection, #var, var)
+#define TOML_READ_STRING(var)     var = section[#var].value_or<std::string>("");
+#define TOML_READ_BOOLEAN(var)    var = section[#var].value_or(false);
+#define TOML_READ_FLOAT(var)      var = section[#var].value_or(0.0f);
+#define TOML_READ_INTEGER(var)    var = section[#var].value_or(0);
+#define TOML_READ_DOUBLE(var)     var = section[#var].value_or(0.0);
+#define TOML_READ_ENUM(type, var) var = (type)section[#var].value_or(0);
 
 enum ELanguage : uint32_t
 {
@@ -52,7 +51,6 @@ public:
     inline static EScoreBehaviour ScoreBehaviour = EScoreBehaviour_CheckpointReset;
     inline static bool Hints = true;
     inline static bool WerehogHubTransformVideo = true;
-    inline static bool BootToTitle = false;
 
     // Controls
     inline static bool XButtonHoming = true;
@@ -62,8 +60,9 @@ public:
     inline static bool WerehogBattleMusic = true;
 
     // Video
-    inline static uint32_t Width = 1280;
-    inline static uint32_t Height = 720;
+    inline static uint32_t WindowWidth = 1280;
+    inline static uint32_t WindowHeight = 720;
+    inline static float ResolutionScale = 1.0f;
     inline static int32_t ShadowResolution = 4096;
     inline static size_t MSAA = 4;
     inline static EMovieScaleMode MovieScaleMode = EMovieScaleMode_Fit;
@@ -73,5 +72,6 @@ public:
     inline static bool VSync = false;
     inline static uint32_t BufferCount = 3;
 
-    static void Read();
+    static void Load();
+    static void Save();
 };

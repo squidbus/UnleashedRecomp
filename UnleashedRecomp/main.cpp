@@ -124,6 +124,8 @@ uint32_t LdrLoadModule(const char* path)
 
 int main()
 {
+    Config::Load();
+
     KiSystemStartup();
 
     uint32_t entry = LdrLoadModule(FileSystem::TransformPath(GAME_XEX_PATH));
