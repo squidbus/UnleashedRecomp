@@ -46,6 +46,7 @@ set(SWA_UI_CXX_SOURCES
 )
 
 set(SWA_CXX_SOURCES
+    "game.cpp"
     "main.cpp"
     "misc_impl.cpp"
 

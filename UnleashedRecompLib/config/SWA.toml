@@ -103,3 +103,8 @@ registers = ["f13"]
 name = "Primitive2DHalfPixelOffsetMidAsmHook"
 address = 0x830D213C
 registers = ["f13"]
+
+[[midasm_hook]]
+name = "GracefulLoopExitMidAsmHook"
+address = 0x822C1018
+return_on_true = true
