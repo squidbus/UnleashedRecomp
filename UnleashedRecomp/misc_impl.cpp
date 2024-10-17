@@ -45,6 +45,12 @@ GUEST_FUNCTION_HOOK(sub_831CD040, QueryPerformanceFrequencyImpl);
 
 GUEST_FUNCTION_HOOK(sub_82BD4BC0, GlobalMemoryStatusImpl);
 
+// sprintf
+PPC_FUNC(sub_82BD4AE8)
+{
+    sub_831B1630(ctx, base);
+}
+
 // Movie player stubs
 GUEST_FUNCTION_STUB(sub_82AE3638);
 GUEST_FUNCTION_STUB(sub_82AE2BF8);
