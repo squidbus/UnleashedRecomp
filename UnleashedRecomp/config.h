@@ -6,12 +6,12 @@
 #define TOML_BEGIN_SECTION(name) if (auto pSection = toml[name].as_table()) { const auto& section = *pSection;
 #define TOML_END_SECTION() }
 
-#define TOML_READ_STRING(var)     var = section[#var].value_or<std::string>("");
-#define TOML_READ_BOOLEAN(var)    var = section[#var].value_or(false);
-#define TOML_READ_FLOAT(var)      var = section[#var].value_or(0.0f);
-#define TOML_READ_INTEGER(var)    var = section[#var].value_or(0);
-#define TOML_READ_DOUBLE(var)     var = section[#var].value_or(0.0);
-#define TOML_READ_ENUM(type, var) var = (type)section[#var].value_or(0);
+#define TOML_READ_STRING(var)     var = section[#var].value_or<std::string>(var);
+#define TOML_READ_BOOLEAN(var)    var = section[#var].value_or(var);
+#define TOML_READ_FLOAT(var)      var = section[#var].value_or(var);
+#define TOML_READ_INTEGER(var)    var = section[#var].value_or(var);
+#define TOML_READ_DOUBLE(var)     var = section[#var].value_or(var);
+#define TOML_READ_ENUM(type, var) var = (type)section[#var].value_or(var);
 
 enum ELanguage : uint32_t
 {
