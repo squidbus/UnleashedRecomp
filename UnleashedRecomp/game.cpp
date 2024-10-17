@@ -43,3 +43,31 @@ void CameraBoostAspectRatioMidAsmHook(PPCRegister& r31, PPCRegister& f0)
         f0.f32 = pCamera->m_VertFieldOfView;
     }
 }
+
+void CSDAspectRatioMidAsmHook(PPCRegister& f1, PPCRegister& f2)
+{
+    auto newAspectRatio = (float)Window::s_width / (float)Window::s_height;
+
+    if (newAspectRatio > m_baseAspectRatio)
+    {
+        f1.f64 = 1280.0f / ((newAspectRatio * 720.0f) / 1280.0f);
+    }
+    else if (newAspectRatio < m_baseAspectRatio)
+    {
+        f2.f64 = 720.0f / ((1280.0f / newAspectRatio) / 720.0f);
+    }
+}
+
+void CSDOffsetMidAsmHook(PPCRegister& f1, PPCRegister& f2)
+{
+    auto newAspectRatio = (float)Window::s_width / (float)Window::s_height;
+
+    if (newAspectRatio > m_baseAspectRatio)
+    {
+        *(be<float>*)g_memory.Translate(0x8339C5D0) = ((newAspectRatio * 720.0f) - 1280.0f) / 2.0f / 1280.0f;
+    }
+    else
+    {
+        *(be<float>*)g_memory.Translate(0x8339C5D4) = ((1280.0f / newAspectRatio) - 720.0f) / 2.0f / 720.0f;
+    }
+}

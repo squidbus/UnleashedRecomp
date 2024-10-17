@@ -120,3 +120,14 @@ jump_address_on_false = 0x82468EE0
 name = "CameraBoostAspectRatioMidAsmHook"
 address = 0x8246BDA8
 registers = ["r31", "f0"]
+
+[[midasm_hook]]
+name = "CSDAspectRatioMidAsmHook"
+address = 0x830C0A28
+registers = ["f1", "f2"]
+
+[[midasm_hook]]
+name = "CSDOffsetMidAsmHook"
+address = 0x830C0A78
+registers = ["f1", "f2"]
+return = true
