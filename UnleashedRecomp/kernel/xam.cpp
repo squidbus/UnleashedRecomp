@@ -2,7 +2,7 @@
 #include "xam.h"
 #include "xdm.h"
 #include <hid/hid.h>
-#include <gpu/window.h>
+#include <ui/window.h>
 #include <cpu/guest_thread.h>
 #include <ranges>
 #include <unordered_set>

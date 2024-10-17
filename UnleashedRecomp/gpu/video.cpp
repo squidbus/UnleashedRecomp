@@ -8,7 +8,7 @@
 #include <xxHashMap.h>
 
 #include "video.h"
-#include "window.h"
+#include "ui/window.h"
 
 namespace RT64
 {

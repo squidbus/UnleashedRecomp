@@ -26,7 +26,6 @@ set(SWA_CPU_CXX_SOURCES
 )
 
 set(SWA_GPU_CXX_SOURCES
-    "gpu/window.cpp"
     "gpu/video.cpp"
     "gpu/rhi/rt64_d3d12.cpp"
     "gpu/rhi/rt64_vulkan.cpp"
@@ -42,6 +41,10 @@ set(SWA_HID_CXX_SOURCES
     "hid/driver/sdl_hid.cpp"
 )
 
+set(SWA_UI_CXX_SOURCES
+    "ui/window.cpp"
+)
+
 set(SWA_CXX_SOURCES
     "main.cpp"
     "misc_impl.cpp"
@@ -51,6 +54,7 @@ set(SWA_CXX_SOURCES
     ${SWA_GPU_CXX_SOURCES}
     ${SWA_APU_CXX_SOURCES}
     ${SWA_HID_CXX_SOURCES}
+    ${SWA_UI_CXX_SOURCES}
 )
 
 add_executable(UnleashedRecomp ${SWA_CXX_SOURCES})
