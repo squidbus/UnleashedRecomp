@@ -71,3 +71,18 @@ void CSDOffsetMidAsmHook(PPCRegister& f1, PPCRegister& f2)
         *(be<float>*)g_memory.Translate(0x8339C5D4) = ((1280.0f / newAspectRatio) - 720.0f) / 2.0f / 720.0f;
     }
 }
+
+/* Hook function that gets the game region
+   and force result to zero for Japanese
+   to display the correct logos. */
+PPC_FUNC_IMPL(__imp__sub_825197C0);
+PPC_FUNC(sub_825197C0)
+{
+    if (Config::Language == ELanguage_Japanese)
+    {
+        ctx.r3.u64 = 0;
+        return;
+    }
+
+    __imp__sub_825197C0(ctx, base);
+}
