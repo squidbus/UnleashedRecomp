@@ -16,6 +16,8 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 add_subdirectory(${SWA_THIRDPARTY_ROOT})
 project("UnleashedRecomp-ALL")
 
+include("thirdparty/PowerRecomp/cmake/bin2h.cmake")
+
 # Include sub-projects.
 add_subdirectory("UnleashedRecompLib")
 add_subdirectory("UnleashedRecomp")

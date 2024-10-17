@@ -7,6 +7,8 @@ add_compile_definitions(SDL_MAIN_HANDLED)
 # Microsoft wtf?
 add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
+BIN2H(SOURCE_FILE "res/icon.bmp" HEADER_FILE "res/icon.h" ARRAY_TYPE "unsigned char" VARIABLE_NAME "g_icon")
+
 set(SWA_PRECOMPILED_HEADERS
     "stdafx.h"
 )

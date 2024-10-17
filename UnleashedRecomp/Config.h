@@ -1,5 +1,7 @@
 #pragma once
 
+// TODO (Hyper): use toml.
+
 #define INI_FILE "SWA.ini"
 
 #define INI_BEGIN_SECTION(section) { std::string CurrentSection = section;

@@ -331,6 +331,10 @@ SWA_API uint32_t XamInputGetCapabilities(uint32_t unk, uint32_t userIndex, uint3
 SWA_API uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_STATE* state)
 {
     //printf("!!! STUB !!! XamInputGetState\n");
+
+    if (!Window::s_isFocused)
+        return 0;
+
     uint32_t result = hid::GetState(userIndex, state);
 
     if (result == ERROR_SUCCESS)
@@ -391,6 +395,7 @@ SWA_API uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_S
 
         result = ERROR_SUCCESS;
     }
+
     return result;
 }
 
