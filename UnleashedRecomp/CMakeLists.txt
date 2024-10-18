@@ -20,6 +20,7 @@ file(INSTALL
     RENAME "${TARGET_NAME}.toml"
 )
 
+# Generate icon bitmap header for SDL surface.
 BIN2H(SOURCE_FILE "res/icon.bmp" HEADER_FILE "res/icon.h" ARRAY_TYPE "unsigned char" VARIABLE_NAME "g_icon")
 
 set(SWA_PRECOMPILED_HEADERS
@@ -74,7 +75,15 @@ set(SWA_CXX_SOURCES
     ${SWA_UI_CXX_SOURCES}
 )
 
-add_executable(UnleashedRecomp ${SWA_CXX_SOURCES})
+if (WIN32)
+    # Set up Win32 resources for application icon.
+    set(ICON_PATH "${PROJECT_SOURCE_DIR}/res/win32/icon.ico")
+    configure_file("res/win32/res.rc" "${CMAKE_BINARY_DIR}/res.rc" @ONLY)
+    add_executable(UnleashedRecomp ${SWA_CXX_SOURCES} "${CMAKE_BINARY_DIR}/res.rc")
+else()
+    add_executable(UnleashedRecomp ${SWA_CXX_SOURCES})
+endif()
+
 set_target_properties(UnleashedRecomp PROPERTIES OUTPUT_NAME ${TARGET_NAME})
 
 find_package(d3d12-memory-allocator CONFIG REQUIRED)
