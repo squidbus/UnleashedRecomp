@@ -4,6 +4,9 @@
 Memory::Memory(void* address, size_t size) : size(size)
 {
     base = (char*)VirtualAlloc(address, size, MEM_RESERVE, PAGE_READWRITE);
+
+    if (base == nullptr)
+        base = (char*)VirtualAlloc(nullptr, size, MEM_RESERVE, PAGE_READWRITE);
 }
 
 void* Memory::Alloc(size_t offset, size_t size, uint32_t type)
