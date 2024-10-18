@@ -105,11 +105,6 @@ address = 0x830D213C
 registers = ["f13"]
 
 [[midasm_hook]]
-name = "GracefulLoopExitMidAsmHook"
-address = 0x822C1018
-return_on_true = true
-
-[[midasm_hook]]
 name = "CameraAspectRatioMidAsmHook"
 address = 0x82468E84
 registers = ["r31"]

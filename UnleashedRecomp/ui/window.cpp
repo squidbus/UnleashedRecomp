@@ -2,7 +2,6 @@
 #include <config.h>
 #include <kernel/function.h>
 #include <SDL_syswm.h>
-#include "game.h"
 
 bool m_isFullscreenKeyReleased = true;
 
@@ -11,7 +10,6 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
     // TODO (Hyper): prevent window changes during boot to avoid buffer resize crashes.
     switch (event->type)
     {
-        // TODO: use Game::Exit().
         case SDL_QUIT:
             ExitProcess(0);
             break;

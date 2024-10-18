@@ -1,22 +1,10 @@
 #include <cpu/guest_code.h>
 #include "api/SWA.h"
 #include "ui/window.h"
-#include "game.h"
 
 constexpr float m_baseAspectRatio = 16.0f / 9.0f;
 
 uint32_t m_lastCheckpointScore = 0;
-
-void Game::Exit()
-{
-    s_isSignalExit = true;
-}
-
-bool GracefulLoopExitMidAsmHook()
-{
-    // TODO (Sajid): investigate XAM handle closing causing assertion failure here.
-    return Game::s_isSignalExit;
-}
 
 #pragma region Aspect Ratio Hooks
 
