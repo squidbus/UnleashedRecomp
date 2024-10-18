@@ -1,6 +1,11 @@
 project("UnleashedRecomp")
 set(TARGET_NAME "SWA")
 
+add_compile_options(
+    "/fp:strict"
+    "-march=sandybridge"
+    "-fno-strict-aliasing")
+
 add_compile_definitions(SWA_IMPL)
 add_compile_definitions(SDL_MAIN_HANDLED)
 

@@ -21,16 +21,6 @@ void* Memory::Reserve(size_t offset, size_t size)
     return Alloc(offset, size, MEM_RESERVE);
 }
 
-void* Memory::Translate(size_t offset) const noexcept
-{
-    return base + offset;
-}
-
-uint32_t Memory::MapVirtual(void* host) const noexcept
-{
-    return static_cast<uint32_t>(static_cast<char*>(host) - base);
-}
-
 SWA_API void* MmGetHostAddress(uint32_t ptr)
 {
     return g_memory.Translate(ptr);

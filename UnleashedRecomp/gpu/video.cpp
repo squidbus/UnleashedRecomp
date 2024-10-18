@@ -97,7 +97,7 @@ struct DirtyStates
 static DirtyStates g_dirtyStates(true);
 
 template<typename T>
-static void SetDirtyValue(bool& dirtyState, T& dest, const T& src)
+static FORCEINLINE void SetDirtyValue(bool& dirtyState, T& dest, const T& src)
 {
     if (dest != src)
     {

@@ -157,13 +157,13 @@ struct arg_ordinal_t
 };
 
 template<auto Func, int I = 0, typename ...TArgs>
-void _translate_args(PPCContext& ctx, uint8_t* base, std::tuple<TArgs...>&) noexcept
+FORCEINLINE void _translate_args(PPCContext& ctx, uint8_t* base, std::tuple<TArgs...>&) noexcept
 requires (I >= sizeof...(TArgs))
 {
 }
 
 template <auto Func, int I = 0, typename ...TArgs>
-std::enable_if_t<(I < sizeof...(TArgs)), void> _translate_args(PPCContext& ctx, uint8_t* base, std::tuple<TArgs...>& tpl) noexcept
+FORCEINLINE std::enable_if_t<(I < sizeof...(TArgs)), void> _translate_args(PPCContext& ctx, uint8_t* base, std::tuple<TArgs...>& tpl) noexcept
 {
     using T = std::tuple_element_t<I, std::remove_reference_t<decltype(tpl)>>;
     std::get<I>(tpl) = ArgTranslator::GetValue<T>(ctx, base, arg_ordinal_t<Func, I>::value);
@@ -172,7 +172,7 @@ std::enable_if_t<(I < sizeof...(TArgs)), void> _translate_args(PPCContext& ctx, 
 }
 
 template<auto Func>
-PPC_FUNC(GuestFunction)
+FORCEINLINE PPC_FUNC(GuestFunction)
 {
     using ret_t = decltype(std::apply(Func, function_args(Func)));
 

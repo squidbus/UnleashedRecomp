@@ -14,8 +14,15 @@ public:
     void* Commit(size_t offset, size_t size);
     void* Reserve(size_t offset, size_t size);
 
-    void* Translate(size_t offset) const noexcept;
-    uint32_t MapVirtual(void* host) const noexcept;
+    void* Translate(size_t offset) const noexcept
+    {
+        return base + offset;
+    }
+
+    uint32_t MapVirtual(void* host) const noexcept
+    {
+        return static_cast<uint32_t>(static_cast<char*>(host) - base);
+    }
 };
 
 SWA_API void* MmGetHostAddress(uint32_t ptr);
