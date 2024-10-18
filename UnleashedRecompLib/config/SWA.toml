@@ -122,12 +122,6 @@ address = 0x830C0A28
 registers = ["f1", "f2"]
 
 [[midasm_hook]]
-name = "CSDOffsetMidAsmHook"
-address = 0x830C0A78
-registers = ["f1", "f2"]
-return = true
-
-[[midasm_hook]]
 name = "ResetScoreOnRestartMidAsmHook"
 address = 0x82304374
 
