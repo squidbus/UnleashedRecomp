@@ -141,3 +141,50 @@ jump_address_on_true = 0x827A2E4C
 name = "SetXButtonHomingMidAsmHook"
 address = 0x8237AC88
 registers = ["r30"]
+
+# Down force HFR fix
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x8234AB94
+registers = ["f1"]
+
+# 2D spline HFR fix
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x82345468
+registers = ["f1"]
+
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x8234547C
+registers = ["f1"]
+
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x823454B0
+registers = ["f1"]
+
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x82345534
+registers = ["f1"]
+
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x823455EC
+registers = ["f1"]
+
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x8234564C
+registers = ["f1"]
+
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x823457A8
+registers = ["f1"]
+
+[[midasm_hook]]
+name = "HighFrameRateDeltaTimeFixMidAsmHook"
+address = 0x823458A0
+registers = ["f1"]

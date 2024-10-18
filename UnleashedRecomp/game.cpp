@@ -162,4 +162,14 @@ PPC_FUNC(sub_825197C0)
     __imp__sub_825197C0(ctx, base);
 }
 
+void HighFrameRateDeltaTimeFixMidAsmHook(PPCRegister& f1)
+{
+    // Having 60 FPS threshold ensures we still retain
+    // the original game behavior when locked to 30/60 FPS.
+    constexpr double threshold = 1.0 / 60.0;
+
+    if (f1.f64 < threshold)
+        f1.f64 = threshold;
+}
+
 #pragma endregion
