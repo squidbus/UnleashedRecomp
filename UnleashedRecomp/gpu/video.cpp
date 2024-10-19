@@ -10,6 +10,15 @@
 #include "video.h"
 #include "ui/window.h"
 
+#include "shader/copy_vs.hlsl.dxil.h"
+#include "shader/copy_vs.hlsl.spirv.h"
+#include "shader/resolve_msaa_depth_2x.hlsl.dxil.h"
+#include "shader/resolve_msaa_depth_2x.hlsl.spirv.h"
+#include "shader/resolve_msaa_depth_4x.hlsl.dxil.h"
+#include "shader/resolve_msaa_depth_4x.hlsl.spirv.h"
+#include "shader/resolve_msaa_depth_8x.hlsl.dxil.h"
+#include "shader/resolve_msaa_depth_8x.hlsl.spirv.h"
+
 namespace RT64
 {
     extern std::unique_ptr<RenderInterface> CreateD3D12Interface();
@@ -532,6 +541,8 @@ static const std::pair<GuestRenderState, void*> g_setRenderStateFunctions[] =
     { D3DRS_COLORWRITEENABLE, GuestFunction<SetRenderStateColorWriteEnable> }
 };
 
+static std::unique_ptr<RenderPipeline> g_resolveMsaaDepthPipelines[3];
+
 static void CreateHostDevice()
 {
     for (uint32_t i = 0; i < 16; i++)
@@ -595,10 +606,49 @@ static void CreateHostDevice()
         pipelineLayoutBuilder.addRootDescriptor(0, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
         pipelineLayoutBuilder.addRootDescriptor(1, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
         pipelineLayoutBuilder.addRootDescriptor(2, 4, RenderRootDescriptorType::CONSTANT_BUFFER);
+        pipelineLayoutBuilder.addPushConstant(3, 4, 4, RenderShaderStageFlag::PIXEL); // For copy/resolve shaders.
     }
     pipelineLayoutBuilder.end();
     
     g_pipelineLayout = pipelineLayoutBuilder.create(g_device.get());
+
+#define CREATE_SHADER(NAME) \
+        g_device->createShader( \
+            g_vulkan ? g_##NAME##_spirv : g_##NAME##_dxil, \
+            g_vulkan ? sizeof(g_##NAME##_spirv) : sizeof(g_##NAME##_dxil), \
+            "main", \
+            g_vulkan ? RenderShaderFormat::SPIRV : RenderShaderFormat::DXIL)
+
+    auto copyShader = CREATE_SHADER(copy_vs);
+
+    for (size_t i = 0; i < std::size(g_resolveMsaaDepthPipelines); i++)
+    {
+        std::unique_ptr<RenderShader> pixelShader;
+        switch (i)
+        {
+        case 0:
+            pixelShader = CREATE_SHADER(resolve_msaa_depth_2x);
+            break;
+        case 1:
+            pixelShader = CREATE_SHADER(resolve_msaa_depth_4x);
+            break;
+        case 2:
+            pixelShader = CREATE_SHADER(resolve_msaa_depth_8x);
+            break;
+        }
+
+        RenderGraphicsPipelineDesc desc;
+        desc.pipelineLayout = g_pipelineLayout.get();
+        desc.vertexShader = copyShader.get();
+        desc.pixelShader = pixelShader.get();
+        desc.depthFunction = RenderComparisonFunction::ALWAYS;
+        desc.depthEnabled = true;
+        desc.depthWriteEnabled = true;
+        desc.depthTargetFormat = RenderFormat::D32_FLOAT;
+        g_resolveMsaaDepthPipelines[i] = g_device->createGraphicsPipeline(desc);
+    }
+
+#undef CREATE_SHADER
 }
 
 static void WaitForGPU()
@@ -768,6 +818,9 @@ static void DestructResource(GuestResource* resource)
         {
             std::lock_guard lock(g_tempMutex);
             g_tempTextures[g_frame].emplace_back(std::move(surface->textureHolder));
+
+            if (surface->descriptorIndex != NULL)
+                g_tempDescriptorIndices[g_frame].push_back(surface->descriptorIndex);
         }
 
         surface->~GuestSurface();
@@ -1063,7 +1116,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     desc.depth = 1;
     desc.mipLevels = 1;
     desc.arraySize = 1;
-    //desc.multisampling.sampleCount = (desc.format != RenderFormat::D32_FLOAT && multiSample != 0) ? RenderSampleCount::COUNT_2 : RenderSampleCount::COUNT_1;
+    desc.multisampling.sampleCount = multiSample != 0 && Config::MSAA > 1 ? Config::MSAA : RenderSampleCount::COUNT_1;
     desc.format = ConvertFormat(format);
     desc.flags = desc.format == RenderFormat::D32_FLOAT ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::RENDER_TARGET;
 
@@ -1077,7 +1130,69 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     surface->format = desc.format;
     surface->sampleCount = desc.multisampling.sampleCount;
 
+    if (multiSample != 0 && desc.format == RenderFormat::D32_FLOAT)
+    {
+        RenderTextureViewDesc viewDesc;
+        viewDesc.dimension = RenderTextureViewDimension::TEXTURE_2D;
+        viewDesc.format = RenderFormat::D32_FLOAT;
+        viewDesc.mipLevels = 1;
+        surface->textureView = surface->textureHolder->createTextureView(viewDesc);
+        surface->descriptorIndex = g_textureDescriptorAllocator.allocate();
+        g_textureDescriptorSet->setTexture(surface->descriptorIndex, surface->textureHolder.get(), RenderTextureLayout::SHADER_READ, surface->textureView.get());
+    }
+
     return surface;
+}
+
+static void FlushViewport()
+{
+    bool renderingToBackBuffer = g_renderTarget == g_backBuffer &&
+        g_backBuffer->texture != g_backBuffer->textureHolder.get();
+
+    auto& commandList = g_commandLists[g_frame];
+
+    if (g_dirtyStates.viewport)
+    {
+        if (renderingToBackBuffer)
+        {
+            uint32_t width = g_swapChain->getWidth();
+            uint32_t height = g_swapChain->getHeight();
+
+            commandList->setViewports(RenderViewport(
+                g_viewport.x * width / 1280.0f,
+                g_viewport.y * height / 720.0f,
+                g_viewport.width * width / 1280.0f,
+                g_viewport.height * height / 720.0f,
+                g_viewport.minDepth,
+                g_viewport.maxDepth));
+        }
+        else
+        {
+            commandList->setViewports(g_viewport);
+        }
+    }
+
+    if (g_dirtyStates.scissorRect)
+    {
+        auto scissorRect = g_scissorTestEnable ? g_scissorRect : RenderRect(
+            g_viewport.x,
+            g_viewport.y,
+            g_viewport.x + g_viewport.width,
+            g_viewport.y + g_viewport.height);
+
+        if (renderingToBackBuffer)
+        {
+            uint32_t width = g_swapChain->getWidth();
+            uint32_t height = g_swapChain->getHeight();
+
+            scissorRect.left = scissorRect.left * width / 1280;
+            scissorRect.top = scissorRect.top * height / 720;
+            scissorRect.right = scissorRect.right * width / 1280;
+            scissorRect.bottom = scissorRect.bottom * height / 720;
+        }
+
+        commandList->setScissors(scissorRect);
+    }
 }
 
 static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestTexture* texture)
@@ -1086,15 +1201,84 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
     const auto surface = isDepthStencil ? g_depthStencil : g_renderTarget;
     const bool multiSampling = surface->sampleCount != RenderSampleCount::COUNT_1;
 
-    g_barriers.emplace_back(surface->texture, multiSampling ? RenderTextureLayout::RESOLVE_SOURCE : RenderTextureLayout::COPY_SOURCE);
-    g_barriers.emplace_back(texture->texture.get(), multiSampling ? RenderTextureLayout::RESOLVE_DEST : RenderTextureLayout::COPY_DEST);
+    RenderTextureLayout srcLayout;
+    RenderTextureLayout dstLayout;
+
+    if (multiSampling)
+    {
+        if (isDepthStencil)
+        {
+            srcLayout = RenderTextureLayout::SHADER_READ;
+            dstLayout = RenderTextureLayout::DEPTH_WRITE;
+        }
+        else
+        {
+            srcLayout = RenderTextureLayout::RESOLVE_SOURCE;
+            dstLayout = RenderTextureLayout::RESOLVE_DEST;
+        }
+    }
+    else
+    {
+        srcLayout = RenderTextureLayout::COPY_SOURCE;
+        dstLayout = RenderTextureLayout::COPY_DEST;
+    }
+
+    g_barriers.emplace_back(surface->texture, srcLayout);
+    g_barriers.emplace_back(texture->texture.get(), dstLayout);
     FlushBarriers();
 
     auto& commandList = g_commandLists[g_frame];
     if (multiSampling)
-        commandList->resolveTexture(texture->texture.get(), surface->texture);
-    else 
+    {
+        if (isDepthStencil)
+        {
+            uint32_t pipelineIndex = 0;
+
+            switch (g_depthStencil->sampleCount)
+            {
+            case RenderSampleCount::COUNT_2:
+                pipelineIndex = 0;
+                break;    
+            case RenderSampleCount::COUNT_4:
+                pipelineIndex = 1;
+                break;          
+            case RenderSampleCount::COUNT_8:
+                pipelineIndex = 2;
+                break;
+            default:
+                assert(false && "Unsupported MSAA sample count");
+                break;
+            }
+
+            if (texture->framebuffer == nullptr)
+            {
+                RenderFramebufferDesc desc;
+                desc.depthAttachment = texture->texture.get();
+                texture->framebuffer = g_device->createFramebuffer(desc);
+            }
+
+            FlushViewport();
+
+            commandList->setFramebuffer(texture->framebuffer.get());
+            commandList->setPipeline(g_resolveMsaaDepthPipelines[pipelineIndex].get());
+            commandList->setGraphicsPushConstants(0, &g_depthStencil->descriptorIndex, 0, sizeof(uint32_t));
+            commandList->drawInstanced(6, 1, 0, 0);
+
+            g_dirtyStates.renderTargetAndDepthStencil = true;
+            g_dirtyStates.pipelineState = true;
+
+            if (g_vulkan)
+                g_dirtyStates.vertexShaderConstants = true;
+        }
+        else
+        {
+            commandList->resolveTexture(texture->texture.get(), surface->texture);
+        }
+    }
+    else
+    {
         commandList->copyTexture(texture->texture.get(), surface->texture);
+    }
 
     surface->pendingBarrier = true;
     texture->pendingBarrier = true;
@@ -1356,32 +1540,9 @@ static RenderBorderColor ConvertBorderColor(uint32_t value)
 static void FlushRenderState(GuestDevice* device)
 {
     FlushFramebuffer();
+    FlushViewport();
 
     auto& commandList = g_commandLists[g_frame];
-
-    bool renderingToBackBuffer = g_renderTarget == g_backBuffer && 
-        g_backBuffer->texture != g_backBuffer->textureHolder.get();
-
-    if (g_dirtyStates.viewport)
-    {
-        if (renderingToBackBuffer)
-        {
-            uint32_t width = g_swapChain->getWidth();
-            uint32_t height = g_swapChain->getHeight();
-
-            commandList->setViewports(RenderViewport(
-                g_viewport.x * width / 1280.0f,
-                g_viewport.y * height / 720.0f,
-                g_viewport.width * width / 1280.0f,
-                g_viewport.height * height / 720.0f,
-                g_viewport.minDepth,
-                g_viewport.maxDepth));
-        }
-        else
-        {
-            commandList->setViewports(g_viewport);
-        }
-    }
 
     if (g_dirtyStates.pipelineState)
         commandList->setPipeline(CreateGraphicsPipeline(g_pipelineState));
@@ -1462,28 +1623,6 @@ static void FlushRenderState(GuestDevice* device)
     {
         auto sharedConstants = uploadAllocator.allocate<false>(&g_sharedConstants, sizeof(g_sharedConstants), 0x100);
         setRootDescriptor(sharedConstants, 2);
-    }
-
-    if (g_dirtyStates.scissorRect)
-    {
-        auto scissorRect = g_scissorTestEnable ? g_scissorRect : RenderRect(
-            g_viewport.x,
-            g_viewport.y,
-            g_viewport.x + g_viewport.width,
-            g_viewport.y + g_viewport.height);
-
-        if (renderingToBackBuffer)
-        {
-            uint32_t width = g_swapChain->getWidth();
-            uint32_t height = g_swapChain->getHeight();
-
-            scissorRect.left = scissorRect.left * width / 1280;
-            scissorRect.top = scissorRect.top * height / 720;
-            scissorRect.right = scissorRect.right * width / 1280;
-            scissorRect.bottom = scissorRect.bottom * height / 720;
-        }
-
-        commandList->setScissors(scissorRect);
     }
 
     if (g_dirtyStates.vertexShaderConstants || device->dirtyFlags[0] != 0)

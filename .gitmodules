@@ -4,3 +4,6 @@
 [submodule "thirdparty/ddspp"]
 	path = thirdparty/ddspp
 	url = https://github.com/redorav/ddspp.git
+[submodule "thirdparty/ShaderRecomp"]
+	path = thirdparty/ShaderRecomp
+	url = https://github.com/hedge-dev/ShaderRecomp.git

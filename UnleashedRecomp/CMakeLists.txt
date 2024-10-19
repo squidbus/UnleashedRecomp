@@ -95,6 +95,7 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(xxHash CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
+find_package(directx-dxc REQUIRED)
 
 target_link_libraries(UnleashedRecomp PRIVATE
     comctl32
@@ -122,3 +123,32 @@ target_include_directories(UnleashedRecomp PRIVATE
 )
 
 target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})
+
+function(compile_shader FILE_PATH TARGET_NAME)
+    set(FILE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/gpu/shader/${FILE_PATH}.hlsl)
+    cmake_path(GET FILE_PATH STEM VARIABLE_NAME)
+    add_custom_command(
+        OUTPUT ${FILE_PATH}.dxil.h
+        COMMAND ${DIRECTX_DXC_TOOL} -T ${TARGET_NAME} -HV 2021 -all-resources-bound -Wno-ignored-attributes -Fh ${FILE_PATH}.dxil.h ${FILE_PATH} -Vn g_${VARIABLE_NAME}_dxil
+        DEPENDS ${FILE_PATH}
+    )
+    add_custom_command(
+        OUTPUT ${FILE_PATH}.spirv.h
+        COMMAND ${DIRECTX_DXC_TOOL} -T ${TARGET_NAME} -HV 2021 -all-resources-bound -spirv -fvk-use-dx-layout ${ARGN} -Fh ${FILE_PATH}.spirv.h ${FILE_PATH} -Vn g_${VARIABLE_NAME}_spirv
+        DEPENDS ${FILE_PATH}
+    )
+    target_sources(UnleashedRecomp PRIVATE ${FILE_PATH}.dxil.h ${FILE_PATH}.spirv.h)
+endfunction()
+
+function(compile_vertex_shader FILE_PATH)
+    compile_shader(${FILE_PATH} vs_6_0 -fvk-invert-y)
+endfunction()
+
+function(compile_pixel_shader FILE_PATH)
+    compile_shader(${FILE_PATH} ps_6_0)
+endfunction()
+
+compile_vertex_shader(copy_vs)
+compile_pixel_shader(resolve_msaa_depth_2x)
+compile_pixel_shader(resolve_msaa_depth_4x)
+compile_pixel_shader(resolve_msaa_depth_8x)

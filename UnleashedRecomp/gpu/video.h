@@ -98,6 +98,7 @@ struct GuestTexture : GuestResource
     void* mappedMemory = nullptr;
     uint32_t descriptorIndex = 0;
     bool pendingBarrier = true;
+    std::unique_ptr<RenderFramebuffer> framebuffer;
 };
 
 struct GuestLockedRect
@@ -144,12 +145,14 @@ struct GuestSurface : GuestResource
 {
     std::unique_ptr<RenderTexture> textureHolder;
     RenderTexture* texture = nullptr;
+    std::unique_ptr<RenderTextureView> textureView;
     uint32_t width = 0;
     uint32_t height = 0;
     RenderFormat format = RenderFormat::UNKNOWN;
     ankerl::unordered_dense::map<const RenderTexture*, std::unique_ptr<RenderFramebuffer>> framebuffers;
     bool pendingBarrier = true;
     RenderSampleCounts sampleCount = RenderSampleCount::COUNT_1;
+    uint32_t descriptorIndex = 0;
 };
 
 enum GuestDeclType

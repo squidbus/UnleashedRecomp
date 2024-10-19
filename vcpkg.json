@@ -2,6 +2,7 @@
     "builtin-baseline": "e63bd09dc0b7204467705c1c7c71d0e2a3f8860b",
     "dependencies": [
         "d3d12-memory-allocator",
+        "directx-dxc",
         "sdl2",
         "unordered-dense",
         "volk",
