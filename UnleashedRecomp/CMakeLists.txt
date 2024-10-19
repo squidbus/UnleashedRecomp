@@ -104,6 +104,7 @@ find_package(xxHash CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 find_package(directx-dxc REQUIRED)
+find_package(zstd CONFIG REQUIRED)
 
 target_link_libraries(UnleashedRecomp PRIVATE
     comctl32
@@ -123,6 +124,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     winmm
     xxHash::xxhash
     PkgConfig::tomlplusplus
+    zstd::libzstd_static
 )
 
 target_include_directories(UnleashedRecomp PRIVATE

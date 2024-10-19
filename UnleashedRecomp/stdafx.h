@@ -13,6 +13,7 @@
 #include <ddspp.h>
 #include <ppc/ppc_recomp_shared.h>
 #include <toml++/toml.hpp>
+#include <zstd.h>
 
 #include "framework.h"
 #include "mutex.h"

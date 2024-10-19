@@ -6,6 +6,7 @@
 #include <cpu/guest_code.h>
 #include <kernel/memory.h>
 #include <xxHashMap.h>
+#include <shader/shader_cache.h>
 
 #include "video.h"
 #include "ui/window.h"
@@ -290,42 +291,17 @@ static void FlushBarriers()
     }
 }
 
-struct ShaderCacheHeader
-{
-    uint32_t version;
-    uint32_t shaderCount;
-    uint32_t reserved0;
-    uint32_t reserved1;
-};
-
-struct ShaderCacheEntry
-{
-    XXH64_hash_t hash;
-    uint32_t dxilOffset;
-    uint32_t dxilSize;
-    uint32_t spirvOffset;
-    uint32_t spirvSize;
-    GuestShader* shader = nullptr;
-};
-
 static std::unique_ptr<uint8_t[]> g_shaderCache;
 
 static void LoadShaderCache()
 {
-    FILE* file = fopen("ShaderCache.bin", "rb");
-    if (file)
-    {
-        fseek(file, 0, SEEK_END);
-        long fileSize = ftell(file);
-        fseek(file, 0, SEEK_SET);
-        g_shaderCache = std::make_unique<uint8_t[]>(fileSize);
-        fread(g_shaderCache.get(), 1, fileSize, file);
-        fclose(file);
-    }
-    else
-    {
-        MessageBox(nullptr, TEXT("Unable to locate ShaderCache.bin in root directory."), TEXT("SWA"), MB_ICONERROR);
-    }
+    const size_t decompressedSize = g_vulkan ? g_spirvCacheDecompressedSize : g_dxilCacheDecompressedSize;
+    g_shaderCache = std::make_unique<uint8_t[]>(decompressedSize);
+
+    ZSTD_decompress(g_shaderCache.get(), 
+        decompressedSize, 
+        g_vulkan ? g_compressedSpirvCache : g_compressedDxilCache, 
+        g_vulkan ? g_spirvCacheCompressedSize : g_dxilCacheCompressedSize);
 }
 
 static void SetRenderState(GuestDevice* device, uint32_t value)
@@ -2082,10 +2058,8 @@ static GuestShader* CreateShader(const be<uint32_t>* function, ResourceType reso
 {
     XXH64_hash_t hash = XXH3_64bits(function, function[1] + function[2]);
 
-    auto shaderCache = reinterpret_cast<ShaderCacheHeader*>(g_shaderCache.get());
-    auto begin = reinterpret_cast<ShaderCacheEntry*>(shaderCache + 1);
-    auto end = begin + shaderCache->shaderCount;
-    auto findResult = std::lower_bound(begin, end, hash, [](ShaderCacheEntry& lhs, XXH64_hash_t rhs)
+    auto end = g_shaderCacheEntries + g_shaderCacheEntryCount;
+    auto findResult = std::lower_bound(g_shaderCacheEntries, end, hash, [](ShaderCacheEntry& lhs, XXH64_hash_t rhs)
         {
             return lhs.hash < rhs;
         });
@@ -2094,7 +2068,7 @@ static GuestShader* CreateShader(const be<uint32_t>* function, ResourceType reso
 
     if (findResult != end && findResult->hash == hash)
     {
-        if (findResult->shader == nullptr)
+        if (findResult->userData == nullptr)
         {
             shader = g_userHeap.AllocPhysical<GuestShader>(resourceType);
 
@@ -2103,11 +2077,11 @@ static GuestShader* CreateShader(const be<uint32_t>* function, ResourceType reso
             else
                 shader->shader = g_device->createShader(g_shaderCache.get() + findResult->dxilOffset, findResult->dxilSize, "main", RenderShaderFormat::DXIL);
 
-            findResult->shader = shader;
+            findResult->userData = shader;
         }
         else
         {
-            shader = findResult->shader;
+            shader = reinterpret_cast<GuestShader*>(findResult->userData);
         }
     }
 
