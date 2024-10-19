@@ -12,13 +12,21 @@ add_compile_definitions(SDL_MAIN_HANDLED)
 # Microsoft wtf?
 add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 
-# Copy default config to build directory.
-file(INSTALL
-    DESTINATION "${CMAKE_BINARY_DIR}/${PROJECT_NAME}"
-    TYPE FILE
-    FILES "res/config.toml"
-    RENAME "${TARGET_NAME}.toml"
-)
+# Set config paths.
+set(SWA_CONFIG_SOURCE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/res/config.toml")
+set(SWA_CONFIG_TARGET_PATH "${CMAKE_BINARY_DIR}/${PROJECT_NAME}")
+set(SWA_CONFIG_TARGET_NAME "${TARGET_NAME}.toml")
+set(SWA_CONFIG_TARGET_FILE "${SWA_CONFIG_TARGET_PATH}/${SWA_CONFIG_TARGET_NAME}")
+
+# Copy default config to build directory if newer.
+if (${SWA_CONFIG_SOURCE_FILE} IS_NEWER_THAN ${SWA_CONFIG_TARGET_FILE})
+    file(INSTALL
+        DESTINATION ${SWA_CONFIG_TARGET_PATH}
+        TYPE FILE
+        FILES ${SWA_CONFIG_SOURCE_FILE}
+        RENAME ${SWA_CONFIG_TARGET_NAME}
+    )
+endif()
 
 # Generate icon bitmap header for SDL surface.
 BIN2H(SOURCE_FILE "res/icon.bmp" HEADER_FILE "res/icon.h" ARRAY_TYPE "unsigned char" VARIABLE_NAME "g_icon")
