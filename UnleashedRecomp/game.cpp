@@ -4,6 +4,8 @@
 
 constexpr float m_baseAspectRatio = 16.0f / 9.0f;
 
+const char* m_pStageID;
+
 uint32_t m_lastCheckpointScore = 0;
 
 #pragma region Aspect Ratio Hooks
@@ -130,6 +132,14 @@ PPC_FUNC(sub_824DCF38)
             ctx.r4.u32 = 4;
     }
 
+    if (m_pStageID)
+    {
+        /* Fix restarting Eggmanland as the Werehog
+           erroneously using the Theatre Mode transition. */
+        if (!strcmp(m_pStageID, "Act_EggmanLand"))
+            ctx.r4.u32 = 5;
+    }
+
     __imp__sub_824DCF38(ctx, base);
 }
 
@@ -170,6 +180,11 @@ void HighFrameRateDeltaTimeFixMidAsmHook(PPCRegister& f1)
 
     if (f1.f64 < threshold)
         f1.f64 = threshold;
+}
+
+void GetStageIDMidAsmHook(PPCRegister& r5)
+{
+    m_pStageID = *(xpointer<const char>*)g_memory.Translate(r5.u32);
 }
 
 #pragma endregion

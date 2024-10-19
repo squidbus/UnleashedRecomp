@@ -188,3 +188,8 @@ registers = ["f1"]
 name = "HighFrameRateDeltaTimeFixMidAsmHook"
 address = 0x823458A0
 registers = ["f1"]
+
+[[midasm_hook]]
+name = "GetStageIDMidAsmHook"
+address = 0x82528198
+registers = ["r5"]
