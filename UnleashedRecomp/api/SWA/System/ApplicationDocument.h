@@ -5,14 +5,19 @@ namespace SWA
     class CApplicationDocument // : public Hedgehog::Base::CSynchronizedObject
     {
     public:
-        // TODO: use g_memory.Translate?
-        // TODO: Hedgehog::Base::TSynchronizedPtr<CApplicationDocument>*
-        inline static xpointer<CApplicationDocument>* ms_pInstance = (xpointer<CApplicationDocument>*)0x1833678A0;
+        class CMember
+        {
+        public:
+            SWA_INSERT_PADDING(0x138);
+            void* m_spGameParameter;
+        };
 
         // TODO: Hedgehog::Base::TSynchronizedPtr<CApplicationDocument>
         static CApplicationDocument* GetInstance();
 
-        SWA_INSERT_PADDING(0x18);
+        SWA_INSERT_PADDING(0x04);
+        xpointer<CMember> m_pMember;
+        SWA_INSERT_PADDING(0x14);
         be<uint32_t> m_Region;
     };
 }

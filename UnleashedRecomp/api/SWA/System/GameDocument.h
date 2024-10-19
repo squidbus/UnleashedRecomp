@@ -12,10 +12,6 @@ namespace SWA
             be<uint32_t> m_Score;
         };
 
-        // TODO: use g_memory.Translate?
-        // TODO: Hedgehog::Base::TSynchronizedPtr<CGameDocument>*
-        inline static xpointer<CGameDocument>* ms_pInstance = (xpointer<CGameDocument>*)0x183367900;
-
         // TODO: Hedgehog::Base::TSynchronizedPtr<CGameDocument>
         static CGameDocument* GetInstance();
 
