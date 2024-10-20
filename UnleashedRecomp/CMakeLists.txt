@@ -6,11 +6,11 @@ add_compile_options(
     "-march=sandybridge"
     "-fno-strict-aliasing")
 
-add_compile_definitions(SWA_IMPL)
-add_compile_definitions(SDL_MAIN_HANDLED)
-
-# Microsoft wtf?
-add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
+add_compile_definitions(
+    SWA_IMPL
+    SDL_MAIN_HANDLED
+    _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR # Microsoft wtf?
+    _CRT_SECURE_NO_WARNINGS)
 
 # Set config paths.
 set(SWA_CONFIG_SOURCE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/res/config.toml")
