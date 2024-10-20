@@ -7,6 +7,7 @@ Hints = true                     # Determines whether to spawn hint rings and vo
 UnleashOutOfControlDrain = true  # Determines whether to drain Dark Gaia energy whilst the player cannot move.
 WerehogHubTransformVideo = true  # Determines whether to play the transition video for switching time of day in the hub areas.
                                  # Setting this to false will instead play a generic transition without artificial loading times.
+LogoSkip = false                 # Determines whether the intro logos will be skipped on boot.
 
 [Controls]
 XButtonHoming = true             # Determines whether to decouple the homing attack from the X button.

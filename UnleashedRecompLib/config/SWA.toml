@@ -198,3 +198,8 @@ registers = ["r5"]
 name = "PostUnleashMidAsmHook"
 address = 0x823C6788
 registers = ["r30"]
+
+[[midasm_hook]]
+name = "MovieRendererMidAsmHook"
+address = 0x82AE3200
+registers = ["r3"]

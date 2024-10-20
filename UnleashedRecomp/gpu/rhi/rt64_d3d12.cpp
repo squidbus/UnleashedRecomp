@@ -21,6 +21,7 @@
 #   define D3D12_DEBUG_LAYER_BREAK_ON_ERROR true
 #   define D3D12_DEBUG_LAYER_BREAK_ON_WARNING false
 #   define D3D12_DEBUG_LAYER_SUPRESS_SAMPLE_POSITIONS_ERROR // Supress error message that's been fixed in newer Agility SDK versions.
+//#   define D3D12_DEBUG_LAYER_GPU_BASED_VALIDATION_ENABLED
 #endif
 
 // Old Windows SDK versions don't provide this macro, so we workaround it by making sure it is defined.
@@ -649,6 +650,37 @@ namespace RT64 {
         return flags;
     }
 
+    static UINT toD3D12(RenderSwizzle swizzle, UINT identity) {
+        switch (swizzle) {
+        case RenderSwizzle::IDENTITY:
+            return identity;
+        case RenderSwizzle::ZERO:
+            return D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_0;  
+        case RenderSwizzle::ONE:
+            return D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1;    
+        case RenderSwizzle::R:
+            return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0;   
+        case RenderSwizzle::G:
+            return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1;     
+        case RenderSwizzle::B:
+            return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2;    
+        case RenderSwizzle::A:
+            return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3;
+        default:
+            assert(false && "Unknown swizzle type.");
+            return identity;
+        }
+    }
+
+    static UINT toD3D12(const RenderComponentMapping &componentMapping) {
+        return D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(
+            toD3D12(componentMapping.r, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0),
+            toD3D12(componentMapping.g, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1),
+            toD3D12(componentMapping.b, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2),
+            toD3D12(componentMapping.a, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3)
+        );
+    }
+
     static void setObjectName(ID3D12Object *object, const std::string &name) {
         const std::wstring wideCharName = Utf8ToUtf16(name);
         object->SetName(wideCharName.c_str());
@@ -669,37 +701,29 @@ namespace RT64 {
         heapDesc.Type = heapType;
         descriptorHandleIncrement = device->d3d->GetDescriptorHandleIncrementSize(heapDesc.Type);
 
-        HRESULT res = device->d3d->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&hostHeap));
+        const bool shaderVisible = (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) || (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+        if (shaderVisible) {
+            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        }
+
+        HRESULT res = device->d3d->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&heap));
         if (FAILED(res)) {
             fprintf(stderr, "CreateDescriptorHeap failed with error code 0x%lX.\n", res);
             return;
         }
+        
+        cpuDescriptorHandle = heap->GetCPUDescriptorHandleForHeapStart();
 
-        hostCPUDescriptorHandle = hostHeap->GetCPUDescriptorHandleForHeapStart();
-
-        const bool shaderVisible = (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) || (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
         if (shaderVisible) {
-            heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-            res = device->d3d->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&shaderHeap));
-            if (FAILED(res)) {
-                fprintf(stderr, "CreateDescriptorHeap failed with error code 0x%lX.\n", res);
-                return;
-            }
-
-            shaderCPUDescriptorHandle = shaderHeap->GetCPUDescriptorHandleForHeapStart();
-            shaderGPUDescriptorHandle = shaderHeap->GetGPUDescriptorHandleForHeapStart();
+            gpuDescriptorHandle = heap->GetGPUDescriptorHandleForHeapStart();
         }
 
         addFreeBlock(0, heapSize);
     }
 
     D3D12DescriptorHeapAllocator::~D3D12DescriptorHeapAllocator() {
-        if (hostHeap != nullptr) {
-            hostHeap->Release();
-        }
-
-        if (shaderHeap != nullptr) {
-            shaderHeap->Release();
+        if (heap != nullptr) {
+            heap->Release();
         }
     }
 
@@ -765,22 +789,16 @@ namespace RT64 {
         addFreeBlock(offset, size);
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHeapAllocator::getHostCPUHandleAt(uint32_t index) const {
+    D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHeapAllocator::getCPUHandleAt(uint32_t index) const {
         assert(index < heapSize);
-        assert(hostCPUDescriptorHandle.ptr > 0);
-        return { hostCPUDescriptorHandle.ptr + uint64_t(index) * descriptorHandleIncrement };
+        assert(cpuDescriptorHandle.ptr > 0);
+        return { cpuDescriptorHandle.ptr + uint64_t(index) * descriptorHandleIncrement };
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE D3D12DescriptorHeapAllocator::getShaderCPUHandleAt(uint32_t index) const {
+    D3D12_GPU_DESCRIPTOR_HANDLE D3D12DescriptorHeapAllocator::getGPUHandleAt(uint32_t index) const {
         assert(index < heapSize);
-        assert(shaderCPUDescriptorHandle.ptr > 0);
-        return { shaderCPUDescriptorHandle.ptr + uint64_t(index) * descriptorHandleIncrement };
-    }
-
-    D3D12_GPU_DESCRIPTOR_HANDLE D3D12DescriptorHeapAllocator::getShaderGPUHandleAt(uint32_t index) const {
-        assert(index < heapSize);
-        assert(shaderGPUDescriptorHandle.ptr > 0);
-        return { shaderGPUDescriptorHandle.ptr + uint64_t(index) * descriptorHandleIncrement };
+        assert(gpuDescriptorHandle.ptr > 0);
+        return { gpuDescriptorHandle.ptr + uint64_t(index) * descriptorHandleIncrement };
     }
 
     // D3D12DescriptorSet
@@ -1001,7 +1019,7 @@ namespace RT64 {
             if ((nativeResource != nullptr) && (textureView != nullptr)) {
                 const D3D12TextureView *interfaceTextureView = static_cast<const D3D12TextureView *>(textureView);
                 D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-                srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                srvDesc.Shader4ComponentMapping = interfaceTextureView->shader4ComponentMapping;
                 srvDesc.Format = interfaceTextureView->format;
 
                 const bool isMSAA = (interfaceTextureView->texture->desc.multisampling.sampleCount > RenderSampleCount::COUNT_1);
@@ -1096,9 +1114,8 @@ namespace RT64 {
             uint32_t descriptorIndexClamped = std::min(descriptorIndex, descriptorTypeMaxIndex);
             uint32_t descriptorIndexRelative = (descriptorIndex - descriptorIndexClamped);
             uint32_t descriptorHeapIndex = descriptorHeapIndices[descriptorIndexClamped];
-            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->samplerHeapAllocator->getHostCPUHandleAt(samplerAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
+            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->samplerHeapAllocator->getCPUHandleAt(samplerAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
             device->d3d->CreateSampler(&interfaceSampler->samplerDesc, cpuHandle);
-            setHostModified(samplerAllocation, descriptorHeapIndex + descriptorIndexRelative);
         }
     }
 
@@ -1125,9 +1142,8 @@ namespace RT64 {
             uint32_t descriptorIndexClamped = std::min(descriptorIndex, descriptorTypeMaxIndex);
             uint32_t descriptorIndexRelative = (descriptorIndex - descriptorIndexClamped);
             uint32_t descriptorHeapIndex = descriptorHeapIndices[descriptorIndexClamped];
-            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->viewHeapAllocator->getHostCPUHandleAt(viewAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
+            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->viewHeapAllocator->getCPUHandleAt(viewAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
             device->d3d->CreateShaderResourceView(resource, viewDesc, cpuHandle);
-            setHostModified(viewAllocation, descriptorHeapIndex + descriptorIndexRelative);
         }
     }
 
@@ -1136,9 +1152,8 @@ namespace RT64 {
             uint32_t descriptorIndexClamped = std::min(descriptorIndex, descriptorTypeMaxIndex);
             uint32_t descriptorIndexRelative = (descriptorIndex - descriptorIndexClamped);
             uint32_t descriptorHeapIndex = descriptorHeapIndices[descriptorIndexClamped];
-            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->viewHeapAllocator->getHostCPUHandleAt(viewAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
+            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->viewHeapAllocator->getCPUHandleAt(viewAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
             device->d3d->CreateUnorderedAccessView(resource, nullptr, viewDesc, cpuHandle);
-            setHostModified(viewAllocation, descriptorHeapIndex + descriptorIndexRelative);
         }
     }
 
@@ -1151,23 +1166,8 @@ namespace RT64 {
             uint32_t descriptorIndexClamped = std::min(descriptorIndex, descriptorTypeMaxIndex);
             uint32_t descriptorIndexRelative = (descriptorIndex - descriptorIndexClamped);
             uint32_t descriptorHeapIndex = descriptorHeapIndices[descriptorIndexClamped];
-            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->viewHeapAllocator->getHostCPUHandleAt(viewAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
+            const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->viewHeapAllocator->getCPUHandleAt(viewAllocation.offset + descriptorHeapIndex + descriptorIndexRelative);
             device->d3d->CreateConstantBufferView(&viewDesc, cpuHandle);
-            setHostModified(viewAllocation, descriptorHeapIndex + descriptorIndexRelative);
-        }
-    }
-
-    void D3D12DescriptorSet::setHostModified(HeapAllocation &heapAllocation, uint32_t heapIndex) {
-        if (heapAllocation.hostModifiedCount == 0) {
-            heapAllocation.hostModifiedIndex = heapIndex;
-            heapAllocation.hostModifiedCount = 1;
-        }
-        else if (heapIndex < heapAllocation.hostModifiedIndex) {
-            heapAllocation.hostModifiedCount = heapAllocation.hostModifiedIndex + heapAllocation.hostModifiedCount - heapIndex;
-            heapAllocation.hostModifiedIndex = heapIndex;
-        }
-        else if (heapIndex >= (heapAllocation.hostModifiedIndex + heapAllocation.hostModifiedCount)) {
-            heapAllocation.hostModifiedCount = heapIndex - heapAllocation.hostModifiedIndex + 1;
         }
     }
 
@@ -1351,7 +1351,7 @@ namespace RT64 {
                 const D3D12Texture *interfaceTexture = static_cast<const D3D12Texture *>(desc.colorAttachments[i]);
                 assert((interfaceTexture->desc.flags & RenderTextureFlag::RENDER_TARGET) && "Color attachment must be a render target.");
                 colorTargets.emplace_back(interfaceTexture);
-                colorHandles.emplace_back(device->colorTargetHeapAllocator->getHostCPUHandleAt(interfaceTexture->targetAllocatorOffset));
+                colorHandles.emplace_back(device->colorTargetHeapAllocator->getCPUHandleAt(interfaceTexture->targetAllocatorOffset));
 
                 if (i == 0) {
                     width = interfaceTexture->desc.width;
@@ -1367,10 +1367,10 @@ namespace RT64 {
 
             // The read-only handle is on the second slot on the DSV heap.
             if (desc.depthAttachmentReadOnly) {
-                depthHandle = device->depthTargetHeapAllocator->getHostCPUHandleAt(interfaceTexture->targetAllocatorOffset + 1);
+                depthHandle = device->depthTargetHeapAllocator->getCPUHandleAt(interfaceTexture->targetAllocatorOffset + 1);
             }
             else {
-                depthHandle = device->depthTargetHeapAllocator->getHostCPUHandleAt(interfaceTexture->targetAllocatorOffset);
+                depthHandle = device->depthTargetHeapAllocator->getCPUHandleAt(interfaceTexture->targetAllocatorOffset);
             }
 
             if (desc.colorAttachmentsCount == 0) {
@@ -1954,7 +1954,7 @@ namespace RT64 {
 
     void D3D12CommandList::checkDescriptorHeaps() {
         if (!descriptorHeapsSet) {
-            ID3D12DescriptorHeap *descriptorHeaps[] = { device->viewHeapAllocator->shaderHeap, device->samplerHeapAllocator->shaderHeap };
+            ID3D12DescriptorHeap *descriptorHeaps[] = { device->viewHeapAllocator->heap, device->samplerHeapAllocator->heap };
             d3d->SetDescriptorHeaps(std::size(descriptorHeaps), descriptorHeaps);
             descriptorHeapsSet = true;
         }
@@ -2014,29 +2014,15 @@ namespace RT64 {
         }
     }
 
-    static void updateShaderVisibleSet(D3D12Device *device, D3D12DescriptorHeapAllocator *heapAllocator, D3D12DescriptorSet::HeapAllocation &heapAllocation, D3D12_DESCRIPTOR_HEAP_TYPE heapType) {
-        if (heapAllocation.hostModifiedCount == 0) {
-            return;
-        }
-
-        const D3D12_CPU_DESCRIPTOR_HANDLE dstHandle = heapAllocator->getShaderCPUHandleAt(heapAllocation.offset + heapAllocation.hostModifiedIndex);
-        const D3D12_CPU_DESCRIPTOR_HANDLE srcHandle = heapAllocator->getHostCPUHandleAt(heapAllocation.offset + heapAllocation.hostModifiedIndex);
-        device->d3d->CopyDescriptorsSimple(heapAllocation.hostModifiedCount, dstHandle, srcHandle, heapType);
-        heapAllocation.hostModifiedIndex = 0;
-        heapAllocation.hostModifiedCount = 0;
-    }
 
     void D3D12CommandList::setDescriptorSet(const D3D12PipelineLayout *activePipelineLayout, RenderDescriptorSet *descriptorSet, uint32_t setIndex, bool setCompute) {
         assert(descriptorSet != nullptr);
         assert(activePipelineLayout != nullptr);
         assert(setIndex < activePipelineLayout->setCount);
 
-        // Copy descriptors if the shader visible heap is outdated.
-        D3D12DescriptorSet *interfaceDescriptorSet = static_cast<D3D12DescriptorSet *>(descriptorSet);
-        updateShaderVisibleSet(device, device->viewHeapAllocator.get(), interfaceDescriptorSet->viewAllocation, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-        updateShaderVisibleSet(device, device->samplerHeapAllocator.get(), interfaceDescriptorSet->samplerAllocation, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
         checkDescriptorHeaps();
 
+        D3D12DescriptorSet *interfaceDescriptorSet = static_cast<D3D12DescriptorSet *>(descriptorSet);
         setRootDescriptorTable(device->viewHeapAllocator.get(), interfaceDescriptorSet->viewAllocation, activePipelineLayout->setViewRootIndices[setIndex], setCompute);
         setRootDescriptorTable(device->samplerHeapAllocator.get(), interfaceDescriptorSet->samplerAllocation, activePipelineLayout->setSamplerRootIndices[setIndex], setCompute);
     }
@@ -2046,7 +2032,7 @@ namespace RT64 {
             return;
         }
 
-        const D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = heapAllocator->getShaderGPUHandleAt(heapAllocation.offset);
+        const D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = heapAllocator->getGPUHandleAt(heapAllocation.offset);
         if (setCompute) {
             d3d->SetComputeRootDescriptorTable(rootIndex, gpuHandle);
         }
@@ -2337,6 +2323,7 @@ namespace RT64 {
         this->dimension = desc.dimension;
         this->mipLevels = desc.mipLevels;
         this->mipSlice = desc.mipSlice;
+        this->shader4ComponentMapping = toD3D12(desc.componentMapping);
         
         // D3D12 and Vulkan disagree on whether D32 is usable as a texture view format. We just make D3D12 use R32 instead.
         if (format == DXGI_FORMAT_D32_FLOAT) {
@@ -2453,7 +2440,7 @@ namespace RT64 {
             break;
         }
 
-        const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->colorTargetHeapAllocator->getHostCPUHandleAt(targetAllocatorOffset);
+        const D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = device->colorTargetHeapAllocator->getCPUHandleAt(targetAllocatorOffset);
         device->d3d->CreateRenderTargetView(d3d, &rtvDesc, cpuHandle);
     }
 
@@ -2491,8 +2478,8 @@ namespace RT64 {
             break;
         }
 
-        const D3D12_CPU_DESCRIPTOR_HANDLE writeHandle = device->depthTargetHeapAllocator->getHostCPUHandleAt(targetAllocatorOffset);
-        const D3D12_CPU_DESCRIPTOR_HANDLE readOnlyHandle = device->depthTargetHeapAllocator->getHostCPUHandleAt(targetAllocatorOffset + 1);
+        const D3D12_CPU_DESCRIPTOR_HANDLE writeHandle = device->depthTargetHeapAllocator->getCPUHandleAt(targetAllocatorOffset);
+        const D3D12_CPU_DESCRIPTOR_HANDLE readOnlyHandle = device->depthTargetHeapAllocator->getCPUHandleAt(targetAllocatorOffset + 1);
         device->d3d->CreateDepthStencilView(d3d, &dsvDesc, writeHandle);
 
         dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
@@ -3346,6 +3333,7 @@ namespace RT64 {
 #           ifdef D3D12_DEBUG_LAYER_SUPRESS_SAMPLE_POSITIONS_ERROR
                 D3D12_MESSAGE_ID_SAMPLEPOSITIONS_MISMATCH_RECORDTIME_ASSUMEDFROMCLEAR,
                 D3D12_MESSAGE_ID_SAMPLEPOSITIONS_MISMATCH_DEFERRED,
+                D3D12_MESSAGE_ID_RESOURCE_BARRIER_DUPLICATE_SUBRESOURCE_TRANSITIONS,
 #           endif
             };
             
@@ -3574,12 +3562,12 @@ namespace RT64 {
             if (interfaceDescriptorSet != nullptr) {
                 if (interfaceDescriptorSet->viewAllocation.count > 0) {
                     uint32_t viewRootIndex = raytracingPipeline->pipelineLayout->setViewRootIndices[i];
-                    descriptorHandles[viewRootIndex] = viewHeapAllocator->getShaderGPUHandleAt(interfaceDescriptorSet->viewAllocation.offset).ptr;
+                    descriptorHandles[viewRootIndex] = viewHeapAllocator->getGPUHandleAt(interfaceDescriptorSet->viewAllocation.offset).ptr;
                 }
 
                 if (interfaceDescriptorSet->samplerAllocation.count > 0) {
                     uint32_t samplerRootIndex = raytracingPipeline->pipelineLayout->setSamplerRootIndices[i];
-                    descriptorHandles[samplerRootIndex] = samplerHeapAllocator->getShaderGPUHandleAt(interfaceDescriptorSet->samplerAllocation.offset).ptr;
+                    descriptorHandles[samplerRootIndex] = samplerHeapAllocator->getGPUHandleAt(interfaceDescriptorSet->samplerAllocation.offset).ptr;
                 }
             }
         }
@@ -3660,9 +3648,12 @@ namespace RT64 {
         UINT dxgiFactoryFlags = 0;
 
 #   ifdef D3D12_DEBUG_LAYER_ENABLED
-        ID3D12Debug *debugController;
+        ID3D12Debug1 *debugController;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
             debugController->EnableDebugLayer();
+#       ifdef D3D12_DEBUG_LAYER_GPU_BASED_VALIDATION_ENABLED
+            debugController->SetEnableGPUBasedValidation(TRUE);
+#       endif
 
             // Enable additional debug layers.
             dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;

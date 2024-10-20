@@ -50,17 +50,3 @@ PPC_FUNC(sub_82BD4AE8)
 {
     sub_831B1630(ctx, base);
 }
-
-// Movie player stubs
-GUEST_FUNCTION_STUB(sub_82AE3638);
-GUEST_FUNCTION_STUB(sub_82AE2BF8);
-
-// Logo skip
-PPC_FUNC(sub_82547DF0)
-{
-    ctx.r4.u64 = 0;
-    ctx.r5.u64 = 0;
-    ctx.r6.u64 = 1;
-    ctx.r7.u64 = 0;
-    sub_825517C8(ctx, base);
-}

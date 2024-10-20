@@ -13,6 +13,10 @@
 
 #include "shader/copy_vs.hlsl.dxil.h"
 #include "shader/copy_vs.hlsl.spirv.h"
+#include "shader/movie_vs.hlsl.dxil.h"
+#include "shader/movie_vs.hlsl.spirv.h"
+#include "shader/movie_ps.hlsl.dxil.h"
+#include "shader/movie_ps.hlsl.spirv.h"
 #include "shader/resolve_msaa_depth_2x.hlsl.dxil.h"
 #include "shader/resolve_msaa_depth_2x.hlsl.spirv.h"
 #include "shader/resolve_msaa_depth_4x.hlsl.dxil.h"
@@ -280,6 +284,8 @@ static std::vector<uint32_t> g_tempDescriptorIndices[NUM_FRAMES];
 static RenderBufferReference g_quadIndexBuffer;
 static uint32_t g_quadCount;
 
+static uint32_t g_mainThreadId;
+
 static std::vector<RenderTextureBarrier> g_barriers;
 
 static void FlushBarriers()
@@ -519,6 +525,13 @@ static const std::pair<GuestRenderState, void*> g_setRenderStateFunctions[] =
 
 static std::unique_ptr<RenderPipeline> g_resolveMsaaDepthPipelines[3];
 
+#define CREATE_SHADER(NAME) \
+    g_device->createShader( \
+        g_vulkan ? g_##NAME##_spirv : g_##NAME##_dxil, \
+        g_vulkan ? sizeof(g_##NAME##_spirv) : sizeof(g_##NAME##_dxil), \
+        "main", \
+        g_vulkan ? RenderShaderFormat::SPIRV : RenderShaderFormat::DXIL)
+
 static void CreateHostDevice()
 {
     for (uint32_t i = 0; i < 16; i++)
@@ -550,6 +563,8 @@ static void CreateHostDevice()
     for (auto& renderSemaphore : g_renderSemaphores)
         renderSemaphore = g_device->createCommandSemaphore();
 
+    g_mainThreadId = GetCurrentThreadId();
+
     RenderPipelineLayoutBuilder pipelineLayoutBuilder;
     pipelineLayoutBuilder.begin(false, true);
 
@@ -562,6 +577,8 @@ static void CreateHostDevice()
     descriptorSetBuilder.end(true, TEXTURE_DESCRIPTOR_SIZE);
     
     g_textureDescriptorSet = descriptorSetBuilder.create(g_device.get());
+    g_textureDescriptorSet->setTexture(0, nullptr, RenderTextureLayout::SHADER_READ);
+
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
@@ -571,6 +588,11 @@ static void CreateHostDevice()
     descriptorSetBuilder.end(true, SAMPLER_DESCRIPTOR_SIZE);
     
     g_samplerDescriptorSet = descriptorSetBuilder.create(g_device.get());
+    auto& [descriptorIndex, sampler] = g_samplerStates[XXH3_64bits(&g_samplerDescs[0], sizeof(RenderSamplerDesc))];
+    descriptorIndex = 1;
+    sampler = g_device->createSampler(g_samplerDescs[0]);
+    g_samplerDescriptorSet->setSampler(0, sampler.get());
+
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
 
     if (g_vulkan)
@@ -587,13 +609,6 @@ static void CreateHostDevice()
     pipelineLayoutBuilder.end();
     
     g_pipelineLayout = pipelineLayoutBuilder.create(g_device.get());
-
-#define CREATE_SHADER(NAME) \
-        g_device->createShader( \
-            g_vulkan ? g_##NAME##_spirv : g_##NAME##_dxil, \
-            g_vulkan ? sizeof(g_##NAME##_spirv) : sizeof(g_##NAME##_dxil), \
-            "main", \
-            g_vulkan ? RenderShaderFormat::SPIRV : RenderShaderFormat::DXIL)
 
     auto copyShader = CREATE_SHADER(copy_vs);
 
@@ -623,8 +638,6 @@ static void CreateHostDevice()
         desc.depthTargetFormat = RenderFormat::D32_FLOAT;
         g_resolveMsaaDepthPipelines[i] = g_device->createGraphicsPipeline(desc);
     }
-
-#undef CREATE_SHADER
 }
 
 static void WaitForGPU()
@@ -819,31 +832,41 @@ static void DestructResource(GuestResource* resource)
 static constexpr uint32_t PITCH_ALIGNMENT = 0x100;
 static constexpr uint32_t PLACEMENT_ALIGNMENT = 0x200;
 
+static uint32_t ComputeTexturePitch(GuestTexture* texture)
+{
+    return (texture->width * RenderFormatSize(texture->format) + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
+}
+
 static void LockTextureRect(GuestTexture* texture, uint32_t, GuestLockedRect* lockedRect) 
 {
-    uint32_t pitch = (texture->width * RenderFormatSize(texture->format) + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
+    uint32_t pitch = ComputeTexturePitch(texture);
+    uint32_t slicePitch = pitch * texture->height;
 
     if (texture->mappedMemory == nullptr)
-        texture->mappedMemory = g_userHeap.AllocPhysical(pitch * texture->height, 0x10);
+        texture->mappedMemory = g_userHeap.AllocPhysical(slicePitch, 0x10);
 
     lockedRect->pitch = pitch;
     lockedRect->bits = g_memory.MapVirtual(texture->mappedMemory);
 }
 
-template<typename T>
-static void ExecuteCopyCommandList(const T& function)
-{
-    std::lock_guard lock(g_copyMutex);
-
-    g_copyCommandList->begin();
-    function();
-    g_copyCommandList->end();
-    g_copyQueue->executeCommandLists(g_copyCommandList.get(), g_copyCommandFence.get());
-    g_copyQueue->waitForCommandFence(g_copyCommandFence.get());
-}
-
 static void UnlockTextureRect(GuestTexture* texture) 
 {
+    assert(GetCurrentThreadId() == g_mainThreadId);
+
+    g_barriers.emplace_back(texture->texture.get(), RenderTextureLayout::COPY_DEST);
+    FlushBarriers();
+
+    uint32_t pitch = ComputeTexturePitch(texture);
+    uint32_t slicePitch = pitch * texture->height;
+
+    auto allocation = g_uploadAllocators[g_frame].allocate(slicePitch, PLACEMENT_ALIGNMENT);
+    memcpy(allocation.memory, texture->mappedMemory, slicePitch);
+    
+    g_commandLists[g_frame]->copyTextureRegion(
+        RenderTextureCopyLocation::Subresource(texture->texture.get(), 0),
+        RenderTextureCopyLocation::PlacedFootprint(allocation.bufferReference.ref, texture->format, texture->width, texture->height, 1, pitch / RenderFormatSize(texture->format), allocation.bufferReference.offset));
+
+    texture->pendingBarrier = true;
 }
 
 static void* LockBuffer(GuestBuffer* buffer, uint32_t flags)
@@ -859,6 +882,18 @@ static void* LockBuffer(GuestBuffer* buffer, uint32_t flags)
 static void* LockVertexBuffer(GuestBuffer* buffer, uint32_t, uint32_t, uint32_t flags)
 {
     return LockBuffer(buffer, flags);
+}
+
+template<typename T>
+static void ExecuteCopyCommandList(const T& function)
+{
+    std::lock_guard lock(g_copyMutex);
+
+    g_copyCommandList->begin();
+    function();
+    g_copyCommandList->end();
+    g_copyQueue->executeCommandLists(g_copyCommandList.get(), g_copyCommandFence.get());
+    g_copyQueue->waitForCommandFence(g_copyCommandFence.get());
 }
 
 template<typename T>
@@ -1046,6 +1081,21 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
     viewDesc.format = desc.format;
     viewDesc.dimension = texture->type == ResourceType::VolumeTexture ? RenderTextureViewDimension::TEXTURE_3D : RenderTextureViewDimension::TEXTURE_2D;
     viewDesc.mipLevels = levels;
+
+    switch (format)
+    {
+    case D3DFMT_D24FS8:
+    case D3DFMT_D24S8:
+    case D3DFMT_L8:
+    case D3DFMT_L8_2:
+        viewDesc.componentMapping = RenderComponentMapping(RenderSwizzle::R, RenderSwizzle::R, RenderSwizzle::R, RenderSwizzle::ONE);
+        break;
+
+    case D3DFMT_X8R8G8B8:
+        viewDesc.componentMapping = RenderComponentMapping(RenderSwizzle::G, RenderSwizzle::B, RenderSwizzle::A, RenderSwizzle::ONE);
+        break;
+    }
+
     texture->textureView = texture->texture->createTextureView(viewDesc);
 
     texture->width = width;
@@ -1056,6 +1106,10 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
 
     g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture.get(), RenderTextureLayout::SHADER_READ, texture->textureView.get());
    
+#ifdef _DEBUG 
+    texture->texture->setName(std::format("Texture {:X}", g_memory.MapVirtual(texture)));
+#endif
+
     return texture;
 }
 
@@ -1117,6 +1171,10 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
         surface->descriptorIndex = g_textureDescriptorAllocator.allocate();
         g_textureDescriptorSet->setTexture(surface->descriptorIndex, surface->textureHolder.get(), RenderTextureLayout::SHADER_READ, surface->textureView.get());
     }
+
+#ifdef _DEBUG 
+    surface->texture->setName(std::format("{} {:X}", desc.flags & RenderTextureFlag::RENDER_TARGET ? "Render Target" : "Depth Stencil", g_memory.MapVirtual(surface)));
+#endif
 
     return surface;
 }
@@ -1588,10 +1646,10 @@ static void FlushRenderState(GuestDevice* device)
                     descriptorIndex = g_samplerStates.size();
                     sampler = g_device->createSampler(samplerDesc);
 
-                    g_samplerDescriptorSet->setSampler(descriptorIndex, sampler.get());
+                    g_samplerDescriptorSet->setSampler(descriptorIndex - 1, sampler.get());
                 }
 
-                SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.samplerIndices[i], descriptorIndex);
+                SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.samplerIndices[i], descriptorIndex - 1);
             }
 
             device->dirtyFlags[3] = device->dirtyFlags[3].get() & ~mask;
@@ -2337,6 +2395,8 @@ static RenderFormat ConvertDXGIFormat(ddspp::DXGIFormat format)
         return RenderFormat::R8G8B8A8_SINT;
     case ddspp::B8G8R8A8_UNORM:
         return RenderFormat::B8G8R8A8_UNORM;
+    case ddspp::B8G8R8X8_UNORM:
+        return RenderFormat::B8G8R8A8_UNORM;   
     case ddspp::R16G16_TYPELESS:
         return RenderFormat::R16G16_TYPELESS;
     case ddspp::R16G16_FLOAT:
@@ -2567,7 +2627,8 @@ void IndexBufferLengthMidAsmHook(PPCRegister& r3)
 
 void SetShadowResolutionMidAsmHook(PPCRegister& r11)
 {
-    r11.u64 = 4096;
+    if (Config::ShadowResolution > 0)
+        r11.u64 = Config::ShadowResolution;
 }
 
 void Primitive2DHalfPixelOffsetMidAsmHook(PPCRegister& f13)
@@ -2577,8 +2638,8 @@ void Primitive2DHalfPixelOffsetMidAsmHook(PPCRegister& f13)
 
 static void SetResolution(be<uint32_t>* device)
 {
-    uint32_t width = g_swapChain->getWidth();
-    uint32_t height = g_swapChain->getHeight();
+    uint32_t width = uint32_t(g_swapChain->getWidth() * Config::ResolutionScale);
+    uint32_t height = uint32_t(g_swapChain->getHeight() * Config::ResolutionScale);
     device[46] = width == 0 ? 880 : width;
     device[47] = height == 0 ? 720 : height;
 }
@@ -2586,6 +2647,50 @@ static void SetResolution(be<uint32_t>* device)
 static uint32_t StubFunction()
 {
     return 0;
+}
+
+static GuestShader* g_movieVertexShader;
+static GuestShader* g_moviePixelShader;
+static GuestVertexDeclaration* g_movieVertexDeclaration;
+
+static void ScreenShaderInit(be<uint32_t>* a1, uint32_t a2, uint32_t a3, GuestVertexElement* vertexElements)
+{
+    if (g_moviePixelShader == nullptr)
+    {
+        g_moviePixelShader = g_userHeap.AllocPhysical<GuestShader>(ResourceType::PixelShader);
+        g_moviePixelShader->shader = CREATE_SHADER(movie_ps);
+    }
+
+    if (g_movieVertexShader == nullptr)
+    {
+        g_movieVertexShader = g_userHeap.AllocPhysical<GuestShader>(ResourceType::VertexShader);
+        g_movieVertexShader->shader = CREATE_SHADER(movie_vs);
+    }
+
+    if (g_movieVertexDeclaration == nullptr)
+        g_movieVertexDeclaration = CreateVertexDeclaration(vertexElements);
+
+    g_moviePixelShader->AddRef();
+    g_movieVertexShader->AddRef();
+    g_movieVertexDeclaration->AddRef();
+
+    a1[2] = g_memory.MapVirtual(g_moviePixelShader);
+    a1[3] = g_memory.MapVirtual(g_movieVertexShader);
+    a1[4] = g_memory.MapVirtual(g_movieVertexDeclaration);
+}
+
+void MovieRendererMidAsmHook(PPCRegister& r3)
+{
+    auto device = reinterpret_cast<GuestDevice*>(g_memory.Translate(r3.u32));
+
+    // Force linear filtering & clamp addressing
+    for (size_t i = 0; i < 3; i++)
+    {
+        device->samplerStates[i].data[0] = (device->samplerStates[i].data[0].get() & ~0x7fc00) | 0x24800;
+        device->samplerStates[i].data[3] = (device->samplerStates[i].data[3].get() & ~0x1f80000) | 0x1280000;
+    }
+
+    device->dirtyFlags[3] = device->dirtyFlags[3].get() | 0xe0000000ull;
 }
 
 GUEST_FUNCTION_HOOK(sub_82BD99B0, CreateDevice);
@@ -2652,6 +2757,8 @@ GUEST_FUNCTION_HOOK(sub_82E43FC8, MakePictureData);
 
 GUEST_FUNCTION_HOOK(sub_82E9EE38, SetResolution);
 GUEST_FUNCTION_HOOK(sub_82BE77B0, StubFunction);
+
+GUEST_FUNCTION_HOOK(sub_82AE2BF8, ScreenShaderInit);
 
 GUEST_FUNCTION_STUB(sub_822C15D8);
 GUEST_FUNCTION_STUB(sub_822C1810);

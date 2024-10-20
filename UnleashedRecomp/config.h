@@ -52,6 +52,7 @@ public:
     inline static bool Hints = true;
     inline static bool UnleashOutOfControlDrain = true;
     inline static bool WerehogHubTransformVideo = true;
+    inline static bool LogoSkip = false;
 
     // Controls
     inline static bool XButtonHoming = true;

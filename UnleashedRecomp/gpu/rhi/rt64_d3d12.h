@@ -46,14 +46,12 @@ namespace RT64 {
             }
         };
 
-        ID3D12DescriptorHeap *hostHeap = nullptr;
-        ID3D12DescriptorHeap *shaderHeap = nullptr;
+        ID3D12DescriptorHeap *heap = nullptr;
         uint32_t heapSize = 0;
         uint32_t freeSize = 0;
         D3D12Device *device = nullptr;
-        D3D12_CPU_DESCRIPTOR_HANDLE hostCPUDescriptorHandle = {};
-        D3D12_CPU_DESCRIPTOR_HANDLE shaderCPUDescriptorHandle = {};
-        D3D12_GPU_DESCRIPTOR_HANDLE shaderGPUDescriptorHandle = {};
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle = {};
+        D3D12_GPU_DESCRIPTOR_HANDLE gpuDescriptorHandle = {};
         UINT descriptorHandleIncrement = 0;
         OffsetFreeBlockMap offsetFreeBlockMap;
         SizeFreeBlockMap sizeFreeBlockMap;
@@ -64,9 +62,8 @@ namespace RT64 {
         void addFreeBlock(uint32_t offset, uint32_t size);
         uint32_t allocate(uint32_t size);
         void free(uint32_t offset, uint32_t size);
-        D3D12_CPU_DESCRIPTOR_HANDLE getHostCPUHandleAt(uint32_t index) const;
-        D3D12_CPU_DESCRIPTOR_HANDLE getShaderCPUHandleAt(uint32_t index) const;
-        D3D12_GPU_DESCRIPTOR_HANDLE getShaderGPUHandleAt(uint32_t index) const;
+        D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandleAt(uint32_t index) const;
+        D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandleAt(uint32_t index) const;
     };
 
     struct D3D12DescriptorSet : RenderDescriptorSet {
@@ -75,8 +72,6 @@ namespace RT64 {
         struct HeapAllocation {
             uint32_t offset = 0;
             uint32_t count = 0;
-            uint32_t hostModifiedIndex = 0;
-            uint32_t hostModifiedCount = 0;
         };
 
         HeapAllocation viewAllocation;
@@ -94,7 +89,6 @@ namespace RT64 {
         void setSRV(uint32_t descriptorIndex, ID3D12Resource *resource, const D3D12_SHADER_RESOURCE_VIEW_DESC *viewDesc);
         void setUAV(uint32_t descriptorIndex, ID3D12Resource *resource, const D3D12_UNORDERED_ACCESS_VIEW_DESC *viewDesc);
         void setCBV(uint32_t descriptorIndex, ID3D12Resource *resource, uint64_t bufferSize);
-        void setHostModified(HeapAllocation &heapAllocation, uint32_t heapIndex);
     };
 
     struct D3D12SwapChain : RenderSwapChain {
@@ -289,6 +283,7 @@ namespace RT64 {
         RenderTextureViewDimension dimension = RenderTextureViewDimension::UNKNOWN;
         uint32_t mipLevels = 0;
         uint32_t mipSlice = 0;
+        uint32_t shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
         D3D12TextureView(D3D12Texture *texture, const RenderTextureViewDesc &desc);
         ~D3D12TextureView() override;

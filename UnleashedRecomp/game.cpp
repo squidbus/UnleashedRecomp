@@ -236,4 +236,22 @@ void GetStageIDMidAsmHook(PPCRegister& r5)
     m_pStageID = *(xpointer<const char>*)g_memory.Translate(r5.u32);
 }
 
+// Logo skip
+PPC_FUNC_IMPL(__imp__sub_82547DF0);
+PPC_FUNC(sub_82547DF0)
+{
+    if (Config::LogoSkip)
+    {
+        ctx.r4.u64 = 0;
+        ctx.r5.u64 = 0;
+        ctx.r6.u64 = 1;
+        ctx.r7.u64 = 0;
+        sub_825517C8(ctx, base);
+    }
+    else
+    {
+        __imp__sub_82547DF0(ctx, base);
+    }
+}
+
 #pragma endregion

@@ -159,6 +159,8 @@ function(compile_pixel_shader FILE_PATH)
 endfunction()
 
 compile_vertex_shader(copy_vs)
+compile_pixel_shader(movie_ps)
+compile_vertex_shader(movie_vs)
 compile_pixel_shader(resolve_msaa_depth_2x)
 compile_pixel_shader(resolve_msaa_depth_4x)
 compile_pixel_shader(resolve_msaa_depth_8x)

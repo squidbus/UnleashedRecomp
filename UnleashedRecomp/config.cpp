@@ -11,6 +11,7 @@ void Config::Load()
             TOML_READ_BOOLEAN(Hints);
             TOML_READ_BOOLEAN(UnleashOutOfControlDrain);
             TOML_READ_BOOLEAN(WerehogHubTransformVideo);
+            TOML_READ_BOOLEAN(LogoSkip);
         }
         TOML_END_SECTION();
 

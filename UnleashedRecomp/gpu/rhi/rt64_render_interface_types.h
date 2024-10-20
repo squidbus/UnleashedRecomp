@@ -921,11 +921,34 @@ namespace RT64 {
         }
     };
 
+    enum class RenderSwizzle : uint8_t
+    {
+        IDENTITY = 0,
+        ZERO = 1,
+        ONE = 2,
+        R = 3,
+        G = 4,
+        B = 5,
+        A = 6
+    };
+
+    struct RenderComponentMapping
+    {
+        RenderSwizzle r = RenderSwizzle::IDENTITY;
+        RenderSwizzle g = RenderSwizzle::IDENTITY;
+        RenderSwizzle b = RenderSwizzle::IDENTITY;
+        RenderSwizzle a = RenderSwizzle::IDENTITY;
+
+        RenderComponentMapping() = default;
+        RenderComponentMapping(RenderSwizzle r, RenderSwizzle g, RenderSwizzle b, RenderSwizzle a) : r(r), g(g), b(b), a(a) {}
+    };
+
     struct RenderTextureViewDesc {
         RenderFormat format = RenderFormat::UNKNOWN;
         RenderTextureViewDimension dimension = RenderTextureViewDimension::UNKNOWN;
         uint32_t mipLevels = 0;
         uint32_t mipSlice = 0;
+        RenderComponentMapping componentMapping;
 
         RenderTextureViewDesc() = default;
 

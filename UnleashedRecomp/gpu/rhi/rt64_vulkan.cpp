@@ -677,6 +677,28 @@ namespace RT64 {
         }
     }
 
+    static VkComponentSwizzle toVk(RenderSwizzle swizzle) {
+        switch (swizzle) {
+        case RenderSwizzle::IDENTITY:
+            return VK_COMPONENT_SWIZZLE_IDENTITY;
+        case RenderSwizzle::ZERO:
+            return VK_COMPONENT_SWIZZLE_ZERO;
+        case RenderSwizzle::ONE:
+            return VK_COMPONENT_SWIZZLE_ONE;
+        case RenderSwizzle::R:
+            return VK_COMPONENT_SWIZZLE_R;
+        case RenderSwizzle::G:
+            return VK_COMPONENT_SWIZZLE_G;
+        case RenderSwizzle::B:
+            return VK_COMPONENT_SWIZZLE_B;
+        case RenderSwizzle::A:
+            return VK_COMPONENT_SWIZZLE_A;
+        default:
+            assert(false && "Unknown swizzle type.");
+            return VK_COMPONENT_SWIZZLE_IDENTITY;
+        }
+    }
+
     static void setObjectName(VkDevice device, VkDebugReportObjectTypeEXT objectType, uint64_t object, const std::string &name) {
 #   ifdef VULKAN_OBJECT_NAMES_ENABLED
         VkDebugMarkerObjectNameInfoEXT nameInfo = {};
@@ -982,10 +1004,10 @@ namespace RT64 {
         viewInfo.image = texture->vk;
         viewInfo.viewType = toImageViewType(desc.dimension);
         viewInfo.format = toVk(desc.format);
-        viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        viewInfo.components.r = toVk(desc.componentMapping.r);
+        viewInfo.components.g = toVk(desc.componentMapping.g);
+        viewInfo.components.b = toVk(desc.componentMapping.b);
+        viewInfo.components.a = toVk(desc.componentMapping.a);
         viewInfo.subresourceRange.aspectMask = (texture->desc.flags & RenderTextureFlag::DEPTH_TARGET) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
         viewInfo.subresourceRange.baseMipLevel = desc.mipSlice;
         viewInfo.subresourceRange.levelCount = desc.mipLevels;
