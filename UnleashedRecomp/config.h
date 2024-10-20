@@ -29,6 +29,12 @@ enum EScoreBehaviour : uint32_t
     EScoreBehaviour_CheckpointRetain
 };
 
+enum EGraphicsAPI
+{
+    EGraphicsAPI_D3D12,
+    EGraphicsAPI_Vulkan
+};
+
 enum EMovieScaleMode : uint32_t
 {
     EMovieScaleMode_Stretch,
@@ -41,12 +47,6 @@ enum EUIScaleMode : uint32_t
     EUIScaleMode_Stretch,
     EUIScaleMode_Edge,
     EUIScaleMode_Centre
-};
-
-enum EGraphicsAPI
-{
-    GraphicsAPI_D3D12,
-    GraphicsAPI_Vulkan
 };
 
 class Config
@@ -68,7 +68,7 @@ public:
     inline static bool WerehogBattleMusic = true;
 
     // Video
-    inline static EGraphicsAPI GraphicsAPI = GraphicsAPI_D3D12;
+    inline static EGraphicsAPI GraphicsAPI = EGraphicsAPI_D3D12;
     inline static uint32_t WindowWidth = 1280;
     inline static uint32_t WindowHeight = 720;
     inline static float ResolutionScale = 1.0f;

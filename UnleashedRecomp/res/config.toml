@@ -17,7 +17,7 @@ UnleashCancel = false            # Determines whether Unleash can be cancelled b
 WerehogBattleMusic = true        # Determines whether to play the battle theme for enemy encounters as the Werehog.
 
 [Video]
-GraphicsAPI = 0                 # 0 - D3D12; 1 - Vulkan
+GraphicsAPI = 0                  # 0 - D3D12; 1 - Vulkan.
 WindowWidth = 1280
 WindowHeight = 720
 ResolutionScale = 1.0
