@@ -24,6 +24,12 @@
 #include "shader/resolve_msaa_depth_8x.hlsl.dxil.h"
 #include "shader/resolve_msaa_depth_8x.hlsl.spirv.h"
 
+extern "C"
+{
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 namespace RT64
 {
     extern std::unique_ptr<RenderInterface> CreateD3D12Interface();
@@ -1715,7 +1721,9 @@ static RenderPrimitiveTopology ConvertPrimitiveType(uint32_t primitiveType)
     case D3DPT_QUADLIST:
         return RenderPrimitiveTopology::TRIANGLE_LIST;  
     case D3DPT_TRIANGLESTRIP:
-        return RenderPrimitiveTopology::TRIANGLE_STRIP;
+        return RenderPrimitiveTopology::TRIANGLE_STRIP;   
+    case D3DPT_TRIANGLEFAN:
+        return RenderPrimitiveTopology::TRIANGLE_FAN;
     default:
         assert(false && "Unknown primitive type");
         return RenderPrimitiveTopology::UNKNOWN;
@@ -1725,13 +1733,6 @@ static RenderPrimitiveTopology ConvertPrimitiveType(uint32_t primitiveType)
 static void SetPrimitiveType(uint32_t primitiveType)
 {
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.primitiveTopology, ConvertPrimitiveType(primitiveType));
-}
-
-static bool TemporarySkipRendering(uint32_t primitiveType)
-{
-    return primitiveType == D3DPT_TRIANGLEFAN ||
-        g_pipelineState.vertexShader == nullptr ||
-        g_pipelineState.vertexShader->shader == nullptr;
 }
 
 static uint32_t CheckInstancing()
@@ -1750,9 +1751,6 @@ static uint32_t CheckInstancing()
 
 static void DrawPrimitive(GuestDevice* device, uint32_t primitiveType, uint32_t startVertex, uint32_t primitiveCount) 
 {
-    if (TemporarySkipRendering(primitiveType))
-        return;
-
     SetPrimitiveType(primitiveType);
 
     uint32_t indexCount = CheckInstancing();
@@ -1777,9 +1775,6 @@ static void DrawPrimitive(GuestDevice* device, uint32_t primitiveType, uint32_t 
 
 static void DrawIndexedPrimitive(GuestDevice* device, uint32_t primitiveType, int32_t baseVertexIndex, uint32_t startIndex, uint32_t primCount)
 {
-    if (TemporarySkipRendering(primitiveType))
-        return;
-
     CheckInstancing();
     SetPrimitiveType(primitiveType);
     FlushRenderState(device);
@@ -1788,9 +1783,6 @@ static void DrawIndexedPrimitive(GuestDevice* device, uint32_t primitiveType, in
 
 static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_t primitiveCount, void* vertexStreamZeroData, uint32_t vertexStreamZeroStride)
 {
-    if (TemporarySkipRendering(primitiveType))
-        return;
-
     CheckInstancing();
     SetPrimitiveType(primitiveType);
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexStrides[0], uint8_t(vertexStreamZeroStride));

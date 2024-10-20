@@ -332,7 +332,9 @@ namespace RT64 {
         case RenderPrimitiveTopology::TRIANGLE_LIST:
             return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; 
         case RenderPrimitiveTopology::TRIANGLE_STRIP:
-            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;  
+        case RenderPrimitiveTopology::TRIANGLE_FAN:
+            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
         default:
             assert(false && "Unknown primitive topology type.");
             return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;

@@ -94,6 +94,8 @@ endif()
 
 set_target_properties(UnleashedRecomp PROPERTIES OUTPUT_NAME ${TARGET_NAME})
 
+find_package(directx-headers CONFIG REQUIRED)
+find_package(directx12-agility CONFIG REQUIRED)
 find_package(d3d12-memory-allocator CONFIG REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(unordered_dense CONFIG REQUIRED)
@@ -106,9 +108,18 @@ pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 find_package(directx-dxc REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
+add_custom_command(TARGET UnleashedRecomp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Core,IMPORTED_LOCATION_RELEASE> ${CMAKE_CURRENT_BINARY_DIR}/D3D12
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Layers,IMPORTED_LOCATION_DEBUG> ${CMAKE_CURRENT_BINARY_DIR}/D3D12
+   COMMAND_EXPAND_LISTS
+)
+
 target_link_libraries(UnleashedRecomp PRIVATE
+    Microsoft::DirectX-Headers 
+    Microsoft::DirectX-Guids 
+    Microsoft::DirectX12-Agility
     comctl32
-    d3d12
     dxgi
     Vulkan::Headers
     volk::volk 

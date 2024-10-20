@@ -29,6 +29,11 @@
 #define D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)
 #endif
 
+extern "C" {
+    __declspec(dllexport) extern const UINT D3D12SDKVersion = D3D12_SDK_VERSION;
+    __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\";
+}
+
 namespace RT64 {
     static const uint32_t ShaderDescriptorHeapSize = 65536;
     static const uint32_t SamplerDescriptorHeapSize = 1024;
@@ -473,7 +478,9 @@ namespace RT64 {
         case RenderPrimitiveTopology::TRIANGLE_LIST:
             return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;     
         case RenderPrimitiveTopology::TRIANGLE_STRIP:
-            return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+            return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;     
+        case RenderPrimitiveTopology::TRIANGLE_FAN:
+            return D3D_PRIMITIVE_TOPOLOGY_TRIANGLEFAN;
         default:
             assert(false && "Unknown primitive topology.");
             return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
@@ -489,6 +496,7 @@ namespace RT64 {
             return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
         case RenderPrimitiveTopology::TRIANGLE_LIST:
         case RenderPrimitiveTopology::TRIANGLE_STRIP:
+        case RenderPrimitiveTopology::TRIANGLE_FAN:
             return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         default:
             assert(false && "Unknown primitive topology type.");
