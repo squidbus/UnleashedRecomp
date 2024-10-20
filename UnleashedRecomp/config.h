@@ -50,6 +50,7 @@ public:
     inline static ELanguage Language = ELanguage_English;
     inline static EScoreBehaviour ScoreBehaviour = EScoreBehaviour_CheckpointReset;
     inline static bool Hints = true;
+    inline static bool UnleashOutOfControlDrain = true;
     inline static bool WerehogHubTransformVideo = true;
 
     // Controls

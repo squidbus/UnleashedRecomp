@@ -11,5 +11,7 @@ namespace SWA::Player
         be<float> m_DarkGaiaEnergy;
         SWA_INSERT_PADDING(0x138);
         be<uint32_t> m_AnimationID;
+        SWA_INSERT_PADDING(0x104);
+        be<uint32_t> m_OutOfControlCount;
     };
 }

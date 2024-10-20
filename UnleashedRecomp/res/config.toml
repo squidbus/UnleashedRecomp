@@ -4,6 +4,7 @@ Language = 1                     # The language displayed by the game.
 ScoreBehaviour = 0               # Determines how the score behaves when restarting at a checkpoint.
                                  # Reset to zero = 0; Reset to last checkpoint score = 1.
 Hints = true                     # Determines whether to spawn hint rings and volumes.
+UnleashOutOfControlDrain = true  # Determines whether to drain Dark Gaia energy whilst the player cannot move.
 WerehogHubTransformVideo = true  # Determines whether to play the transition video for switching time of day in the hub areas.
                                  # Setting this to false will instead play a generic transition without artificial loading times.
 

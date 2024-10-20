@@ -9,6 +9,7 @@ void Config::Load()
             TOML_READ_ENUM(ELanguage, Language);
             TOML_READ_ENUM(EScoreBehaviour, ScoreBehaviour);
             TOML_READ_BOOLEAN(Hints);
+            TOML_READ_BOOLEAN(UnleashOutOfControlDrain);
             TOML_READ_BOOLEAN(WerehogHubTransformVideo);
         }
         TOML_END_SECTION();

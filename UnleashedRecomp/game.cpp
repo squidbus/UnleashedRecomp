@@ -8,6 +8,10 @@ const char* m_pStageID;
 
 uint32_t m_lastCheckpointScore = 0;
 
+float m_lastDarkGaiaEnergy = 0.0f;
+
+bool m_isUnleashCancelled = false;
+
 #pragma region Aspect Ratio Hooks
 
 bool CameraAspectRatioMidAsmHook(PPCRegister& r31)
@@ -141,6 +145,51 @@ PPC_FUNC(sub_824DCF38)
     }
 
     __imp__sub_824DCF38(ctx, base);
+}
+
+#pragma endregion
+
+#pragma region Player Hooks
+
+// Dark Gaia energy change hook.
+PPC_FUNC_IMPL(__imp__sub_823AF7A8);
+PPC_FUNC(sub_823AF7A8)
+{
+    auto pEvilSonicContext = (SWA::Player::CEvilSonicContext*)g_memory.Translate(ctx.r3.u32);
+
+    m_lastDarkGaiaEnergy = pEvilSonicContext->m_DarkGaiaEnergy;
+
+    // Don't drain energy if out of control.
+    if (!Config::UnleashOutOfControlDrain && pEvilSonicContext->m_OutOfControlCount && ctx.f1.f64 < 0.0)
+        return;
+    
+    __imp__sub_823AF7A8(ctx, base);
+
+    if (!Config::UnleashCancel)
+        return;
+
+    auto pInputState = SWA::CInputState::GetInstance();
+
+    // Don't allow cancelling Unleash if the intro anim is still playing.
+    if (!pInputState || pEvilSonicContext->m_AnimationID == 39)
+        return;
+
+    if (pInputState->GetPadState().IsTapped(SWA::eKeyState_RightBumper))
+    {
+        pEvilSonicContext->m_DarkGaiaEnergy = 0.0f;
+        m_isUnleashCancelled = true;
+    }
+}
+
+void PostUnleashMidAsmHook(PPCRegister& r30)
+{
+    if (m_isUnleashCancelled)
+    {
+        if (auto pEvilSonicContext = (SWA::Player::CEvilSonicContext*)g_memory.Translate(r30.u32))
+            pEvilSonicContext->m_DarkGaiaEnergy = m_lastDarkGaiaEnergy;
+
+        m_isUnleashCancelled = false;
+    }
 }
 
 #pragma endregion
