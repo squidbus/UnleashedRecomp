@@ -1105,8 +1105,9 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     surface->height = height;
     surface->format = desc.format;
     surface->sampleCount = desc.multisampling.sampleCount;
+    surface->pendingDiscard = true;
 
-    if (multiSample != 0 && desc.format == RenderFormat::D32_FLOAT)
+    if (desc.multisampling.sampleCount != RenderSampleCount::COUNT_1 && desc.format == RenderFormat::D32_FLOAT)
     {
         RenderTextureViewDesc viewDesc;
         viewDesc.dimension = RenderTextureViewDimension::TEXTURE_2D;
@@ -1295,6 +1296,18 @@ static void FlushFramebuffer()
     }
 
     FlushBarriers();
+
+    if (g_renderTarget != nullptr && g_renderTarget->pendingDiscard)
+    {
+        commandList->discardTexture(g_renderTarget->textureHolder.get());
+        g_renderTarget->pendingDiscard = false;
+    }
+
+    if (g_depthStencil != nullptr && g_depthStencil->pendingDiscard)
+    {
+        commandList->discardTexture(g_depthStencil->textureHolder.get());
+        g_depthStencil->pendingDiscard = false;
+    }
 
     if (g_dirtyStates.renderTargetAndDepthStencil)
     {

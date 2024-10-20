@@ -1947,6 +1947,11 @@ namespace RT64 {
         d3d->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
     }
 
+    void D3D12CommandList::discardTexture(const RenderTexture* texture) {
+        const D3D12Texture* interfaceTexture = static_cast<const D3D12Texture*>(texture);
+        d3d->DiscardResource(interfaceTexture->d3d, nullptr);
+    }
+
     void D3D12CommandList::checkDescriptorHeaps() {
         if (!descriptorHeapsSet) {
             ID3D12DescriptorHeap *descriptorHeaps[] = { device->viewHeapAllocator->shaderHeap, device->samplerHeapAllocator->shaderHeap };
