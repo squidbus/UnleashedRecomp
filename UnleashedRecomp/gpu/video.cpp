@@ -126,7 +126,7 @@ static FORCEINLINE void SetDirtyValue(bool& dirtyState, T& dest, const T& src)
     }
 }
 
-static bool g_vulkan = false;
+static bool g_vulkan;
 static std::unique_ptr<RenderInterface> g_interface;
 static std::unique_ptr<RenderDevice> g_device;
 
@@ -544,6 +544,9 @@ static void CreateHostDevice()
         g_inputSlots[i].index = i;
 
     Window::Init();
+
+    g_vulkan = Config::GraphicsAPI == GraphicsAPI_Vulkan;
+
     LoadShaderCache();
 
     g_interface = g_vulkan ? CreateVulkanInterface() : CreateD3D12Interface();

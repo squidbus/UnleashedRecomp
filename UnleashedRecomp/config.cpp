@@ -30,6 +30,7 @@ void Config::Load()
 
         TOML_BEGIN_SECTION("Video")
         {
+            TOML_READ_ENUM(EGraphicsAPI, GraphicsAPI);
             TOML_READ_INTEGER(WindowWidth);
             TOML_READ_INTEGER(WindowHeight);
             TOML_READ_FLOAT(ResolutionScale);

@@ -43,6 +43,12 @@ enum EUIScaleMode : uint32_t
     EUIScaleMode_Centre
 };
 
+enum EGraphicsAPI
+{
+    GraphicsAPI_D3D12,
+    GraphicsAPI_Vulkan
+};
+
 class Config
 {
 public:
@@ -62,6 +68,7 @@ public:
     inline static bool WerehogBattleMusic = true;
 
     // Video
+    inline static EGraphicsAPI GraphicsAPI = GraphicsAPI_D3D12;
     inline static uint32_t WindowWidth = 1280;
     inline static uint32_t WindowHeight = 720;
     inline static float ResolutionScale = 1.0f;
