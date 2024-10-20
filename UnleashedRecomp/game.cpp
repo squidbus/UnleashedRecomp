@@ -128,7 +128,7 @@ PPC_FUNC(sub_824DCF38)
             3 - Tails Electric NOW LOADING w/ Info (requires context)
             4 - Arrows In/Out
             5 - NOW LOADING
-            6 - Theatre Mode
+            6 - Event Gallery
             7 - NOW LOADING
             8 - Black Screen
         */
@@ -139,8 +139,8 @@ PPC_FUNC(sub_824DCF38)
     if (m_pStageID)
     {
         /* Fix restarting Eggmanland as the Werehog
-           erroneously using the Theatre Mode transition. */
-        if (!strcmp(m_pStageID, "Act_EggmanLand"))
+           erroneously using the Event Gallery transition. */
+        if (ctx.r4.u32 == 6 && !strcmp(m_pStageID, "Act_EggmanLand"))
             ctx.r4.u32 = 5;
     }
 
