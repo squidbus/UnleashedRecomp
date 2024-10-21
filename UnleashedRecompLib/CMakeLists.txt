@@ -3,19 +3,44 @@ project("UnleashedRecompLib")
 add_compile_options(
     "/fp:strict"
     "-march=sandybridge"
-    "-fno-strict-aliasing")
+    "-fno-strict-aliasing"
+)
 
-file(GLOB SWA_PPC_RECOMPILED_SOURCES "ppc/*.cpp")
-file(GLOB SWA_SHADER_RECOMPILED_SOURCES "shader/*.cpp")
-add_library(UnleashedRecompLib "main.cpp" ${SWA_PPC_RECOMPILED_SOURCES} "shader/shader_cache.h" ${SWA_SHADER_RECOMPILED_SOURCES})
+target_compile_definitions(PowerRecomp PRIVATE CONFIG_FILE_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/config/SWA.toml\")
 
-target_include_directories(UnleashedRecompLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set(SWA_PPC_RECOMPILED_SOURCES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/ppc/ppc_config.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ppc/ppc_context.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ppc/ppc_func_mapping.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ppc/ppc_recomp_shared.h"
+)
 
-target_precompile_headers(UnleashedRecompLib PUBLIC ppc/ppc_recomp_shared.h)
+foreach(i RANGE 0 260)
+    list(APPEND SWA_PPC_RECOMPILED_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/ppc/ppc_recomp.${i}.cpp")
+endforeach()
 
-target_compile_definitions(PowerRecomp PRIVATE
-    CONFIG_FILE_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/config/SWA.toml\")
+add_custom_command(
+    OUTPUT ${SWA_PPC_RECOMPILED_SOURCES}
+    COMMAND PowerRecomp
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/config/SWA.toml"
+)
 
 target_compile_definitions(ShaderRecomp PRIVATE 
     SHADER_RECOMP_INPUT=\"${CMAKE_CURRENT_SOURCE_DIR}/private\" 
-    SHADER_RECOMP_OUTPUT=\"${CMAKE_CURRENT_SOURCE_DIR}/shader/shader_cache.cpp\")
+    SHADER_RECOMP_OUTPUT=\"${CMAKE_CURRENT_SOURCE_DIR}/shader/shader_cache.cpp\"
+)
+
+add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/shader/shader_cache.cpp"
+    COMMAND ShaderRecomp
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/private/shader.ar"
+)
+
+add_library(UnleashedRecompLib 
+    ${SWA_PPC_RECOMPILED_SOURCES}
+    "shader/shader_cache.h"
+    "shader/shader_cache.cpp"
+)
+
+target_include_directories(UnleashedRecompLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_precompile_headers(UnleashedRecompLib PUBLIC "ppc/ppc_recomp_shared.h")
