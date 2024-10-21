@@ -1,5 +1,11 @@
 void Config::Load()
 {
+    if (!std::filesystem::exists(GetConfigPath()))
+    {
+        Config::Save();
+        return;
+    }
+
     try
     {
         auto toml = toml::parse_file(GetConfigPath().string());
