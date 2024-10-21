@@ -244,7 +244,10 @@ SWA_API uint32_t XamContentCreateEx(DWORD dwUserIndex, LPCSTR szRootName, const 
             const char* root = "";
             if (pContentData->dwContentType == XCONTENTTYPE_SAVEDATA)
             {
-                root = ".\\save";
+                // auuughh
+                auto savePath = Config::GetSavePath().string();
+                root = new char[savePath.size() + 1];
+                strcpy(const_cast<char*>(root), savePath.c_str());
             }
             else if (pContentData->dwContentType == XCONTENTTYPE_DLC)
             {

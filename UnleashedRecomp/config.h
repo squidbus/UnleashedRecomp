@@ -72,6 +72,11 @@ public:
         return GetUserPath() / TOML_FILE;
     }
 
+    static std::filesystem::path GetSavePath()
+    {
+        return GetUserPath() / "save";
+    }
+
     static void Load();
     static void Save();
 };

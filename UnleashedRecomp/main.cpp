@@ -40,7 +40,7 @@ void KiSystemStartup()
     XamRegisterContent(gameContent, DirectoryExists(".\\game") ? ".\\game" : ".");
     XamRegisterContent(updateContent, ".\\update");
 
-    const auto savePath = Config::GetUserPath() / "save";
+    const auto savePath = Config::GetSavePath();
     const auto saveName = "SYS-DATA";
 
     // TODO: implement save slots?
