@@ -234,6 +234,26 @@ CONFIG_DEFINE_ENUM_TEMPLATE(EGraphicsAPI)
     { "Vulkan", EGraphicsAPI::Vulkan }
 };
 
+enum class EShadowResolution : int32_t
+{
+    Original = -1,
+    x512     = 512,
+    x1024    = 1024,
+    x2048    = 2048,
+    x4096    = 4096,
+    x8192    = 8192
+};
+
+CONFIG_DEFINE_ENUM_TEMPLATE(EShadowResolution)
+{
+    { "Original", EShadowResolution::Original },
+    { "512",      EShadowResolution::x512     },
+    { "1024",     EShadowResolution::x1024    },
+    { "2048",     EShadowResolution::x2048    },
+    { "4096",     EShadowResolution::x4096    },
+    { "8192",     EShadowResolution::x8192    },
+};
+
 enum class EGITextureFiltering : uint32_t
 {
     Linear,

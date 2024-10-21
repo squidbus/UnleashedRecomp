@@ -15,7 +15,12 @@ void Config::Load()
         auto toml = toml::parse_file(configPath.string());
 
         for (auto def : Definitions)
+        {
             def->ReadValue(toml);
+#if _DEBUG
+            printf("%s\n", def->GetDefinition().c_str());
+#endif
+        }
     }
     catch (toml::parse_error& err)
     {

@@ -26,6 +26,8 @@ public:
     CONFIG_DEFINE("Audio", bool, WerehogBattleMusic, true);
 
     CONFIG_DEFINE_ENUM("Video", EGraphicsAPI, GraphicsAPI, EGraphicsAPI::D3D12);
+    CONFIG_DEFINE("Video", int32_t, WindowX, -1);
+    CONFIG_DEFINE("Video", int32_t, WindowY, -1);
     CONFIG_DEFINE("Video", size_t, WindowWidth, 1280);
     CONFIG_DEFINE("Video", size_t, WindowHeight, 720);
 
@@ -36,12 +38,12 @@ public:
 
     CONFIG_DEFINE("Video", bool, Fullscreen, false);
     CONFIG_DEFINE("Video", bool, VSync, true);
-    CONFIG_DEFINE("Video", size_t, BufferCount, 3);
+    CONFIG_DEFINE("Video", bool, TripleBuffering, true);
     CONFIG_DEFINE("Video", int32_t, FPS, 60);
     CONFIG_DEFINE("Video", float, Brightness, 0.5f);
     CONFIG_DEFINE("Video", size_t, MSAA, 4);
     CONFIG_DEFINE("Video", size_t, AnisotropicFiltering, 16);
-    CONFIG_DEFINE("Video", int32_t, ShadowResolution, 4096);
+    CONFIG_DEFINE_ENUM("Video", EShadowResolution, ShadowResolution, EShadowResolution::x4096);
     CONFIG_DEFINE_ENUM("Video", EGITextureFiltering, GITextureFiltering, EGITextureFiltering::Bicubic);
     CONFIG_DEFINE("Video", bool, AlphaToCoverage, false);
     CONFIG_DEFINE("Video", bool, Xbox360ColourCorrection, false);
