@@ -4,16 +4,6 @@
 
 #define TOML_FILE "config.toml"
 
-#define TOML_BEGIN_SECTION(name) if (auto pSection = toml[name].as_table()) { const auto& section = *pSection;
-#define TOML_END_SECTION() }
-
-#define TOML_READ_STRING(var)     var.Value = section[#var].value_or<std::string>(var.DefaultValue);
-#define TOML_READ_BOOLEAN(var)    var.Value = section[#var].value_or(var.DefaultValue);
-#define TOML_READ_FLOAT(var)      var.Value = section[#var].value_or(var.DefaultValue);
-#define TOML_READ_INTEGER(var)    var.Value = section[#var].value_or(var.DefaultValue);
-#define TOML_READ_DOUBLE(var)     var.Value = section[#var].value_or(var.DefaultValue);
-#define TOML_READ_ENUM(type, var) var.Value = (type)section[#var].value_or(var.DefaultValue);
-
 #define CONFIG_DEFINE(section, type, name, defaultValue) inline static ConfigDef<type> name{section, #name, defaultValue};
 #define CONFIG_VALUE(name) Config::name.Value
 
@@ -24,6 +14,7 @@ class ConfigDefBase
 {
 public:
     virtual ~ConfigDefBase() = default;
+    virtual void ReadValue(toml::v3::ex::parse_result toml) = 0;
     virtual void MakeDefault() = 0;
     virtual std::string GetSection() const = 0;
     virtual std::string GetName() const = 0;
@@ -43,6 +34,23 @@ public:
     ConfigDef(std::string section, std::string name, T defaultValue) : Section(section), Name(name), DefaultValue(defaultValue)
     {
         Config::Definitions.emplace_back(this);
+    }
+
+    void ReadValue(toml::v3::ex::parse_result toml) override
+    {
+        if (auto pSection = toml[Section].as_table())
+        {
+            const auto& section = *pSection;
+
+            if constexpr (std::is_same<T, std::string>::value)
+            {
+                Value = section[Name].value_or<std::string>(DefaultValue);
+            }
+            else
+            {
+                Value = section[Name].value_or(DefaultValue);
+            }
+        }
     }
 
     void MakeDefault() override
