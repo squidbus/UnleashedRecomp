@@ -96,39 +96,14 @@ public:
         return *this;
     }
 
+    operator T() const
+    {
+        return Value;
+    }
+
     void operator=(const T& other)
     {
         Value = other;
-    }
-
-    bool operator==(const T& other) const
-    {
-        return Value == other;
-    }
-
-    bool operator!=(const T& other) const
-    {
-        return Value != other;
-    }
-
-    bool operator<(const T& other) const
-    {
-        return Value < other;
-    }
-
-    bool operator>(const T& other) const
-    {
-        return Value > other;
-    }
-
-    bool operator<=(const T& other) const
-    {
-        return Value <= other;
-    }
-
-    bool operator>=(const T& other) const
-    {
-        return Value >= other;
     }
 };
 

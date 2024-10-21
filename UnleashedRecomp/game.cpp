@@ -119,7 +119,7 @@ PPC_FUNC(sub_824DCF38)
 {
     /* Force the Werehog transition ID
        to use a different transition. */
-    if (!Config::WerehogHubTransformVideo.Value)
+    if (!Config::WerehogHubTransformVideo)
     {
         /*
             0 - Tails Electric NOW LOADING
@@ -160,12 +160,12 @@ PPC_FUNC(sub_823AF7A8)
     m_lastDarkGaiaEnergy = pEvilSonicContext->m_DarkGaiaEnergy;
 
     // Don't drain energy if out of control.
-    if (!Config::UnleashOutOfControlDrain.Value && pEvilSonicContext->m_OutOfControlCount && ctx.f1.f64 < 0.0)
+    if (!Config::UnleashOutOfControlDrain && pEvilSonicContext->m_OutOfControlCount && ctx.f1.f64 < 0.0)
         return;
     
     __imp__sub_823AF7A8(ctx, base);
 
-    if (!Config::UnleashCancel.Value)
+    if (!Config::UnleashCancel)
         return;
 
     auto pInputState = SWA::CInputState::GetInstance();
@@ -198,12 +198,12 @@ void PostUnleashMidAsmHook(PPCRegister& r30)
 
 bool DisableHintsMidAsmHook()
 {
-    return !Config::Hints.Value;
+    return !Config::Hints;
 }
 
 void SetXButtonHomingMidAsmHook(PPCRegister& r30)
 {
-    r30.u32 = Config::XButtonHoming.Value;
+    r30.u32 = Config::XButtonHoming;
 }
 
 /* Hook function that gets the game region
@@ -240,7 +240,7 @@ void GetStageIDMidAsmHook(PPCRegister& r5)
 PPC_FUNC_IMPL(__imp__sub_82547DF0);
 PPC_FUNC(sub_82547DF0)
 {
-    if (Config::LogoSkip.Value)
+    if (Config::LogoSkip)
     {
         ctx.r4.u64 = 0;
         ctx.r5.u64 = 0;
