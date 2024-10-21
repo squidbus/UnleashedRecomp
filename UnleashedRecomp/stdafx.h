@@ -3,6 +3,7 @@
 #define NOMINMAX
 
 #include <windows.h>
+#include <algorithm>
 #include <mutex>
 #include <vector>
 #include <string>
