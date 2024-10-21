@@ -1,7 +1,8 @@
 #pragma once
 
-// TODO: move this outside of the game directory?
-#define TOML_FILE "SWA.toml"
+#define USER_DIRECTORY "SWA"
+
+#define TOML_FILE "config.toml"
 
 #define TOML_BEGIN_SECTION(name) if (auto pSection = toml[name].as_table()) { const auto& section = *pSection;
 #define TOML_END_SECTION() }
@@ -110,6 +111,23 @@ public:
     CONFIG_DEFINE(bool, Xbox360ColorCorrection, false);
     CONFIG_DEFINE(EMovieScaleMode, MovieScaleMode, EMovieScaleMode_Fit);
     CONFIG_DEFINE(EUIScaleMode, UIScaleMode, EUIScaleMode_Centre);
+
+    static std::filesystem::path GetUserPath()
+    {
+        if (std::filesystem::exists("portable.txt"))
+            return std::filesystem::current_path();
+
+        std::filesystem::path userPath{};
+
+        // TODO: handle platform-specific paths.
+        PWSTR knownPath = NULL;
+        if (SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, NULL, &knownPath) == S_OK)
+            userPath = std::filesystem::path{ knownPath } / USER_DIRECTORY;
+
+        CoTaskMemFree(knownPath);
+
+        return userPath;
+    }
 
     static void Load();
     static void Save();

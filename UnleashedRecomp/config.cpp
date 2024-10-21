@@ -2,7 +2,7 @@ void Config::Load()
 {
     try
     {
-        auto toml = toml::parse_file(TOML_FILE);
+        auto toml = toml::parse_file((GetUserPath() / TOML_FILE).string());
 
         TOML_BEGIN_SECTION("System")
         {

@@ -3,8 +3,10 @@
 #define NOMINMAX
 
 #include <windows.h>
+#include <ShlObj_core.h>
 #include <algorithm>
 #include <mutex>
+#include <filesystem>
 #include <vector>
 #include <string>
 #include <cassert>

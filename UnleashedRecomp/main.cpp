@@ -39,14 +39,12 @@ void KiSystemStartup()
     XamRegisterContent(gameContent, DirectoryExists(".\\game") ? ".\\game" : ".");
     XamRegisterContent(updateContent, ".\\update");
 
-    if (FileExists(".\\save\\SYS-DATA"))
-    {
-        XamRegisterContent(XamMakeContent(XCONTENTTYPE_SAVEDATA, "SYS-DATA"), ".\\save");
-    }
-    else if (FileExists(".\\SYS-DATA"))
-    {
-        XamRegisterContent(XamMakeContent(XCONTENTTYPE_SAVEDATA, "SYS-DATA"), ".");
-    }
+    const auto savePath = Config::GetUserPath() / "save";
+    const auto saveName = "SYS-DATA";
+
+    // TODO: implement save slots?
+    if (std::filesystem::exists(savePath / saveName))
+        XamRegisterContent(XamMakeContent(XCONTENTTYPE_SAVEDATA, saveName), savePath.string());
 
     // Mount game
     XamContentCreateEx(0, "game", &gameContent, OPEN_EXISTING, nullptr, nullptr, 0, 0, nullptr);
