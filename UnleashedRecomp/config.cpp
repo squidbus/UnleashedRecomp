@@ -1,6 +1,8 @@
 void Config::Load()
 {
-    if (!std::filesystem::exists(GetConfigPath()))
+    auto configPath = GetConfigPath();
+
+    if (!std::filesystem::exists(configPath))
     {
         Config::Save();
         return;
@@ -8,7 +10,7 @@ void Config::Load()
 
     try
     {
-        auto toml = toml::parse_file(GetConfigPath().string());
+        auto toml = toml::parse_file(configPath.string());
 
         for (auto def : Definitions)
             def->ReadValue(toml);
@@ -21,6 +23,11 @@ void Config::Load()
 
 void Config::Save()
 {
+    auto userPath = GetUserPath();
+
+    if (!std::filesystem::exists(userPath))
+        std::filesystem::create_directory(userPath);
+
     std::string result;
     std::string section;
 
