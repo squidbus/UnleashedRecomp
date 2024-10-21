@@ -79,7 +79,7 @@ void Window::Init()
 {
     /* TODO: move this since it'll have to change
              on soft reboot from the options menu. */
-    auto title = Config::Language == Language::Japanese
+    auto title = Config::Language == ELanguage::Japanese
         ? "Sonic World Adventure"
         : "SONIC UNLEASHED";
 

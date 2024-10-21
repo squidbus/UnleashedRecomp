@@ -78,7 +78,7 @@ void XGetVideoMode()
 uint32_t XGetGameRegion()
 {
     // printf("!!! STUB !!! XGetGameRegion\n");
-    if (Config::Language == Language::Japanese)
+    if (Config::Language == ELanguage::Japanese)
         return 0x0101;
 
     return 0x03FF;
