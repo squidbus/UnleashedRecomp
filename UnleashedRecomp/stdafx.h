@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <mutex>
 #include <filesystem>
+#include <fstream>
 #include <vector>
 #include <string>
 #include <cassert>

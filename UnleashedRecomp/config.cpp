@@ -2,7 +2,7 @@ void Config::Load()
 {
     try
     {
-        auto toml = toml::parse_file((GetUserPath() / TOML_FILE).string());
+        auto toml = toml::parse_file(GetConfigPath().string());
 
         TOML_BEGIN_SECTION("System")
         {
@@ -61,10 +61,38 @@ void Config::Load()
         printf("Failed to parse configuration: %s\n", err.what());
     }
 
-    ResolutionScale = std::clamp(ResolutionScale, 0.25f, 2.0f);
+    ResolutionScale = std::clamp(ResolutionScale.Value, 0.25f, 2.0f);
 }
 
 void Config::Save()
 {
-    // TODO
+    std::string result;
+    std::string section;
+
+    for (auto def : Definitions)
+    {
+        auto isFirstSection = section.empty();
+        auto isDefWithSection = section != def->GetSection();
+        auto tomlDef = def->GetDefinition(isDefWithSection);
+
+        section = def->GetSection();
+
+        // Don't output prefix space for first section.
+        if (!isFirstSection && isDefWithSection)
+            result += '\n';
+
+        result += tomlDef + '\n';
+    }
+
+    std::ofstream out(GetConfigPath());
+
+    if (out.is_open())
+    {
+        out << result;
+        out.close();
+    }
+    else
+    {
+        printf("Failed to write configuration.\n");
+    }
 }

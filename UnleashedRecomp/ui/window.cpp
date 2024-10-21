@@ -92,8 +92,8 @@ void Window::Init()
     s_window = SDL_CreateWindow(title,
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        Config::WindowWidth,
-        Config::WindowHeight,
+        Config::WindowWidth.Value,
+        Config::WindowHeight.Value,
         SDL_WINDOW_RESIZABLE);
 
     if (auto icon = GetIconSurface())
@@ -103,7 +103,7 @@ void Window::Init()
     }
 
     SetWindowDimensions();
-    SetFullscreen(Config::Fullscreen);
+    SetFullscreen(Config::Fullscreen.Value);
 
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);

@@ -191,7 +191,7 @@ void XamShowMessageBoxUIEx()
 uint32_t XGetLanguage()
 {
     // printf("!!! STUB !!! XGetLanguage\n");
-    return Config::Language;
+    return Config::Language.Value;
 }
 
 uint32_t XGetAVPack()
@@ -336,7 +336,7 @@ uint32_t ExGetXConfigSetting(uint16_t Category, uint16_t Setting, void* Buffer, 
 
             // XCONFIG_USER_LANGUAGE
         case 0x0009:
-            data[0] = std::byteswap((uint32_t)Config::Language);
+            data[0] = std::byteswap((uint32_t)Config::Language.Value);
             break;
 
             // XCONFIG_USER_VIDEO_FLAGS

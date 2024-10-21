@@ -1171,7 +1171,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     desc.depth = 1;
     desc.mipLevels = 1;
     desc.arraySize = 1;
-    desc.multisampling.sampleCount = multiSample != 0 && Config::MSAA > 1 ? Config::MSAA : RenderSampleCount::COUNT_1;
+    desc.multisampling.sampleCount = multiSample != 0 && Config::MSAA > 1 ? Config::MSAA.Value : RenderSampleCount::COUNT_1;
     desc.format = ConvertFormat(format);
     desc.flags = desc.format == RenderFormat::D32_FLOAT ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::RENDER_TARGET;
 
@@ -2614,7 +2614,7 @@ void IndexBufferLengthMidAsmHook(PPCRegister& r3)
 void SetShadowResolutionMidAsmHook(PPCRegister& r11)
 {
     if (Config::ShadowResolution > 0)
-        r11.u64 = Config::ShadowResolution;
+        r11.u64 = Config::ShadowResolution.Value;
 }
 
 void Primitive2DHalfPixelOffsetMidAsmHook(PPCRegister& f13)
@@ -2624,8 +2624,8 @@ void Primitive2DHalfPixelOffsetMidAsmHook(PPCRegister& f13)
 
 static void SetResolution(be<uint32_t>* device)
 {
-    uint32_t width = uint32_t(g_swapChain->getWidth() * Config::ResolutionScale);
-    uint32_t height = uint32_t(g_swapChain->getHeight() * Config::ResolutionScale);
+    uint32_t width = uint32_t(g_swapChain->getWidth() * Config::ResolutionScale.Value);
+    uint32_t height = uint32_t(g_swapChain->getHeight() * Config::ResolutionScale.Value);
     device[46] = width == 0 ? 880 : width;
     device[47] = height == 0 ? 720 : height;
 }
