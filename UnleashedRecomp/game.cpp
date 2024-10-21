@@ -73,7 +73,7 @@ PPC_FUNC(sub_82624308)
 {
     __imp__sub_82624308(ctx, base);
 
-    if (Config::ScoreBehaviour != EScoreBehaviour_CheckpointRetain)
+    if (Config::ScoreBehaviour != ScoreBehaviour::CheckpointRetain)
         return;
 
     auto pGameDocument = SWA::CGameDocument::GetInstance();
@@ -91,7 +91,7 @@ PPC_FUNC(sub_8245F048)
 {
     __imp__sub_8245F048(ctx, base);
 
-    if (Config::ScoreBehaviour != EScoreBehaviour_CheckpointRetain)
+    if (Config::ScoreBehaviour != ScoreBehaviour::CheckpointRetain)
         return;
 
     auto pGameDocument = SWA::CGameDocument::GetInstance();
@@ -212,7 +212,7 @@ void SetXButtonHomingMidAsmHook(PPCRegister& r30)
 PPC_FUNC_IMPL(__imp__sub_825197C0);
 PPC_FUNC(sub_825197C0)
 {
-    if (Config::Language == ELanguage_Japanese)
+    if (Config::Language == Language::Japanese)
     {
         ctx.r3.u64 = 0;
         return;

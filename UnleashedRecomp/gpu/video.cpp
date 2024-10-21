@@ -561,7 +561,7 @@ static void CreateHostDevice()
 
     Window::Init();
 
-    g_vulkan = Config::GraphicsAPI == EGraphicsAPI_Vulkan;
+    g_vulkan = Config::GraphicsAPI == GraphicsAPI::Vulkan;
 
     LoadShaderCache();
 

@@ -8,6 +8,7 @@
 #include <mutex>
 #include <filesystem>
 #include <fstream>
+#include <format>
 #include <vector>
 #include <string>
 #include <cassert>

@@ -17,7 +17,7 @@ class ConfigDefBase
 {
 public:
     virtual ~ConfigDefBase() = default;
-    virtual void ReadValue(toml::v3::ex::parse_result toml) = 0;
+    virtual void ReadValue(toml::v3::ex::parse_result& toml) = 0;
     virtual void MakeDefault() = 0;
     virtual std::string GetSection() const = 0;
     virtual std::string GetName() const = 0;
@@ -47,7 +47,7 @@ public:
         Config::Definitions.emplace_back(this);
     }
 
-    void ReadValue(toml::v3::ex::parse_result toml) override
+    void ReadValue(toml::v3::ex::parse_result& toml) override
     {
         if (auto pSection = toml[Section].as_table())
         {
@@ -56,6 +56,10 @@ public:
             if constexpr (std::is_same<T, std::string>::value)
             {
                 Value = section[Name].value_or<std::string>(DefaultValue);
+            }
+            else if constexpr (std::is_enum_v<T>)
+            {
+                Value = T(section[Name].value_or(std::underlying_type_t<T>(DefaultValue)));
             }
             else
             {
@@ -100,14 +104,14 @@ public:
         {
             return Value;
         }
-        else if constexpr (std::is_same<T, bool>::value)
+        else if constexpr (std::is_enum_v<T>)
         {
-            return Value ? "true" : "false";
+            return std::format("{}", std::underlying_type_t<T>(Value));
         }
-
-        std::ostringstream oss;
-        oss << Value;
-        return oss.str();
+        else
+        {
+            return std::format("{}", Value);
+        }
     }
 
     ConfigDef& operator=(const ConfigDef& other)
@@ -129,50 +133,50 @@ public:
     }
 };
 
-enum ELanguage
+enum class Language : uint32_t
 {
-    ELanguage_English = 1,
-    ELanguage_Japanese,
-    ELanguage_German,
-    ELanguage_French,
-    ELanguage_Spanish,
-    ELanguage_Italian
+    English = 1,
+    Japanese,
+    German,
+    French,
+    Spanish,
+    Italian
 };
 
-enum EScoreBehaviour
+enum class ScoreBehaviour : uint32_t
 {
-    EScoreBehaviour_CheckpointReset,
-    EScoreBehaviour_CheckpointRetain
+    CheckpointReset,
+    CheckpointRetain
 };
 
-enum EVoiceLanguage
+enum class VoiceLanguage : uint32_t
 {
-    EVoiceLanguage_English,
-    EVoiceLanguage_Japanese
+    English,
+    Japanese
 };
 
-enum EGraphicsAPI
+enum class GraphicsAPI : uint32_t
 {
-    EGraphicsAPI_D3D12,
-    EGraphicsAPI_Vulkan
+    D3D12,
+    Vulkan
 };
 
-enum EGITextureFiltering
+enum class GITextureFiltering : uint32_t
 {
-    EGITextureFiltering_Linear,
-    EGITextureFiltering_Bicubic
+    Linear,
+    Bicubic
 };
 
-enum EMovieScaleMode
+enum class MovieScaleMode : uint32_t
 {
-    EMovieScaleMode_Stretch,
-    EMovieScaleMode_Fit,
-    EMovieScaleMode_Fill
+    Stretch,
+    Fit,
+    Fill
 };
 
-enum EUIScaleMode
+enum class UIScaleMode : uint32_t
 {
-    EUIScaleMode_Stretch,
-    EUIScaleMode_Edge,
-    EUIScaleMode_Centre
+    Stretch,
+    Edge,
+    Centre
 };

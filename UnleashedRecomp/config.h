@@ -7,9 +7,9 @@ class Config
 public:
     inline static std::vector<std::shared_ptr<ConfigDefBase>> Definitions{};
 
-    CONFIG_DEFINE("System", ELanguage, Language, ELanguage_English);
+    CONFIG_DEFINE("System", Language, Language, Language::English);
     CONFIG_DEFINE("System", bool, Hints, true);
-    CONFIG_DEFINE("System", EScoreBehaviour, ScoreBehaviour, EScoreBehaviour_CheckpointReset);
+    CONFIG_DEFINE("System", ScoreBehaviour, ScoreBehaviour, ScoreBehaviour::CheckpointReset);
     CONFIG_DEFINE("System", bool, UnleashOutOfControlDrain, true);
     CONFIG_DEFINE("System", bool, WerehogHubTransformVideo, true);
     CONFIG_DEFINE("System", bool, LogoSkip, false);
@@ -21,11 +21,11 @@ public:
 
     CONFIG_DEFINE("Audio", float, MusicVolume, 1.0f);
     CONFIG_DEFINE("Audio", float, SEVolume, 1.0f);
-    CONFIG_DEFINE("Audio", EVoiceLanguage, VoiceLanguage, EVoiceLanguage_English);
+    CONFIG_DEFINE("Audio", VoiceLanguage, VoiceLanguage, VoiceLanguage::English);
     CONFIG_DEFINE("Audio", bool, Subtitles, true);
     CONFIG_DEFINE("Audio", bool, WerehogBattleMusic, true);
 
-    CONFIG_DEFINE("Video", EGraphicsAPI, GraphicsAPI, EGraphicsAPI_D3D12);
+    CONFIG_DEFINE("Video", GraphicsAPI, GraphicsAPI, GraphicsAPI::D3D12);
     CONFIG_DEFINE("Video", size_t, WindowWidth, 1280);
     CONFIG_DEFINE("Video", size_t, WindowHeight, 720);
 
@@ -42,11 +42,11 @@ public:
     CONFIG_DEFINE("Video", size_t, MSAA, 4);
     CONFIG_DEFINE("Video", size_t, AnisotropicFiltering, 16);
     CONFIG_DEFINE("Video", int32_t, ShadowResolution, 4096);
-    CONFIG_DEFINE("Video", EGITextureFiltering, GITextureFiltering, EGITextureFiltering_Bicubic);
+    CONFIG_DEFINE("Video", GITextureFiltering, GITextureFiltering, GITextureFiltering::Bicubic);
     CONFIG_DEFINE("Video", bool, AlphaToCoverage, false);
     CONFIG_DEFINE("Video", bool, Xbox360ColorCorrection, false);
-    CONFIG_DEFINE("Video", EMovieScaleMode, MovieScaleMode, EMovieScaleMode_Fit);
-    CONFIG_DEFINE("Video", EUIScaleMode, UIScaleMode, EUIScaleMode_Centre);
+    CONFIG_DEFINE("Video", MovieScaleMode, MovieScaleMode, MovieScaleMode::Fit);
+    CONFIG_DEFINE("Video", UIScaleMode, UIScaleMode, UIScaleMode::Centre);
 
     static std::filesystem::path GetUserPath()
     {
