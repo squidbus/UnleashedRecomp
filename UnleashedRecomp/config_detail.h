@@ -4,8 +4,11 @@
 
 #define TOML_FILE "config.toml"
 
-#define CONFIG_DEFINE(section, type, name, defaultValue) inline static ConfigDef<type> name{section, #name, defaultValue};
-#define CONFIG_VALUE(name) Config::name.Value
+#define CONFIG_DEFINE(section, type, name, defaultValue) \
+    inline static ConfigDef<type> name{section, #name, defaultValue};
+
+#define CONFIG_DEFINE_CALLBACK(section, type, name, defaultValue, readCallback) \
+    inline static ConfigDef<type> name{section, #name, defaultValue, [](ConfigDef<type>* def) readCallback};
 
 #define CONFIG_GET_DEFAULT(name) Config::name.DefaultValue
 #define CONFIG_SET_DEFAULT(name) Config::name.MakeDefault();
@@ -26,12 +29,20 @@ template<typename T>
 class ConfigDef : public ConfigDefBase
 {
 public:
-    std::string Section;
-    std::string Name;
+    std::string Section{};
+    std::string Name{};
     T DefaultValue{};
     T Value{ DefaultValue };
+    std::function<void(ConfigDef<T>*)> ReadCallback;
 
-    ConfigDef(std::string section, std::string name, T defaultValue) : Section(section), Name(name), DefaultValue(defaultValue)
+    ConfigDef(std::string section, std::string name, T defaultValue)
+        : Section(section), Name(name), DefaultValue(defaultValue)
+    {
+        Config::Definitions.emplace_back(this);
+    }
+
+    ConfigDef(std::string section, std::string name, T defaultValue, std::function<void(ConfigDef<T>*)> readCallback)
+        : Section(section), Name(name), DefaultValue(defaultValue), ReadCallback(readCallback)
     {
         Config::Definitions.emplace_back(this);
     }
@@ -51,6 +62,9 @@ public:
                 Value = section[Name].value_or(DefaultValue);
             }
         }
+        
+        if (ReadCallback)
+            ReadCallback(this);
     }
 
     void MakeDefault() override

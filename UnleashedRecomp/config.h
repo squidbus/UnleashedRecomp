@@ -28,7 +28,12 @@ public:
     CONFIG_DEFINE("Video", EGraphicsAPI, GraphicsAPI, EGraphicsAPI_D3D12);
     CONFIG_DEFINE("Video", size_t, WindowWidth, 1280);
     CONFIG_DEFINE("Video", size_t, WindowHeight, 720);
-    CONFIG_DEFINE("Video", float, ResolutionScale, 1.0f);
+
+    CONFIG_DEFINE_CALLBACK("Video", float, ResolutionScale, 1.0f,
+    {
+        def->Value = std::clamp(def->Value, 0.25f, 2.0f);
+    });
+
     CONFIG_DEFINE("Video", bool, Fullscreen, false);
     CONFIG_DEFINE("Video", bool, VSync, true);
     CONFIG_DEFINE("Video", size_t, BufferCount, 3);

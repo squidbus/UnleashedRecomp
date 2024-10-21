@@ -11,8 +11,6 @@ void Config::Load()
     {
         printf("Failed to parse configuration: %s\n", err.what());
     }
-
-    ResolutionScale = std::clamp(ResolutionScale.Value, 0.25f, 2.0f);
 }
 
 void Config::Save()
