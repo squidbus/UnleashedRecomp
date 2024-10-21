@@ -13,7 +13,14 @@
 #define TOML_READ_DOUBLE(var)     var = section[#var].value_or(var);
 #define TOML_READ_ENUM(type, var) var = (type)section[#var].value_or(var);
 
-enum ELanguage : uint32_t
+#define CONFIG_DEFINE(type, name, defaultValue) \
+    static const type name##_Default = defaultValue; \
+    inline static type name = name##_Default;
+
+#define CONFIG_GET_DEFAULT(name) Config::name##_Default
+#define CONFIG_SET_DEFAULT(name) Config::name = CONFIG_GET_DEFAULT(name)
+
+enum ELanguage
 {
     ELanguage_English = 1,
     ELanguage_Japanese,
@@ -23,10 +30,16 @@ enum ELanguage : uint32_t
     ELanguage_Italian
 };
 
-enum EScoreBehaviour : uint32_t
+enum EScoreBehaviour
 {
     EScoreBehaviour_CheckpointReset,
     EScoreBehaviour_CheckpointRetain
+};
+
+enum EVoiceLanguage
+{
+    EVoiceLanguage_English,
+    EVoiceLanguage_Japanese
 };
 
 enum EGraphicsAPI
@@ -35,14 +48,20 @@ enum EGraphicsAPI
     EGraphicsAPI_Vulkan
 };
 
-enum EMovieScaleMode : uint32_t
+enum EGITextureFiltering
+{
+    EGITextureFiltering_Linear,
+    EGITextureFiltering_Bicubic
+};
+
+enum EMovieScaleMode
 {
     EMovieScaleMode_Stretch,
     EMovieScaleMode_Fit,
     EMovieScaleMode_Fill
 };
 
-enum EUIScaleMode : uint32_t
+enum EUIScaleMode
 {
     EUIScaleMode_Stretch,
     EUIScaleMode_Edge,
@@ -53,33 +72,44 @@ class Config
 {
 public:
     // System
-    inline static ELanguage Language = ELanguage_English;
-    inline static EScoreBehaviour ScoreBehaviour = EScoreBehaviour_CheckpointReset;
-    inline static bool Hints = true;
-    inline static bool UnleashOutOfControlDrain = true;
-    inline static bool WerehogHubTransformVideo = true;
-    inline static bool LogoSkip = false;
+    CONFIG_DEFINE(ELanguage, Language, ELanguage_English);
+    CONFIG_DEFINE(bool, Hints, true);
+    CONFIG_DEFINE(EScoreBehaviour, ScoreBehaviour, EScoreBehaviour_CheckpointReset);
+    CONFIG_DEFINE(bool, UnleashOutOfControlDrain, true);
+    CONFIG_DEFINE(bool, WerehogHubTransformVideo, true);
+    CONFIG_DEFINE(bool, LogoSkip, false);
 
     // Controls
-    inline static bool XButtonHoming = true;
-    inline static bool UnleashCancel = false;
+    CONFIG_DEFINE(bool, CameraXInvert, false);
+    CONFIG_DEFINE(bool, CameraYInvert, false);
+    CONFIG_DEFINE(bool, XButtonHoming, true);
+    CONFIG_DEFINE(bool, UnleashCancel, false);
 
     // Audio
-    inline static bool WerehogBattleMusic = true;
+    CONFIG_DEFINE(float, MusicVolume, 1.0f);
+    CONFIG_DEFINE(float, SEVolume, 1.0f);
+    CONFIG_DEFINE(EVoiceLanguage, VoiceLanguage, EVoiceLanguage_English);
+    CONFIG_DEFINE(bool, Subtitles, true);
+    CONFIG_DEFINE(bool, WerehogBattleMusic, true);
 
     // Video
-    inline static EGraphicsAPI GraphicsAPI = EGraphicsAPI_D3D12;
-    inline static uint32_t WindowWidth = 1280;
-    inline static uint32_t WindowHeight = 720;
-    inline static float ResolutionScale = 1.0f;
-    inline static int32_t ShadowResolution = 4096;
-    inline static size_t MSAA = 4;
-    inline static EMovieScaleMode MovieScaleMode = EMovieScaleMode_Fit;
-    inline static EUIScaleMode UIScaleMode = EUIScaleMode_Centre;
-    inline static bool AlphaToCoverage = false;
-    inline static bool Fullscreen = false;
-    inline static bool VSync = false;
-    inline static uint32_t BufferCount = 3;
+    CONFIG_DEFINE(EGraphicsAPI, GraphicsAPI, EGraphicsAPI_D3D12);
+    CONFIG_DEFINE(size_t, WindowWidth, 1280);
+    CONFIG_DEFINE(size_t, WindowHeight, 720);
+    CONFIG_DEFINE(float, ResolutionScale, 1.0f);
+    CONFIG_DEFINE(bool, Fullscreen, false);
+    CONFIG_DEFINE(bool, VSync, true);
+    CONFIG_DEFINE(size_t, BufferCount, 3);
+    CONFIG_DEFINE(size_t, FPS, 60);
+    CONFIG_DEFINE(float, Brightness, 0.5f);
+    CONFIG_DEFINE(size_t, MSAA, 4);
+    CONFIG_DEFINE(size_t, AnisotropicFiltering, 16);
+    CONFIG_DEFINE(int32_t, ShadowResolution, 4096);
+    CONFIG_DEFINE(EGITextureFiltering, GITextureFiltering, EGITextureFiltering_Bicubic);
+    CONFIG_DEFINE(bool, AlphaToCoverage, false);
+    CONFIG_DEFINE(bool, Xbox360ColorCorrection, false);
+    CONFIG_DEFINE(EMovieScaleMode, MovieScaleMode, EMovieScaleMode_Fit);
+    CONFIG_DEFINE(EUIScaleMode, UIScaleMode, EUIScaleMode_Centre);
 
     static void Load();
     static void Save();

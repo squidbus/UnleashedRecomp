@@ -1,40 +1,39 @@
 [System]
-Language = 1                     # The language displayed by the game.
-                                 # English = 1; Japanese = 2; German = 3; French = 4; Spanish = 5; Italian = 6.
-ScoreBehaviour = 0               # Determines how the score behaves when restarting at a checkpoint.
-                                 # Reset to zero = 0; Reset to last checkpoint score = 1.
-Hints = true                     # Determines whether to spawn hint rings and volumes.
-UnleashOutOfControlDrain = true  # Determines whether to drain Dark Gaia energy whilst the player cannot move.
-WerehogHubTransformVideo = true  # Determines whether to play the transition video for switching time of day in the hub areas.
-                                 # Setting this to false will instead play a generic transition without artificial loading times.
-LogoSkip = false                 # Determines whether the intro logos will be skipped on boot.
+Language = 1                    # English = 1; Japanese = 2; German = 3; French = 4; Spanish = 5; Italian = 6.
+Hints = true
+ScoreBehaviour = 0              # Reset to zero = 0; Reset to last checkpoint score = 1.
+UnleashOutOfControlDrain = true
+WerehogHubTransformVideo = true
+LogoSkip = false
 
 [Controls]
-XButtonHoming = true             # Determines whether to decouple the homing attack from the X button.
-UnleashCancel = false            # Determines whether Unleash can be cancelled by pressing the right shoulder button whilst activated.
+CameraXInvert = false
+CameraYInvert = false
+XButtonHoming = true
+UnleashCancel = false
 
 [Audio]
-WerehogBattleMusic = true        # Determines whether to play the battle theme for enemy encounters as the Werehog.
+MusicVolume = 1.0
+SEVolume = 1.0
+VoiceLanguage = 0               # English = 0; Japanese = 1.
+Subtitles = true
+WerehogBattleMusic = true
 
 [Video]
-GraphicsAPI = 0                  # 0 - D3D12; 1 - Vulkan.
+GraphicsAPI = 0                 # D3D12 = 0; Vulkan = 1.
 WindowWidth = 1280
 WindowHeight = 720
 ResolutionScale = 1.0
-ShadowResolution = 4096          # The resolution of the shadow maps.
-                                 # Default = -1; otherwise, any power of two resolution (e.g. 512, 1024, 2048, 4096, 8192).
-                                 # Default will let the game determine the resolution.
-MSAA = 4
-MovieScaleMode = 1               # The strategy for scaling video playback (experimental).
-                                 # Stretch = 0; Fit = 1; Fill = 2.
-                                 # Fit is recommended for 21:9 or wider aspect ratios for the intro cinematic.
-                                 # Fill will scale the intro cinematic past the original aspect ratio to fit the window dimensions.
-UIScaleMode = 2                  # The strategy for scaling the UI (experimental).
-                                 # Stretch = 0; Edge = 1; Centre = 2.
-                                 # Corner is recommended for 21:9 or wider aspect ratios.
-                                 # Centre does not dynamically adjust to the window size until re-entering a stage.
-AlphaToCoverage = true
 Fullscreen = false
-VSync = false
-BufferCount = 3                  # Double buffering = 2; Triple buffering = 3.
-                                 # Triple buffering can increase FPS and improve frame pacing at the expense of higher input latency.
+VSync = true
+BufferCount = 3                 # Double buffering = 2; Triple buffering = 3.
+FPS = 60                        # Unlocked = -1; 30 FPS = 30; 60 FPS = 60.
+Brightness = 0.5
+MSAA = 4
+AnisotropicFiltering = 16
+ShadowResolution = 4096         # Default = -1; otherwise, any power of two resolution.
+GITextureFiltering = 1          # Linear = 0; Bicubic = 1.
+AlphaToCoverage = true
+Xbox360ColorCorrection = false
+MovieScaleMode = 1              # Stretch = 0; Fit = 1; Fill = 2.
+UIScaleMode = 2                 # Stretch = 0; Edge = 1; Centre = 2.
