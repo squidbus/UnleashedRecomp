@@ -11,6 +11,7 @@
 #include <xex.h>
 #include <apu/audio.h>
 #include <hid/hid.h>
+#include "config.h"
 
 #define GAME_XEX_PATH "game:\\default.xex"
 

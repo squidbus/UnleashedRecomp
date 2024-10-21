@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 #include "res/icon.h"
+#include "config.h"
 
 struct Window
 {

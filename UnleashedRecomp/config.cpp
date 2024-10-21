@@ -1,3 +1,5 @@
+#include "config.h"
+
 void Config::Load()
 {
     auto configPath = GetConfigPath();

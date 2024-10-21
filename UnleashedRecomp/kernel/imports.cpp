@@ -12,6 +12,7 @@
 #include "xam.h"
 #include "xdm.h"
 #include <timeapi.h>
+#include "config.h"
 
 #include <ntstatus.h>
 

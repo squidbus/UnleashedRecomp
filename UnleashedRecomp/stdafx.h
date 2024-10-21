@@ -22,4 +22,3 @@
 
 #include "framework.h"
 #include "mutex.h"
-#include "config.h"

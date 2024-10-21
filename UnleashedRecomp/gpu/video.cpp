@@ -8,8 +8,9 @@
 #include <xxHashMap.h>
 #include <shader/shader_cache.h>
 
-#include "video.h"
+#include "gpu/video.h"
 #include "ui/window.h"
+#include "config.h"
 
 #include "shader/copy_vs.hlsl.dxil.h"
 #include "shader/copy_vs.hlsl.spirv.h"
