@@ -292,13 +292,29 @@ static uint32_t g_quadCount;
 
 static uint32_t g_mainThreadId;
 
+static ankerl::unordered_dense::map<RenderTexture*, RenderTextureLayout> g_barrierMap;
+
+static void AddBarrier(GuestBaseTexture* texture, RenderTextureLayout layout)
+{
+    if (texture != nullptr && texture->layout != layout)
+    {
+        g_barrierMap[texture->texture] = layout;
+        texture->layout = layout;
+    }
+}
+
 static std::vector<RenderTextureBarrier> g_barriers;
 
 static void FlushBarriers()
 {
-    if (!g_barriers.empty())
+    if (!g_barrierMap.empty())
     {
+        for (auto& [texture, layout] : g_barrierMap)
+            g_barriers.emplace_back(texture, layout);
+
         g_commandLists[g_frame]->barriers(RenderBarrierStage::GRAPHICS | RenderBarrierStage::COPY, g_barriers);
+
+        g_barrierMap.clear();
         g_barriers.clear();
     }
 }
@@ -721,7 +737,7 @@ static void BeginCommandList()
     if (!g_swapChainValid)
         g_backBuffer->texture = g_backBuffer->textureHolder.get();
 
-    g_backBuffer->pendingBarrier = true;
+    g_backBuffer->layout = RenderTextureLayout::UNKNOWN;
 
     auto& commandList = g_commandLists[g_frame];
 
@@ -783,7 +799,7 @@ static void DestructResource(GuestResource* resource)
 
         {
             std::lock_guard lock(g_tempMutex);
-            g_tempTextures[g_frame].emplace_back(std::move(texture->texture));
+            g_tempTextures[g_frame].emplace_back(std::move(texture->textureHolder));
             g_tempDescriptorIndices[g_frame].push_back(texture->descriptorIndex);
         }
 
@@ -862,7 +878,7 @@ static void UnlockTextureRect(GuestTexture* texture)
 {
     assert(GetCurrentThreadId() == g_mainThreadId);
 
-    g_barriers.emplace_back(texture->texture.get(), RenderTextureLayout::COPY_DEST);
+    AddBarrier(texture, RenderTextureLayout::COPY_DEST);
     FlushBarriers();
 
     uint32_t pitch = ComputeTexturePitch(texture);
@@ -872,10 +888,8 @@ static void UnlockTextureRect(GuestTexture* texture)
     memcpy(allocation.memory, texture->mappedMemory, slicePitch);
     
     g_commandLists[g_frame]->copyTextureRegion(
-        RenderTextureCopyLocation::Subresource(texture->texture.get(), 0),
+        RenderTextureCopyLocation::Subresource(texture->texture, 0),
         RenderTextureCopyLocation::PlacedFootprint(allocation.bufferReference.ref, texture->format, texture->width, texture->height, 1, pitch / RenderFormatSize(texture->format), allocation.bufferReference.offset));
-
-    texture->pendingBarrier = true;
 }
 
 static void* LockBuffer(GuestBuffer* buffer, uint32_t flags)
@@ -978,7 +992,7 @@ static uint32_t HashVertexDeclaration(uint32_t vertexDeclaration)
 static void Present() 
 {
     if (g_swapChainValid)
-        g_barriers.emplace_back(g_backBuffer->texture, RenderTextureLayout::PRESENT);
+        AddBarrier(g_backBuffer, RenderTextureLayout::PRESENT);
     
     FlushBarriers();
 
@@ -1084,7 +1098,9 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
     desc.arraySize = 1;
     desc.format = ConvertFormat(format);
     desc.flags = (desc.format == RenderFormat::D32_FLOAT) ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::NONE;
-    texture->texture = g_device->createTexture(desc);
+
+    texture->textureHolder = g_device->createTexture(desc);
+    texture->texture = texture->textureHolder.get();
 
     RenderTextureViewDesc viewDesc;
     viewDesc.format = desc.format;
@@ -1113,7 +1129,7 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
     texture->format = desc.format;
     texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
 
-    g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture.get(), RenderTextureLayout::SHADER_READ, texture->textureView.get());
+    g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ, texture->textureView.get());
    
 #ifdef _DEBUG 
     texture->texture->setName(std::format("Texture {:X}", g_memory.MapVirtual(texture)));
@@ -1168,7 +1184,6 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     surface->height = height;
     surface->format = desc.format;
     surface->sampleCount = desc.multisampling.sampleCount;
-    surface->pendingDiscard = true;
 
     if (desc.multisampling.sampleCount != RenderSampleCount::COUNT_1 && desc.format == RenderFormat::D32_FLOAT)
     {
@@ -1267,8 +1282,8 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
         dstLayout = RenderTextureLayout::COPY_DEST;
     }
 
-    g_barriers.emplace_back(surface->texture, srcLayout);
-    g_barriers.emplace_back(texture->texture.get(), dstLayout);
+    AddBarrier(surface, srcLayout);
+    AddBarrier(texture, dstLayout);
     FlushBarriers();
 
     auto& commandList = g_commandLists[g_frame];
@@ -1297,7 +1312,7 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
             if (texture->framebuffer == nullptr)
             {
                 RenderFramebufferDesc desc;
-                desc.depthAttachment = texture->texture.get();
+                desc.depthAttachment = texture->texture;
                 texture->framebuffer = g_device->createFramebuffer(desc);
             }
 
@@ -1316,16 +1331,15 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
         }
         else
         {
-            commandList->resolveTexture(texture->texture.get(), surface->texture);
+            commandList->resolveTexture(texture->texture, surface->texture);
         }
     }
     else
     {
-        commandList->copyTexture(texture->texture.get(), surface->texture);
+        commandList->copyTexture(texture->texture, surface->texture);
     }
 
-    surface->pendingBarrier = true;
-    texture->pendingBarrier = true;
+    AddBarrier(texture, RenderTextureLayout::SHADER_READ);
 }
 
 static void SetRenderTarget(GuestDevice* device, uint32_t index, GuestSurface* renderTarget) 
@@ -1350,31 +1364,9 @@ static void FlushFramebuffer()
 {
     auto& commandList = g_commandLists[g_frame];
 
-    if (g_renderTarget != nullptr && g_renderTarget->pendingBarrier)
-    {
-        g_barriers.emplace_back(g_renderTarget->texture, RenderTextureLayout::COLOR_WRITE);
-        g_renderTarget->pendingBarrier = false;
-    }
-
-    if (g_depthStencil != nullptr && g_depthStencil->pendingBarrier)
-    {
-        g_barriers.emplace_back(g_depthStencil->texture, RenderTextureLayout::DEPTH_WRITE);
-        g_depthStencil->pendingBarrier = false;
-    }
-
+    AddBarrier(g_renderTarget, RenderTextureLayout::COLOR_WRITE);
+    AddBarrier(g_depthStencil, RenderTextureLayout::DEPTH_WRITE);
     FlushBarriers();
-
-    if (g_renderTarget != nullptr && g_renderTarget->pendingDiscard)
-    {
-        commandList->discardTexture(g_renderTarget->textureHolder.get());
-        g_renderTarget->pendingDiscard = false;
-    }
-
-    if (g_depthStencil != nullptr && g_depthStencil->pendingDiscard)
-    {
-        commandList->discardTexture(g_depthStencil->textureHolder.get());
-        g_depthStencil->pendingDiscard = false;
-    }
 
     if (g_dirtyStates.renderTargetAndDepthStencil)
     {
@@ -1465,12 +1457,7 @@ static void GetViewport(GuestDevice* device, GuestViewport* viewport)
 
 static void SetTexture(GuestDevice* device, uint32_t index, GuestTexture* texture) 
 {
-    if (texture != nullptr && texture->pendingBarrier)
-    {
-        g_barriers.emplace_back(texture->texture.get(), RenderTextureLayout::SHADER_READ);
-        texture->pendingBarrier = false;
-    }
-
+    AddBarrier(texture, RenderTextureLayout::SHADER_READ);
     SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.textureIndices[index], texture != nullptr ? texture->descriptorIndex : NULL);
 }
 
@@ -2285,11 +2272,11 @@ static void D3DXFillVolumeTexture(GuestTexture* texture, uint32_t function, void
     ExecuteCopyCommandList([&]
         {
             g_copyCommandList->copyTextureRegion(
-                RenderTextureCopyLocation::Subresource(texture->texture.get(), 0),
+                RenderTextureCopyLocation::Subresource(texture->texture, 0),
                 RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), texture->format, texture->width, texture->height, texture->depth, rowPitch0 / RenderFormatSize(texture->format), 0));
 
             g_copyCommandList->copyTextureRegion(
-                RenderTextureCopyLocation::Subresource(texture->texture.get(), 1),
+                RenderTextureCopyLocation::Subresource(texture->texture, 1),
                 RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), texture->format, texture->width / 2, texture->height / 2, texture->depth / 2, rowPitch1 / RenderFormatSize(texture->format), slicePitch0));
         });
 }
@@ -2514,7 +2501,11 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
             desc.arraySize = ddsDesc.type == ddspp::TextureType::Cubemap ? ddsDesc.arraySize * 6 : ddsDesc.arraySize;
             desc.format = ConvertDXGIFormat(ddsDesc.format);
             desc.flags = ddsDesc.type == ddspp::TextureType::Cubemap ? RenderTextureFlag::CUBE : RenderTextureFlag::NONE;
-            texture->texture = g_device->createTexture(desc);
+
+            texture->textureHolder = g_device->createTexture(desc);
+            texture->texture = texture->textureHolder.get();
+            texture->layout = RenderTextureLayout::COPY_DEST;
+
 #ifdef _DEBUG
             texture->texture->setName(reinterpret_cast<char*>(g_memory.Translate(pictureData->name + 2)));
 #endif
@@ -2525,7 +2516,7 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
             viewDesc.mipLevels = ddsDesc.numMips;
             texture->textureView = texture->texture->createTextureView(viewDesc);
             texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
-            g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture.get(), RenderTextureLayout::SHADER_READ, texture->textureView.get());
+            g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ, texture->textureView.get());
 
             struct Slice
             {
@@ -2591,14 +2582,14 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
 
             ExecuteCopyCommandList([&]
                 {
-                    g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture.get(), RenderTextureLayout::COPY_DEST));
+                    g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture, RenderTextureLayout::COPY_DEST));
 
                     for (size_t i = 0; i < slices.size(); i++)
                     {
                         auto& slice = slices[i];
 
                         g_copyCommandList->copyTextureRegion(
-                            RenderTextureCopyLocation::Subresource(texture->texture.get(), i),
+                            RenderTextureCopyLocation::Subresource(texture->texture, i),
                             RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), desc.format, slice.width, slice.height, slice.depth, (slice.dstRowPitch * 8) / ddsDesc.bitsPerPixelOrBlock * ddsDesc.blockWidth, slice.dstOffset));
                     }
                 });

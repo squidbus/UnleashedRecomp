@@ -1061,8 +1061,15 @@ namespace RT64 {
 
                 setSRV(descriptorIndex, nativeResource, &srvDesc);
             }
-            else {
+            else if (nativeResource != nullptr) {
                 setSRV(descriptorIndex, nativeResource, nullptr);
+            }
+            else {
+                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+                srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                setSRV(descriptorIndex, nullptr, &srvDesc);
             }
 
             break;
@@ -3341,7 +3348,6 @@ namespace RT64 {
 #           ifdef D3D12_DEBUG_LAYER_SUPRESS_SAMPLE_POSITIONS_ERROR
                 D3D12_MESSAGE_ID_SAMPLEPOSITIONS_MISMATCH_RECORDTIME_ASSUMEDFROMCLEAR,
                 D3D12_MESSAGE_ID_SAMPLEPOSITIONS_MISMATCH_DEFERRED,
-                D3D12_MESSAGE_ID_RESOURCE_BARRIER_DUPLICATE_SUBRESOURCE_TRANSITIONS,
 #           endif
             };
             

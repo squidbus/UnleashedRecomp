@@ -86,18 +86,27 @@ enum GuestFormat
     D3DFMT_UNKNOWN = 0xFFFFFFFF
 };
 
-// Texture/VolumeTexture
-struct GuestTexture : GuestResource
+struct GuestBaseTexture : GuestResource
 {
-    std::unique_ptr<RenderTexture> texture;
+    std::unique_ptr<RenderTexture> textureHolder;
+    RenderTexture* texture = nullptr;
     std::unique_ptr<RenderTextureView> textureView;
     uint32_t width = 0;
     uint32_t height = 0;
-    uint32_t depth = 0;
     RenderFormat format = RenderFormat::UNKNOWN;
-    void* mappedMemory = nullptr;
     uint32_t descriptorIndex = 0;
-    bool pendingBarrier = true;
+    RenderTextureLayout layout = RenderTextureLayout::UNKNOWN;
+
+    GuestBaseTexture(ResourceType type) : GuestResource(type)
+    {
+    }
+};
+
+// Texture/VolumeTexture
+struct GuestTexture : GuestBaseTexture
+{
+    uint32_t depth = 0;
+    void* mappedMemory = nullptr;
     std::unique_ptr<RenderFramebuffer> framebuffer;
 };
 
@@ -141,19 +150,10 @@ struct GuestSurfaceDesc
 };
 
 // RenderTarget/DepthStencil
-struct GuestSurface : GuestResource
+struct GuestSurface : GuestBaseTexture
 {
-    std::unique_ptr<RenderTexture> textureHolder;
-    RenderTexture* texture = nullptr;
-    std::unique_ptr<RenderTextureView> textureView;
-    uint32_t width = 0;
-    uint32_t height = 0;
-    RenderFormat format = RenderFormat::UNKNOWN;
     ankerl::unordered_dense::map<const RenderTexture*, std::unique_ptr<RenderFramebuffer>> framebuffers;
     RenderSampleCounts sampleCount = RenderSampleCount::COUNT_1;
-    uint32_t descriptorIndex = 0;
-    bool pendingBarrier = true;
-    bool pendingDiscard = false;
 };
 
 enum GuestDeclType
