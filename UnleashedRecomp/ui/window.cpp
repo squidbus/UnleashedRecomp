@@ -11,6 +11,7 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
     switch (event->type)
     {
         case SDL_QUIT:
+            Config::Save();
             ExitProcess(0);
             break;
 
@@ -29,6 +30,14 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                     // Block holding ALT+ENTER spamming window changes.
                     m_isFullscreenKeyReleased = false;
 
+                    break;
+                }
+
+                // Restore original window dimensions on F2.
+                case SDLK_F2:
+                {
+                    Window::SetFullscreen(Config::Fullscreen);
+                    Window::SetWindowDimensions(-1, -1, true);
                     break;
                 }
             }
@@ -66,6 +75,11 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                     Window::s_height = event->window.data2;
                     Window::RaiseResizeEvents();
                     break;
+
+                case SDL_WINDOWEVENT_MOVED:
+                    Config::WindowX = event->window.data1;
+                    Config::WindowY = event->window.data2;
+                    break;
             }
 
             break;
@@ -89,12 +103,17 @@ void Window::Init()
 
     SetProcessDPIAware();
 
-    s_window = SDL_CreateWindow(title,
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        Config::WindowWidth,
-        Config::WindowHeight,
-        SDL_WINDOW_RESIZABLE);
+    int32_t x = Config::WindowX < 0 ? SDL_WINDOWPOS_CENTERED : Config::WindowX;
+    int32_t y = Config::WindowY < 0 ? SDL_WINDOWPOS_CENTERED : Config::WindowY;
+    int32_t width = Config::WindowWidth;
+    int32_t height = Config::WindowHeight;
+
+    s_window = SDL_CreateWindow(title, x, y, width, height, SDL_WINDOW_RESIZABLE);
+
+    SDL_GetWindowPosition(s_window, &x, &y);
+
+    Config::WindowX = x;
+    Config::WindowY = y;
 
     if (auto icon = GetIconSurface())
     {

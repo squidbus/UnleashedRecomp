@@ -82,7 +82,7 @@ public:
         }
     }
 
-    static void SetWindowDimensions(int w = -1, int h = -1)
+    static void SetWindowDimensions(int w = -1, int h = -1, bool recenter = false)
     {
         auto width = w <= 0 ? Config::WindowWidth : w;
         auto height = h <= 0 ? Config::WindowHeight : h;
@@ -94,9 +94,12 @@ public:
             isPendingMaximise = true;
         }
 
+        int32_t x = recenter ? SDL_WINDOWPOS_CENTERED : Config::WindowX;
+        int32_t y = recenter ? SDL_WINDOWPOS_CENTERED : Config::WindowY;
+
         SDL_SetWindowSize(s_window, width, height);
         SDL_SetWindowMinimumSize(s_window, 640, 480);
-        SDL_SetWindowPosition(s_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_SetWindowPosition(s_window, x, y);
 
         s_width = width;
         s_height = height;
