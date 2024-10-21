@@ -32,7 +32,7 @@ public:
     CONFIG_DEFINE("Video", bool, Fullscreen, false);
     CONFIG_DEFINE("Video", bool, VSync, true);
     CONFIG_DEFINE("Video", size_t, BufferCount, 3);
-    CONFIG_DEFINE("Video", size_t, FPS, 60);
+    CONFIG_DEFINE("Video", int32_t, FPS, 60);
     CONFIG_DEFINE("Video", float, Brightness, 0.5f);
     CONFIG_DEFINE("Video", size_t, MSAA, 4);
     CONFIG_DEFINE("Video", size_t, AnisotropicFiltering, 16);
