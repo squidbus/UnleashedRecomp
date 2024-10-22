@@ -582,7 +582,7 @@ static void CreateHostDevice()
     g_copyCommandList = g_device->createCommandList(RenderCommandListType::COPY);
     g_copyCommandFence = g_device->createCommandFence();
 
-    g_swapChain = g_queue->createSwapChain(Window::s_windowHandle, Config::TripleBuffering ? 3 : 2, RenderFormat::R8G8B8A8_UNORM);
+    g_swapChain = g_queue->createSwapChain(Window::s_windowHandle, Config::TripleBuffering ? 3 : 2, RenderFormat::B8G8R8A8_UNORM);
 
     for (auto& acquireSemaphore : g_acquireSemaphores)
         acquireSemaphore = g_device->createCommandSemaphore();
