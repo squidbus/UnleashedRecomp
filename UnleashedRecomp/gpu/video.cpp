@@ -556,6 +556,12 @@ static std::unique_ptr<RenderPipeline> g_resolveMsaaDepthPipelines[3];
         "main", \
         g_vulkan ? RenderShaderFormat::SPIRV : RenderShaderFormat::DXIL)
 
+static bool DetectWine()
+{
+    HMODULE dllHandle = GetModuleHandle("ntdll.dll");
+    return dllHandle != nullptr && GetProcAddress(dllHandle, "wine_get_version") != nullptr;
+}
+
 static void CreateHostDevice()
 {
     for (uint32_t i = 0; i < 16; i++)
@@ -563,7 +569,7 @@ static void CreateHostDevice()
 
     Window::Init();
 
-    g_vulkan = Config::GraphicsAPI == EGraphicsAPI::Vulkan;
+    g_vulkan = DetectWine() || Config::GraphicsAPI == EGraphicsAPI::Vulkan;
 
     LoadShaderCache();
 
