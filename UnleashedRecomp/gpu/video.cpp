@@ -73,6 +73,7 @@ struct SharedConstants
     uint32_t booleans{};
     uint32_t swappedTexcoords{};
     uint32_t inputLayoutFlags{};
+    uint32_t enableGIBicubicFiltering{};
 };
 
 static GuestSurface* g_renderTarget;
@@ -739,6 +740,8 @@ static void BeginCommandList()
         g_backBuffer->texture = g_backBuffer->textureHolder.get();
 
     g_backBuffer->layout = RenderTextureLayout::UNKNOWN;
+
+    g_sharedConstants.enableGIBicubicFiltering = (Config::GITextureFiltering == EGITextureFiltering::Bicubic);
 
     auto& commandList = g_commandLists[g_frame];
 
