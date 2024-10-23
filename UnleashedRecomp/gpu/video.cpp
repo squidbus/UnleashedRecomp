@@ -766,7 +766,7 @@ static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4,
     g_backBuffer = g_userHeap.AllocPhysical<GuestSurface>(ResourceType::RenderTarget);
     g_backBuffer->width = 1280;
     g_backBuffer->height = 720;
-    g_backBuffer->format = RenderFormat::R8G8B8A8_UNORM;
+    g_backBuffer->format = RenderFormat::B8G8R8A8_UNORM;
     g_backBuffer->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(16, 16, 1, g_backBuffer->format, RenderTextureFlag::RENDER_TARGET));
 
     BeginCommandList();
