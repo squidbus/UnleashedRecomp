@@ -87,6 +87,7 @@ struct SharedConstants
 static GuestSurface* g_renderTarget;
 static GuestSurface* g_depthStencil;
 static RenderViewport g_viewport(0.0f, 0.0f, 1280.0f, 720.0f);
+static bool g_halfPixel = true;
 static PipelineState g_pipelineState;
 static SharedConstants g_sharedConstants;
 static RenderSamplerDesc g_samplerDescs[16];
@@ -1246,23 +1247,27 @@ static void FlushViewport()
 
     if (g_dirtyStates.viewport)
     {
+        auto viewport = g_viewport;
+        if (g_halfPixel)
+        {
+            viewport.x += 0.5f;
+            viewport.y += 0.5f;
+        }
+
         if (renderingToBackBuffer)
         {
             uint32_t width = g_swapChain->getWidth();
             uint32_t height = g_swapChain->getHeight();
 
-            commandList->setViewports(RenderViewport(
-                g_viewport.x * width / 1280.0f,
-                g_viewport.y * height / 720.0f,
-                g_viewport.width * width / 1280.0f,
-                g_viewport.height * height / 720.0f,
-                g_viewport.minDepth,
-                g_viewport.maxDepth));
+            viewport.x *= width / 1280.0f;
+            viewport.y *= height / 720.0f;    
+            viewport.width *= width / 1280.0f;
+            viewport.height *= height / 720.0f;
         }
-        else
-        {
-            commandList->setViewports(g_viewport);
-        }
+
+        commandList->setViewports(viewport);
+
+        g_dirtyStates.viewport = false;
     }
 
     if (g_dirtyStates.scissorRect)
@@ -1285,7 +1290,16 @@ static void FlushViewport()
         }
 
         commandList->setScissors(scissorRect);
+
+        g_dirtyStates.scissorRect = false;
     }
+}
+
+static bool SetHalfPixel(bool enable)
+{
+    bool oldValue = g_halfPixel;
+    SetDirtyValue(g_dirtyStates.viewport, g_halfPixel, enable);
+    return oldValue;
 }
 
 static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestTexture* texture)
@@ -1349,7 +1363,8 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
                 desc.depthAttachment = texture->texture;
                 texture->framebuffer = g_device->createFramebuffer(desc);
             }
-
+            
+            bool oldHalfPixel = SetHalfPixel(false);
             FlushViewport();
 
             commandList->setFramebuffer(texture->framebuffer.get());
@@ -1362,6 +1377,8 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
 
             if (g_vulkan)
                 g_dirtyStates.vertexShaderConstants = true;
+
+            SetHalfPixel(oldHalfPixel);
         }
         else
         {
@@ -2638,12 +2655,6 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
     }
 }
 
-void HalfPixelOffsetMidAsmHook(PPCRegister& f9, PPCRegister& f0)
-{
-    f9.f64 = 0.0;
-    f0.f64 = 0.0;
-}
-
 void IndexBufferLengthMidAsmHook(PPCRegister& r3)
 {
     r3.u64 *= 2;
@@ -2655,11 +2666,6 @@ void SetShadowResolutionMidAsmHook(PPCRegister& r11)
 
     if (res > 0)
         r11.u64 = res;
-}
-
-void Primitive2DHalfPixelOffsetMidAsmHook(PPCRegister& f13)
-{
-    f13.f64 = 0.0;
 }
 
 static void SetResolution(be<uint32_t>* device)

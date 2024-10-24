@@ -80,11 +80,6 @@ invalid_instructions = [
 ]
 
 [[midasm_hook]]
-name = "HalfPixelOffsetMidAsmHook"
-address = 0x82E9FD64
-registers = ["f9", "f0"]
-
-[[midasm_hook]]
 name = "IndexBufferLengthMidAsmHook"
 address = 0x82E26244
 registers = ["r3"]
@@ -93,16 +88,6 @@ registers = ["r3"]
 name = "SetShadowResolutionMidAsmHook"
 address = 0x82BAD87C
 registers = ["r11"]
-
-[[midasm_hook]]
-name = "Primitive2DHalfPixelOffsetMidAsmHook"
-address = 0x830D1F40
-registers = ["f13"]
-
-[[midasm_hook]]
-name = "Primitive2DHalfPixelOffsetMidAsmHook"
-address = 0x830D213C
-registers = ["f13"]
 
 [[midasm_hook]]
 name = "CameraAspectRatioMidAsmHook"

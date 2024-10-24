@@ -8,7 +8,6 @@ Interpolators main(in VertexShaderInput In)
     
     Interpolators Out;
     Out.ProjPos = In.ObjPos;
-    Out.ProjPos.xy += float2(GET_CONSTANT(g_ViewportSize).z, -GET_CONSTANT(g_ViewportSize).w);
     Out.UV = In.UV;
     return Out;
 }
