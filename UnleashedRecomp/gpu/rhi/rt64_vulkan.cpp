@@ -1462,6 +1462,7 @@ namespace RT64 {
         multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
         multisampling.pNext = multisamplingNext;
         multisampling.rasterizationSamples = VkSampleCountFlagBits(desc.multisampling.sampleCount);
+        multisampling.alphaToCoverageEnable = desc.alphaToCoverageEnabled;
 
         thread_local std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments;
         colorBlendAttachments.clear();

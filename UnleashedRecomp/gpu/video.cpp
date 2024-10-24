@@ -62,13 +62,21 @@ struct PipelineState
     RenderFormat renderTargetFormat{};
     RenderFormat depthStencilFormat{};
     RenderSampleCounts sampleCount = RenderSampleCount::COUNT_1;
+    bool enableAlphaToCoverage = false;
+};
+
+enum class AlphaTestMode : uint32_t
+{
+    Disabled,
+    AlphaThreshold,
+    AlphaToCoverage
 };
 
 struct SharedConstants
 {
     uint32_t textureIndices[16]{};
     uint32_t samplerIndices[16]{};
-    uint32_t alphaTestMode{};
+    AlphaTestMode alphaTestMode{};
     float alphaThreshold{};
     uint32_t booleans{};
     uint32_t swappedTexcoords{};
@@ -348,9 +356,25 @@ static void SetRenderStateZWriteEnable(GuestDevice* device, uint32_t value)
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zWriteEnable, value != 0);
 }
 
+static void SetAlphaTestMode(bool enable)
+{
+    AlphaTestMode alphaTestMode = AlphaTestMode::Disabled;
+
+    if (enable)
+    {
+        if (Config::AlphaToCoverage && g_renderTarget != nullptr && g_renderTarget->sampleCount != RenderSampleCount::COUNT_1)
+            alphaTestMode = AlphaTestMode::AlphaToCoverage;
+        else
+            alphaTestMode = AlphaTestMode::AlphaThreshold;
+    }
+
+    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.alphaTestMode, alphaTestMode);
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.enableAlphaToCoverage, alphaTestMode == AlphaTestMode::AlphaToCoverage);
+}
+
 static void SetRenderStateAlphaTestEnable(GuestDevice* device, uint32_t value)
 {
-    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.alphaTestMode, value ? 1u : 0);
+    SetAlphaTestMode(value != 0);
 }
 
 static RenderBlend ConvertBlendMode(uint32_t blendMode)
@@ -1357,6 +1381,9 @@ static void SetRenderTarget(GuestDevice* device, uint32_t index, GuestSurface* r
     SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_renderTarget, renderTarget);
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.renderTargetFormat, renderTarget != nullptr ? renderTarget->format : RenderFormat::UNKNOWN);
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.sampleCount, renderTarget != nullptr ? renderTarget->sampleCount : RenderSampleCount::COUNT_1);
+
+    // When alpha to coverage is enabled, update the alpha test mode as it's dependent on sample count.
+    SetAlphaTestMode(g_sharedConstants.alphaTestMode != AlphaTestMode::Disabled);
 }
 
 static GuestSurface* GetDepthStencilSurface(GuestDevice* device) 
@@ -1508,6 +1535,7 @@ static RenderPipeline* CreateGraphicsPipeline(const PipelineState& pipelineState
         desc.renderTargetCount = pipelineState.renderTargetFormat != RenderFormat::UNKNOWN ? 1 : 0;
         desc.depthTargetFormat = pipelineState.depthStencilFormat;
         desc.multisampling.sampleCount = pipelineState.sampleCount;
+        desc.alphaToCoverageEnabled = pipelineState.enableAlphaToCoverage;
         desc.inputElements = pipelineState.vertexDeclaration->inputElements.get();
         desc.inputElementsCount = pipelineState.vertexDeclaration->inputElementCount;
 

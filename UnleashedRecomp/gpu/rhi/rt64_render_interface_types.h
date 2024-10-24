@@ -1165,6 +1165,7 @@ namespace RT64 {
         bool depthEnabled = false;
         bool depthWriteEnabled = false;
         RenderMultisampling multisampling;
+        bool alphaToCoverageEnabled = false;
         RenderPrimitiveTopology primitiveTopology = RenderPrimitiveTopology::TRIANGLE_LIST;
         RenderCullMode cullMode = RenderCullMode::NONE;
         RenderFormat renderTargetFormat[MaxRenderTargets] = {};

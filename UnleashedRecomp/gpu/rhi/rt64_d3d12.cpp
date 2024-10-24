@@ -2718,6 +2718,7 @@ namespace RT64 {
         psoDesc.DepthStencilState.DepthWriteMask = desc.depthWriteEnabled ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
         psoDesc.DepthStencilState.DepthFunc = toD3D12(desc.depthFunction);
         psoDesc.NumRenderTargets = desc.renderTargetCount;
+        psoDesc.BlendState.AlphaToCoverageEnable = desc.alphaToCoverageEnabled;
 
         for (uint32_t i = 0; i < desc.renderTargetCount; i++) {
             psoDesc.RTVFormats[i] = toDXGI(desc.renderTargetFormat[i]);
