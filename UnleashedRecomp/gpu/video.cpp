@@ -56,7 +56,7 @@ struct PipelineState
     RenderBlend srcBlendAlpha = RenderBlend::ONE;
     RenderBlend destBlendAlpha = RenderBlend::ZERO;
     RenderBlendOperation blendOpAlpha = RenderBlendOperation::ADD;
-    uint32_t colorWriteEnable{};
+    uint32_t colorWriteEnable = uint32_t(RenderColorWriteEnable::ALL);
     RenderPrimitiveTopology primitiveTopology = RenderPrimitiveTopology::TRIANGLE_LIST;
     uint8_t vertexStrides[16]{};
     RenderFormat renderTargetFormat{};
@@ -86,6 +86,7 @@ struct SharedConstants
 
 static GuestSurface* g_renderTarget;
 static GuestSurface* g_depthStencil;
+static RenderFramebuffer* g_framebuffer;
 static RenderViewport g_viewport(0.0f, 0.0f, 1280.0f, 720.0f);
 static bool g_halfPixel = true;
 static PipelineState g_pipelineState;
@@ -350,6 +351,7 @@ static void SetRenderState(GuestDevice* device, uint32_t value)
 static void SetRenderStateZEnable(GuestDevice* device, uint32_t value)
 {
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zEnable, value != 0);
+    g_dirtyStates.renderTargetAndDepthStencil |= g_dirtyStates.pipelineState;
 }
 
 static void SetRenderStateZWriteEnable(GuestDevice* device, uint32_t value)
@@ -549,6 +551,7 @@ static void SetRenderStateBlendOpAlpha(GuestDevice* device, uint32_t value)
 static void SetRenderStateColorWriteEnable(GuestDevice* device, uint32_t value)
 {
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.colorWriteEnable, value);
+    g_dirtyStates.renderTargetAndDepthStencil |= g_dirtyStates.pipelineState;
 }
 
 static const std::pair<GuestRenderState, void*> g_setRenderStateFunctions[] =
@@ -751,6 +754,7 @@ static void BeginCommandList()
 {
     g_renderTarget = g_backBuffer;
     g_depthStencil = nullptr;
+    g_framebuffer = nullptr;
 
     g_pipelineState.renderTargetFormat = g_backBuffer->format;
     g_pipelineState.depthStencilFormat = RenderFormat::UNKNOWN;
@@ -1414,34 +1418,30 @@ static void SetDepthStencilSurface(GuestDevice* device, GuestSurface* depthStenc
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.depthStencilFormat, depthStencil != nullptr ? depthStencil->format : RenderFormat::UNKNOWN);
 }
 
-static void FlushFramebuffer()
+static void SetFramebuffer(GuestSurface* renderTarget, GuestSurface* depthStencil, bool settingForClear)
 {
-    auto& commandList = g_commandLists[g_frame];
-
-    AddBarrier(g_renderTarget, RenderTextureLayout::COLOR_WRITE);
-    AddBarrier(g_depthStencil, RenderTextureLayout::DEPTH_WRITE);
-    FlushBarriers();
-
-    if (g_dirtyStates.renderTargetAndDepthStencil)
+    if (settingForClear || g_dirtyStates.renderTargetAndDepthStencil)
     {
         GuestSurface* framebufferContainer = nullptr;
         RenderTexture* framebufferKey = nullptr;
 
-        if (g_renderTarget != nullptr && g_depthStencil != nullptr)
+        if (renderTarget != nullptr && depthStencil != nullptr)
         {
-            framebufferContainer = g_depthStencil; // Backbuffer texture changes per frame so we can't use the depth stencil as the key.
-            framebufferKey = g_renderTarget->texture;
+            framebufferContainer = depthStencil; // Backbuffer texture changes per frame so we can't use the depth stencil as the key.
+            framebufferKey = renderTarget->texture;
         }
-        else if (g_renderTarget != nullptr && g_depthStencil == nullptr)
+        else if (renderTarget != nullptr && depthStencil == nullptr)
         {
-            framebufferContainer = g_renderTarget;
-            framebufferKey = g_renderTarget->texture; // Backbuffer texture changes per frame so we can't assume nullptr for it.
+            framebufferContainer = renderTarget;
+            framebufferKey = renderTarget->texture; // Backbuffer texture changes per frame so we can't assume nullptr for it.
         }
-        else if (g_renderTarget == nullptr && g_depthStencil != nullptr)
+        else if (renderTarget == nullptr && depthStencil != nullptr)
         {
-            framebufferContainer = g_depthStencil;
+            framebufferContainer = depthStencil;
             framebufferKey = nullptr;
         }
+
+        auto& commandList = g_commandLists[g_frame];
 
         if (framebufferContainer != nullptr)
         {
@@ -1451,40 +1451,63 @@ static void FlushFramebuffer()
             {
                 RenderFramebufferDesc desc;
 
-                if (g_renderTarget != nullptr)
+                if (renderTarget != nullptr)
                 {
-                    desc.colorAttachments = const_cast<const RenderTexture**>(&g_renderTarget->texture);
+                    desc.colorAttachments = const_cast<const RenderTexture**>(&renderTarget->texture);
                     desc.colorAttachmentsCount = 1;
                 }
 
-                if (g_depthStencil != nullptr)
-                    desc.depthAttachment = g_depthStencil->texture;
+                if (depthStencil != nullptr)
+                    desc.depthAttachment = depthStencil->texture;
 
                 framebuffer = g_device->createFramebuffer(desc);
             }
 
-            commandList->setFramebuffer(framebuffer.get());
+            if (g_framebuffer != framebuffer.get())
+            {
+                commandList->setFramebuffer(framebuffer.get());
+                g_framebuffer = framebuffer.get();
+            }
         }
-        else
+        else if (g_framebuffer != nullptr)
         {
             commandList->setFramebuffer(nullptr);
+            g_framebuffer = nullptr;
         }
 
-        g_dirtyStates.renderTargetAndDepthStencil = false;
+        g_dirtyStates.renderTargetAndDepthStencil = settingForClear;
     }
 }
 
 static void Clear(GuestDevice* device, uint32_t flags, uint32_t, be<float>* color, double z) 
 {
-    FlushFramebuffer();
+    AddBarrier(g_renderTarget, RenderTextureLayout::COLOR_WRITE);
+    AddBarrier(g_depthStencil, RenderTextureLayout::DEPTH_WRITE);
+    FlushBarriers();
+
+    bool canClearInOnePass = (g_renderTarget == nullptr) || (g_depthStencil == nullptr) ||
+        (g_renderTarget->width == g_depthStencil->width && g_renderTarget->height == g_depthStencil->height);
+
+    if (canClearInOnePass)
+        SetFramebuffer(g_renderTarget, g_depthStencil, true);
 
     auto& commandList = g_commandLists[g_frame];
 
     if (g_renderTarget != nullptr && (flags & D3DCLEAR_TARGET) != 0)
+    {
+        if (!canClearInOnePass)
+            SetFramebuffer(g_renderTarget, nullptr, true);
+
         commandList->clearColor(0, RenderColor(color[0], color[1], color[2], color[3]));
+    }
 
     if (g_depthStencil != nullptr && (flags & D3DCLEAR_ZBUFFER) != 0)
+    {
+        if (!canClearInOnePass)
+            SetFramebuffer(nullptr, g_depthStencil, true);
+
         commandList->clearDepth(true, float(z));
+    }
 }
 
 static void SetViewport(GuestDevice* device, GuestViewport* viewport)
@@ -1523,8 +1546,34 @@ static void SetScissorRect(GuestDevice* device, GuestRect* rect)
     SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.right, rect->right);
 }
 
-static RenderPipeline* CreateGraphicsPipeline(const PipelineState& pipelineState)
+static RenderPipeline* CreateGraphicsPipeline(PipelineState pipelineState)
 {
+    // Sanitize to prevent state leaking.
+    if (!pipelineState.zEnable)
+    {
+        pipelineState.zWriteEnable = false;
+        pipelineState.zFunc = RenderComparisonFunction::LESS;
+        pipelineState.slopeScaledDepthBias = 0.0f;
+        pipelineState.depthBias = 0;
+        pipelineState.depthStencilFormat = RenderFormat::UNKNOWN;
+    }
+
+    if (!pipelineState.colorWriteEnable)
+    {
+        pipelineState.alphaBlendEnable = false;
+        pipelineState.renderTargetFormat = RenderFormat::UNKNOWN;
+    }
+
+    if (!pipelineState.alphaBlendEnable)
+    {
+        pipelineState.srcBlend = RenderBlend::ONE;
+        pipelineState.destBlend = RenderBlend::ZERO;
+        pipelineState.blendOp = RenderBlendOperation::ADD;
+        pipelineState.srcBlendAlpha = RenderBlend::ONE;
+        pipelineState.destBlendAlpha = RenderBlend::ZERO;
+        pipelineState.blendOpAlpha = RenderBlendOperation::ADD;
+    }
+
     auto& pipeline = g_pipelines[XXH3_64bits(&pipelineState, sizeof(PipelineState))];
     if (pipeline == nullptr)
     {
@@ -1637,7 +1686,13 @@ static RenderBorderColor ConvertBorderColor(uint32_t value)
 
 static void FlushRenderState(GuestDevice* device)
 {
-    FlushFramebuffer();
+    auto renderTarget = g_pipelineState.colorWriteEnable ? g_renderTarget : nullptr;
+    auto depthStencil = g_pipelineState.zEnable ? g_depthStencil : nullptr;
+
+    AddBarrier(renderTarget, RenderTextureLayout::COLOR_WRITE);
+    AddBarrier(depthStencil, RenderTextureLayout::DEPTH_WRITE);
+    FlushBarriers();
+    SetFramebuffer(renderTarget, depthStencil, false);
     FlushViewport();
 
     auto& commandList = g_commandLists[g_frame];
