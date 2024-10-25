@@ -1367,11 +1367,16 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
                 desc.depthAttachment = texture->texture;
                 texture->framebuffer = g_device->createFramebuffer(desc);
             }
+
+            if (g_framebuffer != texture->framebuffer.get())
+            {
+                commandList->setFramebuffer(texture->framebuffer.get());
+                g_framebuffer = texture->framebuffer.get();
+            }
             
             bool oldHalfPixel = SetHalfPixel(false);
             FlushViewport();
 
-            commandList->setFramebuffer(texture->framebuffer.get());
             commandList->setPipeline(g_resolveMsaaDepthPipelines[pipelineIndex].get());
             commandList->setGraphicsPushConstants(0, &g_depthStencil->descriptorIndex, 0, sizeof(uint32_t));
             commandList->drawInstanced(6, 1, 0, 0);
