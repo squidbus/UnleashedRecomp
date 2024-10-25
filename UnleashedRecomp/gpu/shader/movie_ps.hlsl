@@ -2,22 +2,17 @@
 
 PixelShaderOutput main(in Interpolators In)
 {
-#ifdef __spirv__
-	PixelShaderConstants constants = vk::RawBufferLoad<PixelShaderConstants>(g_PushConstants.PixelShaderConstants, 0x100);
-	SharedConstants sharedConstants = vk::RawBufferLoad<SharedConstants>(g_PushConstants.SharedConstants, 0x100);
-#endif
+    Texture2D<float4> Tex0 = g_Texture2DDescriptorHeap[Tex0_ResourceDescriptorIndex];
+    Texture2D<float4> Tex1 = g_Texture2DDescriptorHeap[Tex1_ResourceDescriptorIndex];
+    Texture2D<float4> Tex2 = g_Texture2DDescriptorHeap[Tex2_ResourceDescriptorIndex];
+    Texture2D<float4> Tex3 = g_Texture2DDescriptorHeap[Tex3_ResourceDescriptorIndex];
+    Texture2D<float4> Tex4 = g_Texture2DDescriptorHeap[Tex4_ResourceDescriptorIndex];
     
-    Texture2D<float4> Tex0 = g_Texture2DDescriptorHeap[GET_SHARED_CONSTANT(Tex0_ResourceDescriptorIndex)];
-    Texture2D<float4> Tex1 = g_Texture2DDescriptorHeap[GET_SHARED_CONSTANT(Tex1_ResourceDescriptorIndex)];
-    Texture2D<float4> Tex2 = g_Texture2DDescriptorHeap[GET_SHARED_CONSTANT(Tex2_ResourceDescriptorIndex)];
-    Texture2D<float4> Tex3 = g_Texture2DDescriptorHeap[GET_SHARED_CONSTANT(Tex3_ResourceDescriptorIndex)];
-    Texture2D<float4> Tex4 = g_Texture2DDescriptorHeap[GET_SHARED_CONSTANT(Tex4_ResourceDescriptorIndex)];
-    
-    SamplerState Tex0_s = g_SamplerDescriptorHeap[GET_SHARED_CONSTANT(Tex0_SamplerDescriptorIndex)];
-    SamplerState Tex1_s = g_SamplerDescriptorHeap[GET_SHARED_CONSTANT(Tex1_SamplerDescriptorIndex)];
-    SamplerState Tex2_s = g_SamplerDescriptorHeap[GET_SHARED_CONSTANT(Tex2_SamplerDescriptorIndex)];
-    SamplerState Tex3_s = g_SamplerDescriptorHeap[GET_SHARED_CONSTANT(Tex3_SamplerDescriptorIndex)];
-    SamplerState Tex4_s = g_SamplerDescriptorHeap[GET_SHARED_CONSTANT(Tex4_SamplerDescriptorIndex)];
+    SamplerState Tex0_s = g_SamplerDescriptorHeap[Tex0_SamplerDescriptorIndex];
+    SamplerState Tex1_s = g_SamplerDescriptorHeap[Tex1_SamplerDescriptorIndex];
+    SamplerState Tex2_s = g_SamplerDescriptorHeap[Tex2_SamplerDescriptorIndex];
+    SamplerState Tex3_s = g_SamplerDescriptorHeap[Tex3_SamplerDescriptorIndex];
+    SamplerState Tex4_s = g_SamplerDescriptorHeap[Tex4_SamplerDescriptorIndex];
     
     PixelShaderOutput Out;
     float ValY = Tex0.Sample(Tex0_s, In.UV).r;
@@ -36,15 +31,15 @@ PixelShaderOutput main(in Interpolators In)
         }
         else if (ValD < 17.0 / 255.0)
         {
-            ValD = GET_CONSTANT(fZmin);
+            ValD = fZmin;
         }
         else if (ValD < 224.0 / 255.0)
         {
-            ValD = (ValD - 17.0 / 255.0) / (223.0 / 255.0 - 17.0 / 255.0) * (GET_CONSTANT(fZmax) - GET_CONSTANT(fZmin)) + GET_CONSTANT(fZmin);
+            ValD = (ValD - 17.0 / 255.0) / (223.0 / 255.0 - 17.0 / 255.0) * (fZmax - fZmin) + fZmin;
         }
         else if (ValD < 240.0 / 255.0)
         {
-            ValD = GET_CONSTANT(fZmax);
+            ValD = fZmax;
         }
         else
         {
