@@ -1811,6 +1811,8 @@ static void ProcSetViewport(const RenderCommand& cmd)
     SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.height, args.height);
     SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.minDepth, args.minDepth);
     SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.maxDepth, args.maxDepth);
+
+    g_dirtyStates.scissorRect |= g_dirtyStates.viewport;
 }
 
 static void SetTexture(GuestDevice* device, uint32_t index, GuestTexture* texture) 
