@@ -159,6 +159,7 @@ static std::unique_ptr<RenderCommandFence> g_copyCommandFence;
 
 static std::unique_ptr<RenderSwapChain> g_swapChain;
 static bool g_swapChainValid;
+static bool g_needsResize;
 
 static std::unique_ptr<RenderCommandSemaphore> g_acquireSemaphores[NUM_FRAMES];
 static std::unique_ptr<RenderCommandSemaphore> g_renderSemaphores[NUM_FRAMES];
@@ -221,9 +222,10 @@ struct UploadBuffer
 
 struct UploadAllocation
 {
-    RenderBufferReference bufferReference;
-    uint8_t* memory = nullptr;
-    uint64_t deviceAddress = 0;
+    const RenderBuffer* buffer;
+    uint64_t offset;
+    uint8_t* memory;
+    uint64_t deviceAddress;
 };
 
 struct UploadAllocator
@@ -231,9 +233,12 @@ struct UploadAllocator
     std::vector<UploadBuffer> buffers;
     uint32_t index = 0;
     uint32_t offset = 0;
+    Mutex mutex;
 
     UploadAllocation allocate(uint32_t size, uint32_t alignment)
     {
+        std::lock_guard lock(mutex);
+
         assert(size <= UploadBuffer::SIZE);
 
         offset = (offset + alignment - 1) & ~(alignment - 1);
@@ -258,7 +263,7 @@ struct UploadAllocator
         auto ref = buffer.buffer->at(offset);
         offset += size;
 
-        return { ref, buffer.memory + ref.offset, buffer.deviceAddress + ref.offset };
+        return { ref.ref, ref.offset, buffer.memory + ref.offset, buffer.deviceAddress + ref.offset };
     }
 
     template<bool TByteSwap, typename T>
@@ -298,6 +303,7 @@ static Mutex g_tempMutex;
 static std::vector<std::unique_ptr<RenderTexture>> g_tempTextures[NUM_FRAMES];
 static std::vector<std::unique_ptr<RenderBuffer>> g_tempBuffers[NUM_FRAMES];
 static std::vector<uint32_t> g_tempDescriptorIndices[NUM_FRAMES];
+static std::vector<std::unique_ptr<RenderFramebuffer>> g_tempFramebuffers[NUM_FRAMES];
 
 static RenderBufferReference g_quadIndexBuffer;
 static uint32_t g_quadCount;
@@ -344,19 +350,192 @@ static void LoadShaderCache()
         g_vulkan ? g_spirvCacheCompressedSize : g_dxilCacheCompressedSize);
 }
 
+enum class RenderCommandType
+{
+    SetRenderState,
+    DestructResource,
+    UnlockTextureRect,
+    Present,
+    StretchRect,
+    SetRenderTarget,
+    SetDepthStencilSurface,
+    Clear,
+    SetViewport,
+    SetTexture,
+    SetScissorRect,
+    SetSamplerState,
+    SetBooleans,
+    SetVertexShaderConstants,
+    SetPixelShaderConstants,
+    DrawPrimitive,
+    DrawIndexedPrimitive,
+    DrawPrimitiveUP,
+    SetVertexDeclaration,
+    SetVertexShader,
+    SetStreamSource,
+    SetIndices,
+    SetPixelShader
+};
+
+struct RenderCommand
+{
+    RenderCommandType type;
+    union
+    {
+        struct
+        {
+            GuestRenderState type;
+            uint32_t value;
+        } setRenderState;
+
+        struct 
+        {
+            GuestResource* resource;
+        } destructResource;
+
+        struct
+        {
+            GuestTexture* texture;
+        } unlockTextureRect;
+
+        struct 
+        {
+            GuestDevice* device;
+            uint32_t flags;
+            GuestTexture* texture;
+        } stretchRect;
+
+        struct 
+        {
+            GuestSurface* renderTarget;
+        } setRenderTarget;
+
+        struct 
+        {
+            GuestSurface* depthStencil;
+        } setDepthStencilSurface;
+
+        struct 
+        {
+            uint32_t flags;
+            float color[4];
+            float z;
+        } clear;
+
+        struct 
+        {
+            float x;
+            float y;
+            float width;
+            float height;
+            float minDepth;
+            float maxDepth;
+        } setViewport;
+
+        struct 
+        {
+            uint32_t index;
+            GuestTexture* texture;
+        } setTexture;
+
+        struct 
+        {
+            int32_t left;
+            int32_t top;
+            int32_t right;
+            int32_t bottom;
+        } setScissorRect;
+
+        struct
+        {
+            uint32_t index;
+            uint32_t data0;
+            uint32_t data3;
+            uint32_t data5;
+        } setSamplerState;
+
+        struct
+        {
+            uint32_t booleans;
+        } setBooleans;
+
+        struct
+        {
+            UploadAllocation allocation;
+        } setVertexShaderConstants;  
+        
+        struct
+        {
+            UploadAllocation allocation;
+        } setPixelShaderConstants;
+
+        struct 
+        {
+            uint32_t primitiveType; 
+            uint32_t startVertex; 
+            uint32_t primitiveCount;
+        } drawPrimitive;
+
+        struct 
+        {
+            uint32_t primitiveType;
+            int32_t baseVertexIndex; 
+            uint32_t startIndex;
+            uint32_t primCount;
+        } drawIndexedPrimitive;
+
+        struct 
+        {
+            uint32_t primitiveType;
+            uint32_t primitiveCount; 
+            UploadAllocation vertexStreamZeroData; 
+            uint32_t vertexStreamZeroStride;
+        } drawPrimitiveUP;
+
+        struct 
+        {
+            GuestVertexDeclaration* vertexDeclaration;
+        } setVertexDeclaration;
+
+        struct 
+        {
+            GuestShader* shader;
+        } setVertexShader;
+
+        struct 
+        {
+            uint32_t index;
+            GuestBuffer* buffer;
+            uint32_t offset;
+            uint32_t stride;
+        } setStreamSource;
+
+        struct 
+        {
+            GuestBuffer* buffer;
+        } setIndices;
+
+        struct 
+        {
+            GuestShader* shader;
+        } setPixelShader;
+    };
+};
+
+static moodycamel::BlockingConcurrentQueue<RenderCommand> g_renderQueue;
+
+template<GuestRenderState TType>
 static void SetRenderState(GuestDevice* device, uint32_t value)
 {
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetRenderState;
+    cmd.setRenderState.type = TType;
+    cmd.setRenderState.value = value;
+    g_renderQueue.enqueue(cmd);
 }
 
-static void SetRenderStateZEnable(GuestDevice* device, uint32_t value)
+static void SetRenderStateUnimplemented(GuestDevice* device, uint32_t value)
 {
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zEnable, value != 0);
-    g_dirtyStates.renderTargetAndDepthStencil |= g_dirtyStates.pipelineState;
-}
-
-static void SetRenderStateZWriteEnable(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zWriteEnable, value != 0);
 }
 
 static void SetAlphaTestMode(bool enable)
@@ -375,16 +554,11 @@ static void SetAlphaTestMode(bool enable)
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.enableAlphaToCoverage, alphaTestMode == AlphaTestMode::AlphaToCoverage);
 }
 
-static void SetRenderStateAlphaTestEnable(GuestDevice* device, uint32_t value)
-{
-    SetAlphaTestMode(value != 0);
-}
-
 static RenderBlend ConvertBlendMode(uint32_t blendMode)
 {
     switch (blendMode)
     {
-    case D3DBLEND_ZERO: 
+    case D3DBLEND_ZERO:
         return RenderBlend::ZERO;
     case D3DBLEND_ONE:
         return RenderBlend::ONE;
@@ -392,105 +566,22 @@ static RenderBlend ConvertBlendMode(uint32_t blendMode)
         return RenderBlend::SRC_COLOR;
     case D3DBLEND_INVSRCCOLOR:
         return RenderBlend::INV_SRC_COLOR;
-    case D3DBLEND_SRCALPHA: 
+    case D3DBLEND_SRCALPHA:
         return RenderBlend::SRC_ALPHA;
-    case D3DBLEND_INVSRCALPHA: 
+    case D3DBLEND_INVSRCALPHA:
         return RenderBlend::INV_SRC_ALPHA;
-    case D3DBLEND_DESTCOLOR: 
+    case D3DBLEND_DESTCOLOR:
         return RenderBlend::DEST_COLOR;
-    case D3DBLEND_INVDESTCOLOR: 
+    case D3DBLEND_INVDESTCOLOR:
         return RenderBlend::INV_DEST_COLOR;
-    case D3DBLEND_DESTALPHA: 
+    case D3DBLEND_DESTALPHA:
         return RenderBlend::DEST_ALPHA;
-    case D3DBLEND_INVDESTALPHA: 
+    case D3DBLEND_INVDESTALPHA:
         return RenderBlend::INV_DEST_ALPHA;
     default:
         assert(false && "Invalid blend mode");
         return RenderBlend::ZERO;
     }
-}
-
-static void SetRenderStateSrcBlend(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.srcBlend, ConvertBlendMode(value));
-}
-
-static void SetRenderStateDestBlend(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.destBlend, ConvertBlendMode(value));
-}
-
-static void SetRenderStateCullMode(GuestDevice* device, uint32_t value)
-{
-    RenderCullMode cullMode;
-
-    switch (value) {
-    case D3DCULL_NONE:
-    case D3DCULL_NONE_2:
-        cullMode = RenderCullMode::NONE;
-        break;
-    case D3DCULL_CW:
-        cullMode = RenderCullMode::FRONT;
-        break;
-    case D3DCULL_CCW:
-        cullMode = RenderCullMode::BACK;
-        break;
-    default:
-        assert(false && "Invalid cull mode");
-        cullMode = RenderCullMode::NONE;
-        break;
-    }
-
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.cullMode, cullMode);
-}
-
-static void SetRenderStateZFunc(GuestDevice* device, uint32_t value)
-{
-    RenderComparisonFunction comparisonFunc;
-
-    switch (value)
-    {
-    case D3DCMP_NEVER:
-        comparisonFunc = RenderComparisonFunction::NEVER;
-        break;
-    case D3DCMP_LESS:
-        comparisonFunc = RenderComparisonFunction::LESS;
-        break;
-    case D3DCMP_EQUAL:
-        comparisonFunc = RenderComparisonFunction::EQUAL;
-        break;
-    case D3DCMP_LESSEQUAL:
-        comparisonFunc = RenderComparisonFunction::LESS_EQUAL;
-        break;
-    case D3DCMP_GREATER:
-        comparisonFunc = RenderComparisonFunction::GREATER;
-        break;
-    case D3DCMP_NOTEQUAL:
-        comparisonFunc = RenderComparisonFunction::NOT_EQUAL;
-        break;
-    case D3DCMP_GREATEREQUAL:
-        comparisonFunc = RenderComparisonFunction::GREATER_EQUAL;
-        break;
-    case D3DCMP_ALWAYS:
-        comparisonFunc = RenderComparisonFunction::ALWAYS;
-        break;
-    default:
-        assert(false && "Unknown comparison function");
-        comparisonFunc = RenderComparisonFunction::NEVER;
-        break;
-    }
-
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zFunc, comparisonFunc);
-}
-
-static void SetRenderStateAlphaRef(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_sharedConstants.alphaThreshold, float(value) / 256.0f);
-}
-
-static void SetRenderStateAlphaBlendEnable(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.alphaBlendEnable, value != 0);
 }
 
 static RenderBlendOperation ConvertBlendOp(uint32_t blendOp)
@@ -513,66 +604,174 @@ static RenderBlendOperation ConvertBlendOp(uint32_t blendOp)
     }
 }
 
-static void SetRenderStateBlendOp(GuestDevice* device, uint32_t value)
+static void ProcSetRenderState(const RenderCommand& cmd)
 {
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.blendOp, ConvertBlendOp(value));
-}
+    uint32_t value = cmd.setRenderState.value;
 
-static void SetRenderStateScissorTestEnable(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.scissorRect, g_scissorTestEnable, value != 0);
-}
+    switch (cmd.setRenderState.type)
+    {
+    case D3DRS_ZENABLE:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zEnable, value != 0);
+        g_dirtyStates.renderTargetAndDepthStencil |= g_dirtyStates.pipelineState;
+        break;
+    }
+    case D3DRS_ZWRITEENABLE:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zWriteEnable, value != 0);
+        break;
+    }
+    case D3DRS_ALPHATESTENABLE:
+    {
+        SetAlphaTestMode(value != 0);
+        break;
+    }
+    case D3DRS_SRCBLEND:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.srcBlend, ConvertBlendMode(value));
+        break;
+    }
+    case D3DRS_DESTBLEND:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.destBlend, ConvertBlendMode(value));
+        break;
+    }
+    case D3DRS_CULLMODE:
+    {
+        RenderCullMode cullMode;
 
-static void SetRenderStateSlopeScaledDepthBias(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.slopeScaledDepthBias, *reinterpret_cast<float*>(&value));
-}
+        switch (value) {
+        case D3DCULL_NONE:
+        case D3DCULL_NONE_2:
+            cullMode = RenderCullMode::NONE;
+            break;
+        case D3DCULL_CW:
+            cullMode = RenderCullMode::FRONT;
+            break;
+        case D3DCULL_CCW:
+            cullMode = RenderCullMode::BACK;
+            break;
+        default:
+            assert(false && "Invalid cull mode");
+            cullMode = RenderCullMode::NONE;
+            break;
+        }
 
-static void SetRenderStateDepthBias(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.depthBias, int32_t(*reinterpret_cast<float*>(&value) * (1 << 24)));
-}
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.cullMode, cullMode);
+        break;
+    }
+    case D3DRS_ZFUNC:
+    {
+        RenderComparisonFunction comparisonFunc;
 
-static void SetRenderStateSrcBlendAlpha(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.srcBlendAlpha, ConvertBlendMode(value));
-}
+        switch (value)
+        {
+        case D3DCMP_NEVER:
+            comparisonFunc = RenderComparisonFunction::NEVER;
+            break;
+        case D3DCMP_LESS:
+            comparisonFunc = RenderComparisonFunction::LESS;
+            break;
+        case D3DCMP_EQUAL:
+            comparisonFunc = RenderComparisonFunction::EQUAL;
+            break;
+        case D3DCMP_LESSEQUAL:
+            comparisonFunc = RenderComparisonFunction::LESS_EQUAL;
+            break;
+        case D3DCMP_GREATER:
+            comparisonFunc = RenderComparisonFunction::GREATER;
+            break;
+        case D3DCMP_NOTEQUAL:
+            comparisonFunc = RenderComparisonFunction::NOT_EQUAL;
+            break;
+        case D3DCMP_GREATEREQUAL:
+            comparisonFunc = RenderComparisonFunction::GREATER_EQUAL;
+            break;
+        case D3DCMP_ALWAYS:
+            comparisonFunc = RenderComparisonFunction::ALWAYS;
+            break;
+        default:
+            assert(false && "Unknown comparison function");
+            comparisonFunc = RenderComparisonFunction::NEVER;
+            break;
+        }
 
-static void SetRenderStateDestBlendAlpha(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.destBlendAlpha, ConvertBlendMode(value));
-}
-
-static void SetRenderStateBlendOpAlpha(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.blendOpAlpha, ConvertBlendOp(value));
-}
-
-static void SetRenderStateColorWriteEnable(GuestDevice* device, uint32_t value)
-{
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.colorWriteEnable, value);
-    g_dirtyStates.renderTargetAndDepthStencil |= g_dirtyStates.pipelineState;
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zFunc, comparisonFunc);
+        break;
+    }
+    case D3DRS_ALPHAREF:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_sharedConstants.alphaThreshold, float(value) / 256.0f);
+        break;
+    }
+    case D3DRS_ALPHABLENDENABLE:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.alphaBlendEnable, value != 0);
+        break;
+    }
+    case D3DRS_BLENDOP:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.blendOp, ConvertBlendOp(value));
+        break;
+    }
+    case D3DRS_SCISSORTESTENABLE:
+    {
+        SetDirtyValue(g_dirtyStates.scissorRect, g_scissorTestEnable, value != 0);
+        break;
+    }
+    case D3DRS_SLOPESCALEDEPTHBIAS:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.slopeScaledDepthBias, *reinterpret_cast<float*>(&value));
+        break;
+    }
+    case D3DRS_DEPTHBIAS:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.depthBias, int32_t(*reinterpret_cast<float*>(&value) * (1 << 24)));
+        break;
+    }
+    case D3DRS_SRCBLENDALPHA:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.srcBlendAlpha, ConvertBlendMode(value));
+        break;
+    }
+    case D3DRS_DESTBLENDALPHA:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.destBlendAlpha, ConvertBlendMode(value));
+        break;
+    }
+    case D3DRS_BLENDOPALPHA:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.blendOpAlpha, ConvertBlendOp(value));
+        break;
+    }
+    case D3DRS_COLORWRITEENABLE:
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.colorWriteEnable, value);
+        g_dirtyStates.renderTargetAndDepthStencil |= g_dirtyStates.pipelineState;
+        break;
+    }
+    }
 }
 
 static const std::pair<GuestRenderState, void*> g_setRenderStateFunctions[] =
 {
-    { D3DRS_ZENABLE, GuestFunction<SetRenderStateZEnable> },
-    { D3DRS_ZWRITEENABLE, GuestFunction<SetRenderStateZWriteEnable> },
-    { D3DRS_ALPHATESTENABLE, GuestFunction<SetRenderStateAlphaTestEnable> },
-    { D3DRS_SRCBLEND, GuestFunction<SetRenderStateSrcBlend> },
-    { D3DRS_DESTBLEND, GuestFunction<SetRenderStateDestBlend> },
-    { D3DRS_CULLMODE, GuestFunction<SetRenderStateCullMode> },
-    { D3DRS_ZFUNC, GuestFunction<SetRenderStateZFunc> },
-    { D3DRS_ALPHAREF, GuestFunction<SetRenderStateAlphaRef> },
-    { D3DRS_ALPHABLENDENABLE, GuestFunction<SetRenderStateAlphaBlendEnable> },
-    { D3DRS_BLENDOP, GuestFunction<SetRenderStateBlendOp> },
-    { D3DRS_SCISSORTESTENABLE, GuestFunction<SetRenderStateScissorTestEnable> },
-    { D3DRS_SLOPESCALEDEPTHBIAS, GuestFunction<SetRenderStateSlopeScaledDepthBias> },
-    { D3DRS_DEPTHBIAS, GuestFunction<SetRenderStateDepthBias> },
-    { D3DRS_SRCBLENDALPHA, GuestFunction<SetRenderStateSrcBlendAlpha> },
-    { D3DRS_DESTBLENDALPHA, GuestFunction<SetRenderStateDestBlendAlpha> },
-    { D3DRS_BLENDOPALPHA, GuestFunction<SetRenderStateBlendOpAlpha> },
-    { D3DRS_COLORWRITEENABLE, GuestFunction<SetRenderStateColorWriteEnable> }
+    { D3DRS_ZENABLE, GuestFunction<SetRenderState<D3DRS_ZENABLE>> },
+    { D3DRS_ZWRITEENABLE, GuestFunction<SetRenderState<D3DRS_ZWRITEENABLE>> },
+    { D3DRS_ALPHATESTENABLE, GuestFunction<SetRenderState<D3DRS_ALPHATESTENABLE>> },
+    { D3DRS_SRCBLEND, GuestFunction<SetRenderState<D3DRS_SRCBLEND>> },
+    { D3DRS_DESTBLEND, GuestFunction<SetRenderState<D3DRS_DESTBLEND>> },
+    { D3DRS_CULLMODE, GuestFunction<SetRenderState<D3DRS_CULLMODE>> },
+    { D3DRS_ZFUNC, GuestFunction<SetRenderState<D3DRS_ZFUNC>> },
+    { D3DRS_ALPHAREF, GuestFunction<SetRenderState<D3DRS_ALPHAREF>> },
+    { D3DRS_ALPHABLENDENABLE, GuestFunction<SetRenderState<D3DRS_ALPHABLENDENABLE>> },
+    { D3DRS_BLENDOP, GuestFunction<SetRenderState<D3DRS_BLENDOP>> },
+    { D3DRS_SCISSORTESTENABLE, GuestFunction<SetRenderState<D3DRS_SCISSORTESTENABLE>> },
+    { D3DRS_SLOPESCALEDEPTHBIAS, GuestFunction<SetRenderState<D3DRS_SLOPESCALEDEPTHBIAS>> },
+    { D3DRS_DEPTHBIAS, GuestFunction<SetRenderState<D3DRS_DEPTHBIAS>> },
+    { D3DRS_SRCBLENDALPHA, GuestFunction<SetRenderState<D3DRS_SRCBLENDALPHA>> },
+    { D3DRS_DESTBLENDALPHA, GuestFunction<SetRenderState<D3DRS_DESTBLENDALPHA>> },
+    { D3DRS_BLENDOPALPHA, GuestFunction<SetRenderState<D3DRS_BLENDOPALPHA>> },
+    { D3DRS_COLORWRITEENABLE, GuestFunction<SetRenderState<D3DRS_COLORWRITEENABLE>> }
 };
 
 static std::unique_ptr<RenderPipeline> g_resolveMsaaDepthPipelines[3];
@@ -617,6 +816,7 @@ static void CreateHostDevice()
     g_copyCommandFence = g_device->createCommandFence();
 
     g_swapChain = g_queue->createSwapChain(Window::s_windowHandle, Config::TripleBuffering ? 3 : 2, RenderFormat::B8G8R8A8_UNORM);
+    g_swapChainValid = !g_swapChain->needsResize();
 
     for (auto& acquireSemaphore : g_acquireSemaphores)
         acquireSemaphore = g_device->createCommandSemaphore();
@@ -722,32 +922,12 @@ static void WaitForGPU()
     }
 }
 
-static PPCRegister g_r3;
-static PPCRegister g_r4;
-static PPCRegister g_r5;
+static bool g_pendingRenderThread;
 
-PPC_FUNC_IMPL(__imp__sub_8258C8A0);
-PPC_FUNC(sub_8258C8A0)
+static void WaitForRenderThread()
 {
-    g_r3 = ctx.r3;
-    g_r4 = ctx.r4;
-    g_r5 = ctx.r5;
-    __imp__sub_8258C8A0(ctx, base);
-}
-
-static void ResizeSwapChain()
-{
-    WaitForGPU();
-    g_backBuffer->framebuffers.clear();
-
-    if (g_swapChain->resize() && g_r3.u32 != NULL)
-    {
-        auto ctx = GetPPCContext();
-        ctx->r3 = g_r3;
-        ctx->r4 = g_r4;
-        ctx->r5 = g_r5;
-        GuestCode::Run(__imp__sub_8258C8A0, ctx);
-    }
+    while (g_pendingRenderThread)
+        Sleep(0);
 }
 
 static void BeginCommandList()
@@ -759,19 +939,22 @@ static void BeginCommandList()
     g_pipelineState.renderTargetFormat = g_backBuffer->format;
     g_pipelineState.depthStencilFormat = RenderFormat::UNKNOWN;
 
-    g_swapChainValid = !g_swapChain->needsResize();
-    if (g_swapChainValid)
-    {
-        g_swapChainValid = g_swapChain->acquireTexture(g_acquireSemaphores[g_frame].get(), &g_backBufferIndex);
-        if (g_swapChainValid)
-            g_backBuffer->texture = g_swapChain->getTexture(g_backBufferIndex);
-    }
-    else
-    {
-        ResizeSwapChain();
-    }
+    g_swapChainValid &= !g_swapChain->needsResize();
 
     if (!g_swapChainValid)
+    {
+        WaitForGPU();
+        g_backBuffer->framebuffers.clear();
+        g_swapChainValid = g_swapChain->resize();
+        g_needsResize = g_swapChainValid;
+    }
+
+    if (g_swapChainValid)
+        g_swapChainValid = g_swapChain->acquireTexture(g_acquireSemaphores[g_frame].get(), &g_backBufferIndex);
+
+    if (g_swapChainValid)
+        g_backBuffer->texture = g_swapChain->getTexture(g_backBufferIndex);
+    else
         g_backBuffer->texture = g_backBuffer->textureHolder.get();
 
     g_backBuffer->layout = RenderTextureLayout::UNKNOWN;
@@ -804,7 +987,7 @@ static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4,
     memset(device, 0, sizeof(*device));
 
     uint32_t functionOffset = 'D3D';
-    g_codeCache.Insert(functionOffset, reinterpret_cast<void*>(GuestFunction<SetRenderState>));
+    g_codeCache.Insert(functionOffset, reinterpret_cast<void*>(GuestFunction<SetRenderStateUnimplemented>));
 
     for (size_t i = 0; i < _countof(device->setRenderStateFunctions); i++)
         device->setRenderStateFunctions[i] = functionOffset;
@@ -819,6 +1002,10 @@ static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4,
     for (size_t i = 0; i < _countof(device->setSamplerStateFunctions); i++)
         device->setSamplerStateFunctions[i] = *reinterpret_cast<uint32_t*>(g_memory.Translate(0x8330F3DC + i * 0xC));
 
+    device->viewport.width = 1280.0f;
+    device->viewport.height = 720.0f;
+    device->viewport.maxZ = 1.0f;
+
     *a6 = g_memory.MapVirtual(device);
 
     return 0;
@@ -826,12 +1013,22 @@ static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4,
 
 static void DestructResource(GuestResource* resource) 
 {
-    switch (resource->type)
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::DestructResource;
+    cmd.destructResource.resource = resource;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcDestructResource(const RenderCommand& cmd)
+{
+    const auto& args = cmd.destructResource;
+
+    switch (args.resource->type)
     {
     case ResourceType::Texture:
     case ResourceType::VolumeTexture:
     {
-        const auto texture = reinterpret_cast<GuestTexture*>(resource);
+        const auto texture = reinterpret_cast<GuestTexture*>(args.resource);
 
         if (texture->mappedMemory != nullptr)
             g_userHeap.Free(texture->mappedMemory);
@@ -840,16 +1037,19 @@ static void DestructResource(GuestResource* resource)
             std::lock_guard lock(g_tempMutex);
             g_tempTextures[g_frame].emplace_back(std::move(texture->textureHolder));
             g_tempDescriptorIndices[g_frame].push_back(texture->descriptorIndex);
+
+            if (texture->framebuffer != nullptr)
+                g_tempFramebuffers[g_frame].emplace_back(std::move(texture->framebuffer));
         }
 
         texture->~GuestTexture();
         break;
     }
-           
+
     case ResourceType::VertexBuffer:
     case ResourceType::IndexBuffer:
     {
-        const auto buffer = reinterpret_cast<GuestBuffer*>(resource);
+        const auto buffer = reinterpret_cast<GuestBuffer*>(args.resource);
 
         if (buffer->mappedMemory != nullptr)
             g_userHeap.Free(buffer->mappedMemory);
@@ -862,11 +1062,11 @@ static void DestructResource(GuestResource* resource)
         buffer->~GuestBuffer();
         break;
     }
-            
+
     case ResourceType::RenderTarget:
     case ResourceType::DepthStencil:
     {
-        const auto surface = reinterpret_cast<GuestSurface*>(resource);
+        const auto surface = reinterpret_cast<GuestSurface*>(args.resource);
 
         {
             std::lock_guard lock(g_tempMutex);
@@ -874,23 +1074,26 @@ static void DestructResource(GuestResource* resource)
 
             if (surface->descriptorIndex != NULL)
                 g_tempDescriptorIndices[g_frame].push_back(surface->descriptorIndex);
+
+            for (auto& [texture, framebuffer] : surface->framebuffers)
+                g_tempFramebuffers[g_frame].emplace_back(std::move(framebuffer));
         }
 
         surface->~GuestSurface();
         break;
     }
-            
+
     case ResourceType::VertexDeclaration:
-        reinterpret_cast<GuestVertexDeclaration*>(resource)->~GuestVertexDeclaration();
+        reinterpret_cast<GuestVertexDeclaration*>(args.resource)->~GuestVertexDeclaration();
         break;
-            
+
     case ResourceType::VertexShader:
     case ResourceType::PixelShader:
-        reinterpret_cast<GuestShader*>(resource)->~GuestShader();
+        reinterpret_cast<GuestShader*>(args.resource)->~GuestShader();
         break;
     }
 
-    g_userHeap.Free(resource);
+    g_userHeap.Free(args.resource);
 }
 
 static constexpr uint32_t PITCH_ALIGNMENT = 0x100;
@@ -915,20 +1118,28 @@ static void LockTextureRect(GuestTexture* texture, uint32_t, GuestLockedRect* lo
 
 static void UnlockTextureRect(GuestTexture* texture) 
 {
-    assert(GetCurrentThreadId() == g_mainThreadId);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::UnlockTextureRect;
+    cmd.unlockTextureRect.texture = texture;
+    g_renderQueue.enqueue(cmd);
+}
 
-    AddBarrier(texture, RenderTextureLayout::COPY_DEST);
+static void ProcUnlockTextureRect(const RenderCommand& cmd)
+{
+    const auto& args = cmd.unlockTextureRect;
+
+    AddBarrier(args.texture, RenderTextureLayout::COPY_DEST);
     FlushBarriers();
 
-    uint32_t pitch = ComputeTexturePitch(texture);
-    uint32_t slicePitch = pitch * texture->height;
+    uint32_t pitch = ComputeTexturePitch(args.texture);
+    uint32_t slicePitch = pitch * args.texture->height;
 
     auto allocation = g_uploadAllocators[g_frame].allocate(slicePitch, PLACEMENT_ALIGNMENT);
-    memcpy(allocation.memory, texture->mappedMemory, slicePitch);
-    
+    memcpy(allocation.memory, args.texture->mappedMemory, slicePitch);
+
     g_commandLists[g_frame]->copyTextureRegion(
-        RenderTextureCopyLocation::Subresource(texture->texture, 0),
-        RenderTextureCopyLocation::PlacedFootprint(allocation.bufferReference.ref, texture->format, texture->width, texture->height, 1, pitch / RenderFormatSize(texture->format), allocation.bufferReference.offset));
+        RenderTextureCopyLocation::Subresource(args.texture->texture, 0),
+        RenderTextureCopyLocation::PlacedFootprint(allocation.buffer, args.texture->format, args.texture->width, args.texture->height, 1, pitch / RenderFormatSize(args.texture->format), allocation.offset));
 }
 
 static void* LockBuffer(GuestBuffer* buffer, uint32_t flags)
@@ -1030,9 +1241,20 @@ static uint32_t HashVertexDeclaration(uint32_t vertexDeclaration)
 
 static void Present() 
 {
+    WaitForRenderThread();
+    bool needsResize = g_needsResize;
+    g_pendingRenderThread = true;
+
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::Present;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcPresent(const RenderCommand& cmd)
+{
     if (g_swapChainValid)
         AddBarrier(g_backBuffer, RenderTextureLayout::PRESENT);
-    
+
     FlushBarriers();
 
     auto& commandList = g_commandLists[g_frame];
@@ -1078,6 +1300,7 @@ static void Present()
             g_textureDescriptorAllocator.free(index);
 
         g_tempDescriptorIndices[g_frame].clear();
+        g_tempFramebuffers[g_frame].clear();
     }
 
     g_dirtyStates = DirtyStates(true);
@@ -1086,6 +1309,8 @@ static void Present()
     g_quadCount = 0;
 
     BeginCommandList();
+
+    g_pendingRenderThread = false;
 }
 
 static GuestSurface* GetBackBuffer() 
@@ -1308,7 +1533,18 @@ static bool SetHalfPixel(bool enable)
 
 static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestTexture* texture)
 {
-    const bool isDepthStencil = (flags & 0x4) != 0;
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::StretchRect;
+    cmd.stretchRect.flags = flags;
+    cmd.stretchRect.texture = texture;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcStretchRect(const RenderCommand& cmd)
+{
+    const auto& args = cmd.stretchRect;
+
+    const bool isDepthStencil = (args.flags & 0x4) != 0;
     const auto surface = isDepthStencil ? g_depthStencil : g_renderTarget;
     const bool multiSampling = surface->sampleCount != RenderSampleCount::COUNT_1;
 
@@ -1335,7 +1571,7 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
     }
 
     AddBarrier(surface, srcLayout);
-    AddBarrier(texture, dstLayout);
+    AddBarrier(args.texture, dstLayout);
     FlushBarriers();
 
     auto& commandList = g_commandLists[g_frame];
@@ -1349,10 +1585,10 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
             {
             case RenderSampleCount::COUNT_2:
                 pipelineIndex = 0;
-                break;    
+                break;
             case RenderSampleCount::COUNT_4:
                 pipelineIndex = 1;
-                break;          
+                break;
             case RenderSampleCount::COUNT_8:
                 pipelineIndex = 2;
                 break;
@@ -1361,19 +1597,19 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
                 break;
             }
 
-            if (texture->framebuffer == nullptr)
+            if (args.texture->framebuffer == nullptr)
             {
                 RenderFramebufferDesc desc;
-                desc.depthAttachment = texture->texture;
-                texture->framebuffer = g_device->createFramebuffer(desc);
+                desc.depthAttachment = args.texture->texture;
+                args.texture->framebuffer = g_device->createFramebuffer(desc);
             }
 
-            if (g_framebuffer != texture->framebuffer.get())
+            if (g_framebuffer != args.texture->framebuffer.get())
             {
-                commandList->setFramebuffer(texture->framebuffer.get());
-                g_framebuffer = texture->framebuffer.get();
+                commandList->setFramebuffer(args.texture->framebuffer.get());
+                g_framebuffer = args.texture->framebuffer.get();
             }
-            
+
             bool oldHalfPixel = SetHalfPixel(false);
             FlushViewport();
 
@@ -1391,36 +1627,51 @@ static void StretchRect(GuestDevice* device, uint32_t flags, uint32_t, GuestText
         }
         else
         {
-            commandList->resolveTexture(texture->texture, surface->texture);
+            commandList->resolveTexture(args.texture->texture, surface->texture);
         }
     }
     else
     {
-        commandList->copyTexture(texture->texture, surface->texture);
+        commandList->copyTexture(args.texture->texture, surface->texture);
     }
 
-    AddBarrier(texture, RenderTextureLayout::SHADER_READ);
+    AddBarrier(args.texture, RenderTextureLayout::SHADER_READ);
 }
 
 static void SetRenderTarget(GuestDevice* device, uint32_t index, GuestSurface* renderTarget) 
 {
-    SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_renderTarget, renderTarget);
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.renderTargetFormat, renderTarget != nullptr ? renderTarget->format : RenderFormat::UNKNOWN);
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.sampleCount, renderTarget != nullptr ? renderTarget->sampleCount : RenderSampleCount::COUNT_1);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetRenderTarget;
+    cmd.setRenderTarget.renderTarget = renderTarget;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetRenderTarget(const RenderCommand& cmd)
+{
+    const auto& args = cmd.setRenderTarget;
+
+    SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_renderTarget, args.renderTarget);
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.renderTargetFormat, args.renderTarget != nullptr ? args.renderTarget->format : RenderFormat::UNKNOWN);
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.sampleCount, args.renderTarget != nullptr ? args.renderTarget->sampleCount : RenderSampleCount::COUNT_1);
 
     // When alpha to coverage is enabled, update the alpha test mode as it's dependent on sample count.
     SetAlphaTestMode(g_sharedConstants.alphaTestMode != AlphaTestMode::Disabled);
 }
 
-static GuestSurface* GetDepthStencilSurface(GuestDevice* device) 
-{
-    return nullptr;
-}
-
 static void SetDepthStencilSurface(GuestDevice* device, GuestSurface* depthStencil) 
 {
-    SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_depthStencil, depthStencil);
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.depthStencilFormat, depthStencil != nullptr ? depthStencil->format : RenderFormat::UNKNOWN);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetDepthStencilSurface;
+    cmd.setDepthStencilSurface.depthStencil = depthStencil;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetDepthStencilSurface(const RenderCommand& cmd)
+{
+    const auto& args = cmd.setDepthStencilSurface;
+
+    SetDirtyValue(g_dirtyStates.renderTargetAndDepthStencil, g_depthStencil, args.depthStencil);
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.depthStencilFormat, args.depthStencil != nullptr ? args.depthStencil->format : RenderFormat::UNKNOWN);
 }
 
 static void SetFramebuffer(GuestSurface* renderTarget, GuestSurface* depthStencil, bool settingForClear)
@@ -1486,6 +1737,21 @@ static void SetFramebuffer(GuestSurface* renderTarget, GuestSurface* depthStenci
 
 static void Clear(GuestDevice* device, uint32_t flags, uint32_t, be<float>* color, double z) 
 {
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::Clear;
+    cmd.clear.flags = flags;
+    cmd.clear.color[0] = color[0];
+    cmd.clear.color[1] = color[1];
+    cmd.clear.color[2] = color[2];
+    cmd.clear.color[3] = color[3];
+    cmd.clear.z = float(z);
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcClear(const RenderCommand& cmd)
+{
+    const auto& args = cmd.clear;
+
     AddBarrier(g_renderTarget, RenderTextureLayout::COLOR_WRITE);
     AddBarrier(g_depthStencil, RenderTextureLayout::DEPTH_WRITE);
     FlushBarriers();
@@ -1498,57 +1764,91 @@ static void Clear(GuestDevice* device, uint32_t flags, uint32_t, be<float>* colo
 
     auto& commandList = g_commandLists[g_frame];
 
-    if (g_renderTarget != nullptr && (flags & D3DCLEAR_TARGET) != 0)
+    if (g_renderTarget != nullptr && (args.flags & D3DCLEAR_TARGET) != 0)
     {
         if (!canClearInOnePass)
             SetFramebuffer(g_renderTarget, nullptr, true);
 
-        commandList->clearColor(0, RenderColor(color[0], color[1], color[2], color[3]));
+        commandList->clearColor(0, RenderColor(args.color[0], args.color[1], args.color[2], args.color[3]));
     }
 
-    if (g_depthStencil != nullptr && (flags & D3DCLEAR_ZBUFFER) != 0)
+    if (g_depthStencil != nullptr && (args.flags & D3DCLEAR_ZBUFFER) != 0)
     {
         if (!canClearInOnePass)
             SetFramebuffer(nullptr, g_depthStencil, true);
 
-        commandList->clearDepth(true, float(z));
+        commandList->clearDepth(true, args.z);
     }
 }
 
 static void SetViewport(GuestDevice* device, GuestViewport* viewport)
 {
-    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.x, viewport->x);
-    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.y, viewport->y);
-    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.width, viewport->width);
-    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.height, viewport->height);
-    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.minDepth, viewport->minZ);
-    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.maxDepth, viewport->maxZ);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetViewport;
+    cmd.setViewport.x = viewport->x;
+    cmd.setViewport.y = viewport->y;
+    cmd.setViewport.width = viewport->width;
+    cmd.setViewport.height = viewport->height;
+    cmd.setViewport.minDepth = viewport->minZ;
+    cmd.setViewport.maxDepth = viewport->maxZ;
+    g_renderQueue.enqueue(cmd);
 
-    g_dirtyStates.scissorRect |= g_dirtyStates.viewport;
+    device->viewport.x = float(viewport->x);
+    device->viewport.y = float(viewport->y);
+    device->viewport.width = float(viewport->width);
+    device->viewport.height = float(viewport->height);
+    device->viewport.minZ = viewport->minZ;
+    device->viewport.maxZ = viewport->maxZ;
 }
 
-static void GetViewport(GuestDevice* device, GuestViewport* viewport)
+static void ProcSetViewport(const RenderCommand& cmd)
 {
-    viewport->x = g_viewport.x;
-    viewport->y = g_viewport.y;
-    viewport->width = g_viewport.width;
-    viewport->height = g_viewport.height;
-    viewport->minZ = g_viewport.minDepth;
-    viewport->maxZ = g_viewport.maxDepth;
+    const auto& args = cmd.setViewport;
+
+    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.x, args.x);
+    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.y, args.y);
+    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.width, args.width);
+    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.height, args.height);
+    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.minDepth, args.minDepth);
+    SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.maxDepth, args.maxDepth);
 }
 
 static void SetTexture(GuestDevice* device, uint32_t index, GuestTexture* texture) 
 {
-    AddBarrier(texture, RenderTextureLayout::SHADER_READ);
-    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.textureIndices[index], texture != nullptr ? texture->descriptorIndex : NULL);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetTexture;
+    cmd.setTexture.index = index;
+    cmd.setTexture.texture = texture;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetTexture(const RenderCommand& cmd)
+{
+    const auto& args = cmd.setTexture;
+
+    AddBarrier(args.texture, RenderTextureLayout::SHADER_READ);
+    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.textureIndices[args.index], args.texture != nullptr ? args.texture->descriptorIndex : NULL);
 }
 
 static void SetScissorRect(GuestDevice* device, GuestRect* rect)
 {
-    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.top, rect->top);
-    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.left, rect->left);
-    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.bottom, rect->bottom);
-    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.right, rect->right);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetScissorRect;
+    cmd.setScissorRect.top = rect->top;
+    cmd.setScissorRect.left = rect->left;
+    cmd.setScissorRect.bottom = rect->bottom;
+    cmd.setScissorRect.right = rect->right;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetScissorRect(const RenderCommand& cmd)
+{
+    const auto& args = cmd.setScissorRect;
+
+    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.top, args.top);
+    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.left, args.left);
+    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.bottom, args.bottom);
+    SetDirtyValue<int32_t>(g_dirtyStates.scissorRect, g_scissorRect.right, args.right);
 }
 
 static RenderPipeline* CreateGraphicsPipeline(PipelineState pipelineState)
@@ -1689,7 +1989,134 @@ static RenderBorderColor ConvertBorderColor(uint32_t value)
     }
 }
 
-static void FlushRenderState(GuestDevice* device)
+static void FlushRenderStateForMainThread(GuestDevice* device)
+{
+    constexpr size_t BOOL_MASK = 0x100000000000000ull;
+    if ((device->dirtyFlags[4].get() & BOOL_MASK) != 0)
+    {
+        RenderCommand cmd;
+        cmd.type = RenderCommandType::SetBooleans;
+        cmd.setBooleans.booleans = (device->vertexShaderBoolConstants[0].get() & 0xFF) | ((device->pixelShaderBoolConstants[0].get() & 0xFF) << 16);
+        g_renderQueue.enqueue(cmd);
+
+        device->dirtyFlags[4] = device->dirtyFlags[4].get() & ~BOOL_MASK;
+    }
+
+    for (uint32_t i = 0; i < 16; i++)
+    {
+        const size_t mask = 0x8000000000000000ull >> (i + 32);
+        if (device->dirtyFlags[3].get() & mask)
+        {
+            RenderCommand cmd;
+            cmd.type = RenderCommandType::SetSamplerState;
+            cmd.setSamplerState.index = i;
+            cmd.setSamplerState.data0 = device->samplerStates[i].data[0];
+            cmd.setSamplerState.data3 = device->samplerStates[i].data[3];
+            cmd.setSamplerState.data5 = device->samplerStates[i].data[5];
+            g_renderQueue.enqueue(cmd);
+
+            device->dirtyFlags[3] = device->dirtyFlags[3].get() & ~mask;
+        }
+    }
+
+    if (g_dirtyStates.vertexShaderConstants || device->dirtyFlags[0] != 0)
+    {
+        WaitForRenderThread();
+
+        RenderCommand cmd;
+        cmd.type = RenderCommandType::SetVertexShaderConstants;
+        cmd.setVertexShaderConstants.allocation = g_uploadAllocators[g_frame].allocate<true>(device->vertexShaderFloatConstants, 0x1000, 0x100);
+        g_renderQueue.enqueue(cmd);
+
+        device->dirtyFlags[0] = 0;
+    }
+
+    if (g_dirtyStates.pixelShaderConstants || device->dirtyFlags[1] != 0)
+    {
+        WaitForRenderThread();
+
+        RenderCommand cmd;
+        cmd.type = RenderCommandType::SetPixelShaderConstants;
+        cmd.setPixelShaderConstants.allocation = g_uploadAllocators[g_frame].allocate<true>(device->pixelShaderFloatConstants, 0xE00, 0x100);
+        g_renderQueue.enqueue(cmd);
+
+        device->dirtyFlags[1] = 0;
+    }
+}
+
+static void ProcSetBooleans(const RenderCommand& cmd)
+{
+    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.booleans, cmd.setBooleans.booleans);
+}
+
+static void ProcSetSamplerState(const RenderCommand& cmd)
+{
+    const auto& args = cmd.setSamplerState;
+
+    const auto addressU = ConvertTextureAddressMode((args.data0 >> 10) & 0x7);
+    const auto addressV = ConvertTextureAddressMode((args.data0 >> 13) & 0x7);
+    const auto addressW = ConvertTextureAddressMode((args.data0 >> 16) & 0x7);
+    auto magFilter = ConvertTextureFilter((args.data3 >> 19) & 0x3);
+    auto minFilter = ConvertTextureFilter((args.data3 >> 21) & 0x3);
+    auto mipFilter = ConvertTextureFilter((args.data3 >> 23) & 0x3);
+    const auto borderColor = ConvertBorderColor(args.data5 & 0x3);
+
+    bool anisotropyEnabled = mipFilter == RenderFilter::LINEAR;
+    if (anisotropyEnabled)
+    {
+        magFilter = RenderFilter::LINEAR;
+        minFilter = RenderFilter::LINEAR;
+    }
+
+    auto& samplerDesc = g_samplerDescs[args.index];
+
+    bool dirty = false;
+
+    SetDirtyValue(dirty, samplerDesc.addressU, addressU);
+    SetDirtyValue(dirty, samplerDesc.addressV, addressV);
+    SetDirtyValue(dirty, samplerDesc.addressW, addressW);
+    SetDirtyValue(dirty, samplerDesc.minFilter, minFilter);
+    SetDirtyValue(dirty, samplerDesc.magFilter, magFilter);
+    SetDirtyValue(dirty, samplerDesc.mipmapMode, RenderMipmapMode(mipFilter));
+    SetDirtyValue(dirty, samplerDesc.anisotropyEnabled, anisotropyEnabled);
+    SetDirtyValue(dirty, samplerDesc.borderColor, borderColor);
+
+    if (dirty)
+    {
+        auto& [descriptorIndex, sampler] = g_samplerStates[XXH3_64bits(&samplerDesc, sizeof(RenderSamplerDesc))];
+        if (descriptorIndex == NULL)
+        {
+            descriptorIndex = g_samplerStates.size();
+            sampler = g_device->createSampler(samplerDesc);
+
+            g_samplerDescriptorSet->setSampler(descriptorIndex - 1, sampler.get());
+        }
+
+        SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.samplerIndices[args.index], descriptorIndex - 1);
+    }
+}
+
+static void SetRootDescriptor(const UploadAllocation& allocation, size_t index)
+{
+    auto& commandList = g_commandLists[g_frame];
+
+    if (g_vulkan)
+        commandList->setGraphicsPushConstants(0, &allocation.deviceAddress, 8 * index, 8);
+    else
+        commandList->setGraphicsRootDescriptor(allocation.buffer->at(allocation.offset), index);
+}
+
+static void ProcSetVertexShaderConstants(const RenderCommand& cmd)
+{
+    SetRootDescriptor(cmd.setVertexShaderConstants.allocation, 0);
+}
+
+static void ProcSetPixelShaderConstants(const RenderCommand& cmd)
+{
+    SetRootDescriptor(cmd.setPixelShaderConstants.allocation, 1);
+}
+
+static void FlushRenderStateForRenderThread()
 {
     auto renderTarget = g_pipelineState.colorWriteEnable ? g_renderTarget : nullptr;
     auto depthStencil = g_pipelineState.zEnable ? g_depthStencil : nullptr;
@@ -1705,89 +2132,10 @@ static void FlushRenderState(GuestDevice* device)
     if (g_dirtyStates.pipelineState)
         commandList->setPipeline(CreateGraphicsPipeline(g_pipelineState));
 
-    constexpr size_t BOOL_MASK = 0x100000000000000ull;
-    if ((device->dirtyFlags[4].get() & BOOL_MASK) != 0)
-    {
-        uint32_t booleans = device->vertexShaderBoolConstants[0].get() & 0xFF;
-        booleans |= (device->pixelShaderBoolConstants[0].get() & 0xFF) << 16;
-
-        SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.booleans, booleans);
-
-        device->dirtyFlags[4] = device->dirtyFlags[4].get() & ~BOOL_MASK;
-    }
-
-    for (size_t i = 0; i < 16; i++)
-    {
-        const size_t mask = 0x8000000000000000ull >> (i + 32);
-        if (device->dirtyFlags[3].get() & mask)
-        {
-            const auto addressU = ConvertTextureAddressMode((device->samplerStates[i].data[0].get() >> 10) & 0x7);
-            const auto addressV = ConvertTextureAddressMode((device->samplerStates[i].data[0].get() >> 13) & 0x7);
-            const auto addressW = ConvertTextureAddressMode((device->samplerStates[i].data[0].get() >> 16) & 0x7);
-            auto magFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 19) & 0x3);
-            auto minFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 21) & 0x3);
-            auto mipFilter = ConvertTextureFilter((device->samplerStates[i].data[3].get() >> 23) & 0x3);
-            const auto borderColor = ConvertBorderColor(device->samplerStates[i].data[5].get() & 0x3);
-
-            bool anisotropyEnabled = mipFilter == RenderFilter::LINEAR;
-            if (anisotropyEnabled)
-            {
-                magFilter = RenderFilter::LINEAR;
-                minFilter = RenderFilter::LINEAR;
-            }
-
-            auto& samplerDesc = g_samplerDescs[i];
-
-            bool dirty = false;
-
-            SetDirtyValue(dirty, samplerDesc.addressU, addressU);
-            SetDirtyValue(dirty, samplerDesc.addressV, addressV);
-            SetDirtyValue(dirty, samplerDesc.addressW, addressW);
-            SetDirtyValue(dirty, samplerDesc.minFilter, minFilter);
-            SetDirtyValue(dirty, samplerDesc.magFilter, magFilter);
-            SetDirtyValue(dirty, samplerDesc.mipmapMode, RenderMipmapMode(mipFilter));
-            SetDirtyValue(dirty, samplerDesc.anisotropyEnabled, anisotropyEnabled);
-            SetDirtyValue(dirty, samplerDesc.borderColor, borderColor);
-
-            if (dirty)
-            {
-                auto& [descriptorIndex, sampler] = g_samplerStates[XXH3_64bits(&samplerDesc, sizeof(RenderSamplerDesc))];
-                if (descriptorIndex == NULL)
-                {
-                    descriptorIndex = g_samplerStates.size();
-                    sampler = g_device->createSampler(samplerDesc);
-
-                    g_samplerDescriptorSet->setSampler(descriptorIndex - 1, sampler.get());
-                }
-
-                SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.samplerIndices[i], descriptorIndex - 1);
-            }
-
-            device->dirtyFlags[3] = device->dirtyFlags[3].get() & ~mask;
-        }
-    }
-
-    auto& uploadAllocator = g_uploadAllocators[g_frame];
-
-    auto setRootDescriptor = [&](const UploadAllocation& allocation, size_t index)
-        {
-            if (g_vulkan)
-                commandList->setGraphicsPushConstants(0, &allocation.deviceAddress, 8 * index, 8);
-            else
-                commandList->setGraphicsRootDescriptor(allocation.bufferReference, index);
-        };
-
     if (g_dirtyStates.sharedConstants)
     {
-        auto sharedConstants = uploadAllocator.allocate<false>(&g_sharedConstants, sizeof(g_sharedConstants), 0x100);
-        setRootDescriptor(sharedConstants, 2);
-    }
-
-    if (g_dirtyStates.vertexShaderConstants || device->dirtyFlags[0] != 0)
-    {
-        auto vertexShaderConstants = uploadAllocator.allocate<true>(device->vertexShaderFloatConstants, 0x1000, 0x100);
-        setRootDescriptor(vertexShaderConstants, 0);
-        device->dirtyFlags[0] = 0;
+        auto sharedConstants = g_uploadAllocators[g_frame].allocate<false>(&g_sharedConstants, sizeof(g_sharedConstants), 0x100);
+        SetRootDescriptor(sharedConstants, 2);
     }
 
     if (g_dirtyStates.vertexStreamFirst <= g_dirtyStates.vertexStreamLast)
@@ -1802,13 +2150,6 @@ static void FlushRenderState(GuestDevice* device)
     if (g_dirtyStates.indices && (!g_vulkan || g_indexBufferView.buffer.ref != nullptr))
         commandList->setIndexBuffer(&g_indexBufferView);
 
-    if (g_dirtyStates.pixelShaderConstants || device->dirtyFlags[1] != 0)
-    {
-        auto pixelShaderConstants = uploadAllocator.allocate<true>(device->pixelShaderFloatConstants, 0xE00, 0x100);
-        setRootDescriptor(pixelShaderConstants, 1);
-        device->dirtyFlags[1] = 0;
-    }
-
     g_dirtyStates = DirtyStates(false);
 }
 
@@ -1817,16 +2158,16 @@ static RenderPrimitiveTopology ConvertPrimitiveType(uint32_t primitiveType)
     switch (primitiveType)
     {
     case D3DPT_POINTLIST:
-        return RenderPrimitiveTopology::POINT_LIST;   
+        return RenderPrimitiveTopology::POINT_LIST;
     case D3DPT_LINELIST:
-        return RenderPrimitiveTopology::LINE_LIST;   
+        return RenderPrimitiveTopology::LINE_LIST;
     case D3DPT_LINESTRIP:
-        return RenderPrimitiveTopology::LINE_STRIP;   
+        return RenderPrimitiveTopology::LINE_STRIP;
     case D3DPT_TRIANGLELIST:
     case D3DPT_QUADLIST:
-        return RenderPrimitiveTopology::TRIANGLE_LIST;  
+        return RenderPrimitiveTopology::TRIANGLE_LIST;
     case D3DPT_TRIANGLESTRIP:
-        return RenderPrimitiveTopology::TRIANGLE_STRIP;   
+        return RenderPrimitiveTopology::TRIANGLE_STRIP;
     case D3DPT_TRIANGLEFAN:
         return RenderPrimitiveTopology::TRIANGLE_FAN;
     default:
@@ -1856,7 +2197,21 @@ static uint32_t CheckInstancing()
 
 static void DrawPrimitive(GuestDevice* device, uint32_t primitiveType, uint32_t startVertex, uint32_t primitiveCount) 
 {
-    SetPrimitiveType(primitiveType);
+    FlushRenderStateForMainThread(device);
+
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::DrawPrimitive;
+    cmd.drawPrimitive.primitiveType = primitiveType;
+    cmd.drawPrimitive.startVertex = startVertex;
+    cmd.drawPrimitive.primitiveCount = primitiveCount;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcDrawPrimitive(const RenderCommand& cmd)
+{
+    const auto& args = cmd.drawPrimitive;
+
+    SetPrimitiveType(args.primitiveType);
 
     uint32_t indexCount = CheckInstancing();
     if (indexCount > 0)
@@ -1868,40 +2223,72 @@ static void DrawPrimitive(GuestDevice* device, uint32_t primitiveType, uint32_t 
         SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, RenderFormat::R32_UINT);
     }
 
-    FlushRenderState(device);
+    FlushRenderStateForRenderThread();
 
     auto& commandList = g_commandLists[g_frame];
 
     if (indexCount > 0)
-        commandList->drawIndexedInstanced(indexCount, primitiveCount / indexCount, 0, 0, 0);
+        commandList->drawIndexedInstanced(indexCount, args.primitiveCount / indexCount, 0, 0, 0);
     else
-        commandList->drawInstanced(primitiveCount, 1, startVertex, 0);
+        commandList->drawInstanced(args.primitiveCount, 1, args.startVertex, 0);
 }
 
 static void DrawIndexedPrimitive(GuestDevice* device, uint32_t primitiveType, int32_t baseVertexIndex, uint32_t startIndex, uint32_t primCount)
 {
+    FlushRenderStateForMainThread(device);
+
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::DrawIndexedPrimitive;
+    cmd.drawIndexedPrimitive.primitiveType = primitiveType;
+    cmd.drawIndexedPrimitive.baseVertexIndex = baseVertexIndex;
+    cmd.drawIndexedPrimitive.startIndex = startIndex;
+    cmd.drawIndexedPrimitive.primCount = primCount;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcDrawIndexedPrimitive(const RenderCommand& cmd)
+{
+    const auto& args = cmd.drawIndexedPrimitive;
+
     CheckInstancing();
-    SetPrimitiveType(primitiveType);
-    FlushRenderState(device);
-    g_commandLists[g_frame]->drawIndexedInstanced(primCount, 1, startIndex, baseVertexIndex, 0);
+    SetPrimitiveType(args.primitiveType);
+    FlushRenderStateForRenderThread();
+
+    g_commandLists[g_frame]->drawIndexedInstanced(args.primCount, 1, args.startIndex, args.baseVertexIndex, 0);
 }
 
 static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_t primitiveCount, void* vertexStreamZeroData, uint32_t vertexStreamZeroStride)
 {
+    FlushRenderStateForMainThread(device);
+    WaitForRenderThread();
+
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::DrawPrimitiveUP;
+    cmd.drawPrimitiveUP.primitiveType = primitiveType;
+    cmd.drawPrimitiveUP.primitiveCount = primitiveCount;
+    cmd.drawPrimitiveUP.vertexStreamZeroData = g_uploadAllocators[g_frame].allocate<true>(reinterpret_cast<uint32_t*>(vertexStreamZeroData), primitiveCount * vertexStreamZeroStride, 0x4);
+    cmd.drawPrimitiveUP.vertexStreamZeroStride = vertexStreamZeroStride;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcDrawPrimitiveUP(const RenderCommand& cmd)
+{
+    const auto& args = cmd.drawPrimitiveUP;
+
     CheckInstancing();
-    SetPrimitiveType(primitiveType);
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexStrides[0], uint8_t(vertexStreamZeroStride));
+    SetPrimitiveType(args.primitiveType);
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexStrides[0], uint8_t(args.vertexStreamZeroStride));
 
     auto& vertexBufferView = g_vertexBufferViews[0];
-    vertexBufferView.size = primitiveCount * vertexStreamZeroStride;
-    vertexBufferView.buffer = g_uploadAllocators[g_frame].allocate<true>(reinterpret_cast<uint32_t*>(vertexStreamZeroData), vertexBufferView.size, 0x4).bufferReference;
-    g_inputSlots[0].stride = vertexStreamZeroStride;
+    vertexBufferView.size = args.primitiveCount * args.vertexStreamZeroStride;
+    vertexBufferView.buffer = args.vertexStreamZeroData.buffer->at(args.vertexStreamZeroData.offset);
+    g_inputSlots[0].stride = args.vertexStreamZeroStride;
     g_dirtyStates.vertexStreamFirst = 0;
 
-    if (primitiveType == D3DPT_QUADLIST)
+    if (args.primitiveType == D3DPT_QUADLIST)
     {
         static std::vector<uint16_t> quadIndexData;
-        const uint32_t quadCount = primitiveCount / 4;
+        const uint32_t quadCount = args.primitiveCount / 4;
         const uint32_t triangleCount = quadCount * 6;
 
         if (quadIndexData.size() < triangleCount)
@@ -1923,7 +2310,8 @@ static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_
 
         if (g_quadIndexBuffer == NULL || g_quadCount < quadCount)
         {
-            g_quadIndexBuffer = g_uploadAllocators[g_frame].allocate<false>(quadIndexData.data(), triangleCount * 2, 2).bufferReference;
+            auto allocation = g_uploadAllocators[g_frame].allocate<false>(quadIndexData.data(), triangleCount * 2, 2);
+            g_quadIndexBuffer = allocation.buffer->at(allocation.offset);
             g_quadCount = quadCount;
         }
 
@@ -1931,13 +2319,13 @@ static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_
         SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, g_quadCount * 12);
         SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, RenderFormat::R16_UINT);
 
-        FlushRenderState(device);
+        FlushRenderStateForRenderThread();
         g_commandLists[g_frame]->drawIndexedInstanced(triangleCount, 1, 0, 0, 0);
     }
     else
     {
-        FlushRenderState(device);
-        g_commandLists[g_frame]->drawInstanced(primitiveCount, 1, 0, 0);
+        FlushRenderStateForRenderThread();
+        g_commandLists[g_frame]->drawInstanced(args.primitiveCount, 1, 0, 0);
     }
 }
 
@@ -2213,13 +2601,22 @@ static GuestVertexDeclaration* CreateVertexDeclaration(GuestVertexElement* verte
 
 static void SetVertexDeclaration(GuestDevice* device, GuestVertexDeclaration* vertexDeclaration) 
 {
-    if (vertexDeclaration != nullptr)
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetVertexDeclaration;
+    cmd.setVertexDeclaration.vertexDeclaration = vertexDeclaration;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetVertexDeclaration(const RenderCommand& cmd)
+{
+    auto& args = cmd.setVertexDeclaration;
+
+    if (args.vertexDeclaration != nullptr)
     {
-        SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.swappedTexcoords, vertexDeclaration->swappedTexcoords);
-        SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.inputLayoutFlags, vertexDeclaration->inputLayoutFlags);
+        SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.swappedTexcoords, args.vertexDeclaration->swappedTexcoords);
+        SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.inputLayoutFlags, args.vertexDeclaration->inputLayoutFlags);
     }
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexDeclaration, vertexDeclaration);
-    device->vertexDeclaration = g_memory.MapVirtual(vertexDeclaration);
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexDeclaration, args.vertexDeclaration);
 }
 
 static GuestShader* CreateShader(const be<uint32_t>* function, ResourceType resourceType)
@@ -2268,31 +2665,62 @@ static GuestShader* CreateVertexShader(const be<uint32_t>* function)
 
 static void SetVertexShader(GuestDevice* device, GuestShader* shader)
 {
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexShader, shader);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetVertexShader;
+    cmd.setVertexShader.shader = shader;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetVertexShader(const RenderCommand& cmd)
+{
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexShader, cmd.setVertexShader.shader);
 }
 
 static void SetStreamSource(GuestDevice* device, uint32_t index, GuestBuffer* buffer, uint32_t offset, uint32_t stride) 
 {
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexStrides[index], uint8_t(buffer != nullptr ? stride : 0));
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetStreamSource;
+    cmd.setStreamSource.index = index;
+    cmd.setStreamSource.buffer = buffer;
+    cmd.setStreamSource.offset = offset;
+    cmd.setStreamSource.stride = stride;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetStreamSource(const RenderCommand& cmd)
+{
+    const auto& args = cmd.setStreamSource;
+
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.vertexStrides[args.index], uint8_t(args.buffer != nullptr ? args.stride : 0));
 
     bool dirty = false;
 
-    SetDirtyValue(dirty, g_vertexBufferViews[index].buffer, buffer != nullptr ? buffer->buffer->at(offset) : RenderBufferReference{});
-    SetDirtyValue(dirty, g_vertexBufferViews[index].size, buffer != nullptr ? (buffer->dataSize - offset) : 0u);
-    SetDirtyValue(dirty, g_inputSlots[index].stride, buffer != nullptr ? stride : 0u);
+    SetDirtyValue(dirty, g_vertexBufferViews[args.index].buffer, args.buffer != nullptr ? args.buffer->buffer->at(args.offset) : RenderBufferReference{});
+    SetDirtyValue(dirty, g_vertexBufferViews[args.index].size, args.buffer != nullptr ? (args.buffer->dataSize - args.offset) : 0u);
+    SetDirtyValue(dirty, g_inputSlots[args.index].stride, args.buffer != nullptr ? args.stride : 0u);
 
     if (dirty)
     {
-        g_dirtyStates.vertexStreamFirst = std::min<uint8_t>(g_dirtyStates.vertexStreamFirst, index);
-        g_dirtyStates.vertexStreamLast = std::max<uint8_t>(g_dirtyStates.vertexStreamLast, index);
+        g_dirtyStates.vertexStreamFirst = std::min<uint8_t>(g_dirtyStates.vertexStreamFirst, args.index);
+        g_dirtyStates.vertexStreamLast = std::max<uint8_t>(g_dirtyStates.vertexStreamLast, args.index);
     }
 }
 
 static void SetIndices(GuestDevice* device, GuestBuffer* buffer) 
 {
-    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.buffer, buffer != nullptr ? buffer->buffer->at(0) : RenderBufferReference{});
-    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, buffer != nullptr ? buffer->format : RenderFormat::R16_UINT);
-    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, buffer != nullptr ? buffer->dataSize : 0u);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetIndices;
+    cmd.setIndices.buffer = buffer;
+    g_renderQueue.enqueue(cmd);
+}
+
+static void ProcSetIndices(const RenderCommand& cmd)
+{
+    const auto& args = cmd.setIndices;
+
+    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.buffer, args.buffer != nullptr ? args.buffer->buffer->at(0) : RenderBufferReference{});
+    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, args.buffer != nullptr ? args.buffer->format : RenderFormat::R16_UINT);
+    SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, args.buffer != nullptr ? args.buffer->dataSize : 0u);
 }
 
 static GuestShader* CreatePixelShader(const be<uint32_t>* function)
@@ -2302,8 +2730,57 @@ static GuestShader* CreatePixelShader(const be<uint32_t>* function)
 
 static void SetPixelShader(GuestDevice* device, GuestShader* shader)
 {
-    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.pixelShader, shader);
+    RenderCommand cmd;
+    cmd.type = RenderCommandType::SetPixelShader;
+    cmd.setPixelShader.shader = shader;
+    g_renderQueue.enqueue(cmd);
 }
+
+static void ProcSetPixelShader(const RenderCommand& cmd)
+{
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.pixelShader, cmd.setPixelShader.shader);
+}
+
+static std::thread g_renderThread([]
+    {
+        RenderCommand commands[32];
+
+        while (true)
+        {
+            size_t count = g_renderQueue.wait_dequeue_bulk(commands, std::size(commands));
+            for (size_t i = 0; i < count; i++)
+            {
+                auto& cmd = commands[i];
+                switch (cmd.type)
+                {
+                case RenderCommandType::SetRenderState:           ProcSetRenderState(cmd); break;
+                case RenderCommandType::DestructResource:         ProcDestructResource(cmd); break;
+                case RenderCommandType::UnlockTextureRect:        ProcUnlockTextureRect(cmd); break;
+                case RenderCommandType::Present:                  ProcPresent(cmd); break;
+                case RenderCommandType::StretchRect:              ProcStretchRect(cmd); break;
+                case RenderCommandType::SetRenderTarget:          ProcSetRenderTarget(cmd); break;
+                case RenderCommandType::SetDepthStencilSurface:   ProcSetDepthStencilSurface(cmd); break;
+                case RenderCommandType::Clear:                    ProcClear(cmd); break;
+                case RenderCommandType::SetViewport:              ProcSetViewport(cmd); break;
+                case RenderCommandType::SetTexture:               ProcSetTexture(cmd); break;
+                case RenderCommandType::SetScissorRect:           ProcSetScissorRect(cmd); break;
+                case RenderCommandType::SetSamplerState:          ProcSetSamplerState(cmd); break;
+                case RenderCommandType::SetBooleans:              ProcSetBooleans(cmd); break;
+                case RenderCommandType::SetVertexShaderConstants: ProcSetVertexShaderConstants(cmd); break;
+                case RenderCommandType::SetPixelShaderConstants:  ProcSetPixelShaderConstants(cmd); break;
+                case RenderCommandType::DrawPrimitive:            ProcDrawPrimitive(cmd); break;
+                case RenderCommandType::DrawIndexedPrimitive:     ProcDrawIndexedPrimitive(cmd); break;
+                case RenderCommandType::DrawPrimitiveUP:          ProcDrawPrimitiveUP(cmd); break;
+                case RenderCommandType::SetVertexDeclaration:     ProcSetVertexDeclaration(cmd); break;
+                case RenderCommandType::SetVertexShader:          ProcSetVertexShader(cmd); break;
+                case RenderCommandType::SetStreamSource:          ProcSetStreamSource(cmd); break;
+                case RenderCommandType::SetIndices:               ProcSetIndices(cmd); break;
+                case RenderCommandType::SetPixelShader:           ProcSetPixelShader(cmd); break;
+                default:                                          assert(false && "Unrecognized render command type."); break;
+                }
+            }
+        }
+    });
 
 static void D3DXFillVolumeTexture(GuestTexture* texture, uint32_t function, void* data)
 {
@@ -2384,8 +2861,12 @@ static void D3DXFillVolumeTexture(GuestTexture* texture, uint32_t function, void
         }
     }
 
+    uploadBuffer->unmap();
+
     ExecuteCopyCommandList([&]
         {
+            g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture, RenderTextureLayout::COPY_DEST));
+
             g_copyCommandList->copyTextureRegion(
                 RenderTextureCopyLocation::Subresource(texture->texture, 0),
                 RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), texture->format, texture->width, texture->height, texture->depth, rowPitch0 / RenderFormatSize(texture->format), 0));
@@ -2394,6 +2875,8 @@ static void D3DXFillVolumeTexture(GuestTexture* texture, uint32_t function, void
                 RenderTextureCopyLocation::Subresource(texture->texture, 1),
                 RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), texture->format, texture->width / 2, texture->height / 2, texture->depth / 2, rowPitch1 / RenderFormatSize(texture->format), slicePitch0));
         });
+
+    texture->layout = RenderTextureLayout::COPY_DEST;
 }
 
 struct GuestPictureData
@@ -2839,6 +3322,36 @@ void MovieRendererMidAsmHook(PPCRegister& r3)
     device->dirtyFlags[3] = device->dirtyFlags[3].get() | 0xe0000000ull;
 }
 
+static PPCRegister g_r4;
+static PPCRegister g_r5;
+
+// CRenderDirectorFxPipeline::Initialize
+PPC_FUNC_IMPL(__imp__sub_8258C8A0);
+PPC_FUNC(sub_8258C8A0)
+{
+    g_r4 = ctx.r4;
+    g_r5 = ctx.r5;
+    __imp__sub_8258C8A0(ctx, base);
+}
+
+// CRenderDirectorFxPipeline::Update
+PPC_FUNC_IMPL(__imp__sub_8258CAE0);
+PPC_FUNC(sub_8258CAE0)
+{
+    if (g_needsResize)
+    {
+        auto r3 = ctx.r3;
+        ctx.r4 = g_r4;
+        ctx.r5 = g_r5;
+        __imp__sub_8258C8A0(ctx, base);
+        ctx.r3 = r3;
+
+        g_needsResize = false;
+    }
+
+    __imp__sub_8258CAE0(ctx, base);
+}
+
 GUEST_FUNCTION_HOOK(sub_82BD99B0, CreateDevice);
 
 GUEST_FUNCTION_HOOK(sub_82BE6230, DestructResource);
@@ -2870,13 +3383,11 @@ GUEST_FUNCTION_HOOK(sub_82BE95B8, CreateSurface);
 GUEST_FUNCTION_HOOK(sub_82BF6400, StretchRect);
 
 GUEST_FUNCTION_HOOK(sub_82BDD9F0, SetRenderTarget);
-GUEST_FUNCTION_HOOK(sub_82BDD2F0, GetDepthStencilSurface);
 GUEST_FUNCTION_HOOK(sub_82BDDD38, SetDepthStencilSurface);
 
 GUEST_FUNCTION_HOOK(sub_82BFE4C8, Clear);
 
 GUEST_FUNCTION_HOOK(sub_82BDD8C0, SetViewport);
-GUEST_FUNCTION_HOOK(sub_82BDD0A8, GetViewport);
 
 GUEST_FUNCTION_HOOK(sub_82BE9818, SetTexture);
 GUEST_FUNCTION_HOOK(sub_82BDCFB0, SetScissorRect);

@@ -20,6 +20,7 @@
 #include <toml++/toml.hpp>
 #include <zstd.h>
 #include <stb_image.h>
+#include <concurrentqueue/blockingconcurrentqueue.h>
 
 #include "framework.h"
 #include "mutex.h"

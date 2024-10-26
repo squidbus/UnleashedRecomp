@@ -93,6 +93,7 @@ pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 find_package(directx-dxc REQUIRED)
 find_package(zstd CONFIG REQUIRED)
 find_package(Stb REQUIRED)
+find_package(unofficial-concurrentqueue REQUIRED)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
 add_custom_command(TARGET UnleashedRecomp POST_BUILD
@@ -122,6 +123,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     xxHash::xxhash
     PkgConfig::tomlplusplus
     zstd::libzstd_static
+    unofficial::concurrentqueue::concurrentqueue
 )
 
 target_include_directories(UnleashedRecomp PRIVATE

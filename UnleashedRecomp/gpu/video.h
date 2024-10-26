@@ -31,8 +31,20 @@ struct GuestDevice
 
     uint8_t padding27A0[0x68C];
     be<uint32_t> vertexDeclaration;
-    uint8_t padding2E30[0x2FD0];
+    uint8_t padding2E30[0x338];
+    struct
+    {
+        be<float> x;
+        be<float> y;
+        be<float> width;
+        be<float> height;
+        be<float> minZ;
+        be<float> maxZ;
+    } viewport;
+    uint8_t padding3180[0x2C80];
 };
+
+static_assert(sizeof(GuestDevice) == 0x5E00);
 
 enum class ResourceType
 {
