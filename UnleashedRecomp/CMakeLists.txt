@@ -58,6 +58,7 @@ set(SWA_CXX_SOURCES
     "game.cpp"
     "main.cpp"
     "misc_impl.cpp"
+    "stdafx.cpp"
 
     ${SWA_KERNEL_CXX_SOURCES}
     ${SWA_CPU_CXX_SOURCES}
@@ -91,6 +92,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 find_package(directx-dxc REQUIRED)
 find_package(zstd CONFIG REQUIRED)
+find_package(Stb REQUIRED)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
 add_custom_command(TARGET UnleashedRecomp POST_BUILD
@@ -125,6 +127,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
 target_include_directories(UnleashedRecomp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR} 
     ${SWA_THIRDPARTY_ROOT}/ddspp 
+    ${Stb_INCLUDE_DIR}
 )
 
 target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})

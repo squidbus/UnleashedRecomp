@@ -2712,6 +2712,60 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
             pictureData->texture = g_memory.MapVirtual(texture);
             pictureData->type = 0;
         }
+        else
+        {
+            int width, height;
+            void* stbImage = stbi_load_from_memory(data, dataSize, &width, &height, nullptr, 4);
+
+            if (stbImage != nullptr)
+            {
+                const auto texture = g_userHeap.AllocPhysical<GuestTexture>(ResourceType::Texture);
+                texture->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(width, height, 1, RenderFormat::R8G8B8A8_UNORM));
+                texture->texture = texture->textureHolder.get();
+                texture->layout = RenderTextureLayout::COPY_DEST;
+
+                texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
+                g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ);
+
+                uint32_t rowPitch = (width * 4 + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
+                uint32_t slicePitch = rowPitch * height;
+
+                auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(slicePitch));
+                uint8_t* mappedMemory = reinterpret_cast<uint8_t*>(uploadBuffer->map());
+
+                if (rowPitch == (width * 4))
+                {
+                    memcpy(mappedMemory, stbImage, slicePitch);
+                }
+                else
+                {
+                    auto data = reinterpret_cast<const uint8_t*>(stbImage);
+
+                    for (size_t i = 0; i < height; i++)
+                    {
+                        memcpy(mappedMemory, data, width * 4);
+                        data += width * 4;
+                        mappedMemory += rowPitch;
+                    }
+                }
+
+                uploadBuffer->unmap();
+
+                stbi_image_free(stbImage);
+
+                ExecuteCopyCommandList([&]
+                    {
+                        g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture, RenderTextureLayout::COPY_DEST));
+
+                        g_copyCommandList->copyTextureRegion(
+                            RenderTextureCopyLocation::Subresource(texture->texture, 0),
+                            RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), RenderFormat::R8G8B8A8_UNORM, width, height, 1, rowPitch / 4, 0));
+                    });
+
+                pictureData->texture = g_memory.MapVirtual(texture);
+                pictureData->type = 0;
+            }
+        }
     }
 }
 

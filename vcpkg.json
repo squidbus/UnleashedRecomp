@@ -13,6 +13,7 @@
         "xxhash",
         "pkgconf",
         "tomlplusplus",
-        "zstd"
+        "zstd",
+        "stb"
     ]
 }

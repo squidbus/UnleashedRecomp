@@ -19,6 +19,7 @@
 #include <ppc/ppc_recomp_shared.h>
 #include <toml++/toml.hpp>
 #include <zstd.h>
+#include <stb_image.h>
 
 #include "framework.h"
 #include "mutex.h"
