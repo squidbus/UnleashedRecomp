@@ -2859,6 +2859,8 @@ namespace RT64 {
     }
 
     void VulkanCommandList::copyBufferRegion(RenderBufferReference dstBuffer, RenderBufferReference srcBuffer, uint64_t size) {
+        endActiveRenderPass();
+
         assert(dstBuffer.ref != nullptr);
         assert(srcBuffer.ref != nullptr);
 
@@ -2938,6 +2940,8 @@ namespace RT64 {
     }
 
     void VulkanCommandList::copyBuffer(const RenderBuffer *dstBuffer, const RenderBuffer *srcBuffer) {
+        endActiveRenderPass();
+
         assert(dstBuffer != nullptr);
         assert(srcBuffer != nullptr);
         
@@ -2951,6 +2955,8 @@ namespace RT64 {
     }
 
     void VulkanCommandList::copyTexture(const RenderTexture *dstTexture, const RenderTexture *srcTexture) {
+        endActiveRenderPass();
+
         assert(dstTexture != nullptr);
         assert(srcTexture != nullptr);
 

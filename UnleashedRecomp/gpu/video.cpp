@@ -1252,7 +1252,7 @@ static void ExecuteCopyCommandList(const T& function)
 }
 
 template<typename T>
-static void UnlockBufferImpl(GuestBuffer* buffer)
+static void UnlockBuffer(GuestBuffer* buffer, bool useCopyQueue)
 {
     auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(buffer->dataSize));
 
@@ -1268,10 +1268,23 @@ static void UnlockBufferImpl(GuestBuffer* buffer)
 
     uploadBuffer->unmap();
 
-    ExecuteCopyCommandList([&]
-        {
-            g_copyCommandList->copyBufferRegion(buffer->buffer->at(0), uploadBuffer->at(0), buffer->dataSize);
-        });
+    if (useCopyQueue)
+    {
+        ExecuteCopyCommandList([&]
+            {
+                g_copyCommandList->copyBufferRegion(buffer->buffer->at(0), uploadBuffer->at(0), buffer->dataSize);
+            });
+    }
+    else
+    {
+        auto& commandList = g_commandLists[g_frame];
+
+        commandList->barriers(RenderBarrierStage::COPY, RenderBufferBarrier(buffer->buffer.get(), RenderBufferAccess::WRITE));
+        commandList->copyBufferRegion(buffer->buffer->at(0), uploadBuffer->at(0), buffer->dataSize);
+        commandList->barriers(RenderBarrierStage::GRAPHICS, RenderBufferBarrier(buffer->buffer.get(), RenderBufferAccess::READ));
+
+        g_tempBuffers[g_frame].emplace_back(std::move(uploadBuffer));
+    }
 }
 
 template<typename T>
@@ -1288,19 +1301,19 @@ static void UnlockBuffer(GuestBuffer* buffer)
         }
         else
         {
-            UnlockBufferImpl<T>(buffer);
+            UnlockBuffer<T>(buffer, true);
         }
     }
 }
 
 static void ProcUnlockBuffer16(const RenderCommand& cmd)
 {
-    UnlockBufferImpl<uint16_t>(cmd.unlockBuffer.buffer);
+    UnlockBuffer<uint16_t>(cmd.unlockBuffer.buffer, false);
 }
 
 static void ProcUnlockBuffer32(const RenderCommand& cmd)
 {
-    UnlockBufferImpl<uint32_t>(cmd.unlockBuffer.buffer);
+    UnlockBuffer<uint32_t>(cmd.unlockBuffer.buffer, false);
 }
 
 static void UnlockVertexBuffer(GuestBuffer* buffer)
