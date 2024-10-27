@@ -119,7 +119,6 @@ constexpr std::array<Argument, arg_count_t<Func>::value> GatherFunctionArguments
 {
     std::array<Argument, arg_count_t<Func>::value> args{};
 
-    int intOrdinal{};
     int floatOrdinal{};
     size_t i{};
 
@@ -135,7 +134,6 @@ constexpr std::array<Argument, arg_count_t<Func>::value> GatherFunctionArguments
                     }
                     else
                     {
-                        intOrdinal++;
                         args[i] = { 0, static_cast<int>(i) }; // what the fuck
                     }
 

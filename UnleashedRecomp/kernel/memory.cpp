@@ -24,7 +24,7 @@ void* Memory::Reserve(size_t offset, size_t size)
     return Alloc(offset, size, MEM_RESERVE);
 }
 
-SWA_API void* MmGetHostAddress(uint32_t ptr)
+void* MmGetHostAddress(uint32_t ptr)
 {
     return g_memory.Translate(ptr);
 }

@@ -993,7 +993,7 @@ static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4,
     auto device = g_userHeap.AllocPhysical<GuestDevice>();
     memset(device, 0, sizeof(*device));
 
-    uint32_t functionOffset = 'D3D';
+    uint32_t functionOffset = 0x443344; // D3D
     g_codeCache.Insert(functionOffset, reinterpret_cast<void*>(GuestFunction<SetRenderStateUnimplemented>));
 
     for (size_t i = 0; i < _countof(device->setRenderStateFunctions); i++)

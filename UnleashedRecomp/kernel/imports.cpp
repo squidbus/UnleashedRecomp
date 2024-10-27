@@ -1336,7 +1336,7 @@ void ExTerminateThread()
 
 uint32_t ExCreateThread(XLPDWORD handle, uint32_t stackSize, XLPDWORD threadId, uint32_t xApiThreadStartup, uint32_t startAddress, uint32_t startContext, uint32_t creationFlags)
 {
-    printf("ExCreateThread(): %x %x %x %x %x %x %x\n", handle, stackSize, threadId, xApiThreadStartup, startAddress, startContext, creationFlags);
+    printf("ExCreateThread(): %p %x %p %x %x %x %x\n", handle, stackSize, threadId, xApiThreadStartup, startAddress, startContext, creationFlags);
     DWORD hostThreadId;
 
     *handle = (uint32_t)GuestThread::Start(startAddress, startContext, creationFlags, &hostThreadId);

@@ -29,7 +29,7 @@ SWA_API uint32_t XCreateFileA(
         nullptr);
 
     GuestThread::SetLastError(GetLastError());
-    printf("CreateFileA(%s, %x, %x, %x, %x, %x): %x\n", lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, handle);
+    printf("CreateFileA(%s, %lx, %lx, %p, %lx, %lx): %x\n", lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, handle);
 
     return handle;
 }

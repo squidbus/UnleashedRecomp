@@ -2,9 +2,17 @@ project("UnleashedRecomp")
 set(TARGET_NAME "SWA")
 
 add_compile_options(
-    "/fp:strict"
-    "-march=sandybridge"
-    "-fno-strict-aliasing")
+    /fp:strict
+    -march=sandybridge
+    -fno-strict-aliasing
+
+    -Wno-switch
+    -Wno-unused-function
+    -Wno-unused-variable
+    -Wno-unused-but-set-variable
+    -Wno-void-pointer-to-int-cast
+    -Wno-int-to-void-pointer-cast
+)
 
 add_compile_definitions(
     SWA_IMPL
@@ -127,7 +135,8 @@ target_link_libraries(UnleashedRecomp PRIVATE
 )
 
 target_include_directories(UnleashedRecomp PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR} 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/api
     ${SWA_THIRDPARTY_ROOT}/ddspp 
     ${Stb_INCLUDE_DIR}
 )

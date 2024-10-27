@@ -26,19 +26,19 @@ uint32_t g_audioFrameIndex = 0;
 
 class VoiceCallback : public IXAudio2VoiceCallback
 {
-    void OnVoiceProcessingPassStart(UINT32 BytesRequired) override {}
-    void OnVoiceProcessingPassEnd() override {}
+    STDMETHOD_(void, OnVoiceProcessingPassStart)(UINT32 BytesRequired) override {}
+    STDMETHOD_(void, OnVoiceProcessingPassEnd)() override {}
 
-    void OnBufferStart(void* pBufferContext) override {}
-    void OnBufferEnd(void* pBufferContext) override
+    STDMETHOD_(void, OnBufferStart)(void* pBufferContext) override {}
+    STDMETHOD_(void, OnBufferEnd)(void* pBufferContext) override
     {
         ReleaseSemaphore(g_audioSemaphore, 1, nullptr);
     }
 
-    void OnStreamEnd() override {}
+    STDMETHOD_(void, OnStreamEnd)() override {}
 
-    void OnLoopEnd(void* pBufferContext) override {}
-    void OnVoiceError(void* pBufferContext, HRESULT Error) override {}
+    STDMETHOD_(void, OnLoopEnd)(void* pBufferContext) override {}
+    STDMETHOD_(void, OnVoiceError)(void* pBufferContext, HRESULT Error) override {}
 } gVoiceCallback;
 
 PPC_FUNC(DriverLoop)
@@ -57,7 +57,7 @@ PPC_FUNC(DriverLoop)
         WaitForSingleObject(g_audioSemaphore, INFINITE);
 
         ctx.r3.u64 = g_clientCallbackParam;
-        GuestCode::Run(g_clientCallback, &ctx);
+        GuestCode::Run((void*)g_clientCallback, &ctx);
     }
 }
 
