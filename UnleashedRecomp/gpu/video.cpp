@@ -355,6 +355,8 @@ enum class RenderCommandType
     SetRenderState,
     DestructResource,
     UnlockTextureRect,
+    UnlockBuffer16,
+    UnlockBuffer32,
     Present,
     StretchRect,
     SetRenderTarget,
@@ -397,6 +399,11 @@ struct RenderCommand
         {
             GuestTexture* texture;
         } unlockTextureRect;
+
+        struct
+        {
+            GuestBuffer* buffer;
+        } unlockBuffer;
 
         struct 
         {
@@ -1170,29 +1177,55 @@ static void ExecuteCopyCommandList(const T& function)
 }
 
 template<typename T>
+static void UnlockBufferImpl(GuestBuffer* buffer)
+{
+    auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(buffer->dataSize));
+
+    auto dest = reinterpret_cast<T*>(uploadBuffer->map());
+    auto src = reinterpret_cast<const T*>(buffer->mappedMemory);
+
+    for (size_t i = 0; i < buffer->dataSize; i += sizeof(T))
+    {
+        *dest = std::byteswap(*src);
+        ++dest;
+        ++src;
+    }
+
+    uploadBuffer->unmap();
+
+    ExecuteCopyCommandList([&]
+        {
+            g_copyCommandList->copyBufferRegion(buffer->buffer->at(0), uploadBuffer->at(0), buffer->dataSize);
+        });
+}
+
+template<typename T>
 static void UnlockBuffer(GuestBuffer* buffer)
 {
     if (!buffer->lockedReadOnly)
     {
-        auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(buffer->dataSize));
-        
-        auto dest = reinterpret_cast<T*>(uploadBuffer->map());
-        auto src = reinterpret_cast<const T*>(buffer->mappedMemory);
-
-        for (size_t i = 0; i < buffer->dataSize; i += sizeof(T))
+        if (GetCurrentThreadId() == g_mainThreadId)
         {
-            *dest = std::byteswap(*src);
-            ++dest;
-            ++src;
+            RenderCommand cmd;
+            cmd.type = (sizeof(T) == 2) ? RenderCommandType::UnlockBuffer16 : RenderCommandType::UnlockBuffer32;
+            cmd.unlockBuffer.buffer = buffer;
+            g_renderQueue.enqueue(cmd);
         }
-
-        uploadBuffer->unmap();
-
-        ExecuteCopyCommandList([&]
-            {
-                g_copyCommandList->copyBufferRegion(buffer->buffer->at(0), uploadBuffer->at(0), buffer->dataSize);
-            });
+        else
+        {
+            UnlockBufferImpl<T>(buffer);
+        }
     }
+}
+
+static void ProcUnlockBuffer16(const RenderCommand& cmd)
+{
+    UnlockBufferImpl<uint16_t>(cmd.unlockBuffer.buffer);
+}
+
+static void ProcUnlockBuffer32(const RenderCommand& cmd)
+{
+    UnlockBufferImpl<uint32_t>(cmd.unlockBuffer.buffer);
 }
 
 static void UnlockVertexBuffer(GuestBuffer* buffer)
@@ -2777,6 +2810,8 @@ static std::thread g_renderThread([]
                 case RenderCommandType::SetRenderState:           ProcSetRenderState(cmd); break;
                 case RenderCommandType::DestructResource:         ProcDestructResource(cmd); break;
                 case RenderCommandType::UnlockTextureRect:        ProcUnlockTextureRect(cmd); break;
+                case RenderCommandType::UnlockBuffer16:           ProcUnlockBuffer16(cmd); break;
+                case RenderCommandType::UnlockBuffer32:           ProcUnlockBuffer32(cmd); break;
                 case RenderCommandType::Present:                  ProcPresent(cmd); break;
                 case RenderCommandType::StretchRect:              ProcStretchRect(cmd); break;
                 case RenderCommandType::SetRenderTarget:          ProcSetRenderTarget(cmd); break;
