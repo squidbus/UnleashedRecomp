@@ -1991,15 +1991,31 @@ static RenderBorderColor ConvertBorderColor(uint32_t value)
     }
 }
 
-static void FlushRenderStateForMainThread(GuestDevice* device)
+struct LocalRenderCommandQueue
+{
+    RenderCommand commands[20];
+    uint32_t count = 0;
+
+    RenderCommand& enqueue()
+    {
+        assert(count < std::size(commands));
+        return commands[count++];
+    }
+
+    void submit()
+    {
+        g_renderQueue.enqueue_bulk(commands, count);
+    }
+};
+
+static void FlushRenderStateForMainThread(GuestDevice* device, LocalRenderCommandQueue& queue)
 {
     constexpr size_t BOOL_MASK = 0x100000000000000ull;
     if ((device->dirtyFlags[4].get() & BOOL_MASK) != 0)
     {
-        RenderCommand cmd;
+        auto& cmd = queue.enqueue();
         cmd.type = RenderCommandType::SetBooleans;
         cmd.setBooleans.booleans = (device->vertexShaderBoolConstants[0].get() & 0xFF) | ((device->pixelShaderBoolConstants[0].get() & 0xFF) << 16);
-        g_renderQueue.enqueue(cmd);
 
         device->dirtyFlags[4] = device->dirtyFlags[4].get() & ~BOOL_MASK;
     }
@@ -2009,13 +2025,12 @@ static void FlushRenderStateForMainThread(GuestDevice* device)
         const size_t mask = 0x8000000000000000ull >> (i + 32);
         if (device->dirtyFlags[3].get() & mask)
         {
-            RenderCommand cmd;
+            auto& cmd = queue.enqueue();
             cmd.type = RenderCommandType::SetSamplerState;
             cmd.setSamplerState.index = i;
             cmd.setSamplerState.data0 = device->samplerStates[i].data[0];
             cmd.setSamplerState.data3 = device->samplerStates[i].data[3];
             cmd.setSamplerState.data5 = device->samplerStates[i].data[5];
-            g_renderQueue.enqueue(cmd);
 
             device->dirtyFlags[3] = device->dirtyFlags[3].get() & ~mask;
         }
@@ -2025,10 +2040,9 @@ static void FlushRenderStateForMainThread(GuestDevice* device)
     {
         WaitForRenderThread();
 
-        RenderCommand cmd;
+        auto& cmd = queue.enqueue();
         cmd.type = RenderCommandType::SetVertexShaderConstants;
         cmd.setVertexShaderConstants.allocation = g_uploadAllocators[g_frame].allocate<true>(device->vertexShaderFloatConstants, 0x1000, 0x100);
-        g_renderQueue.enqueue(cmd);
 
         device->dirtyFlags[0] = 0;
     }
@@ -2037,10 +2051,9 @@ static void FlushRenderStateForMainThread(GuestDevice* device)
     {
         WaitForRenderThread();
 
-        RenderCommand cmd;
+        auto& cmd = queue.enqueue();
         cmd.type = RenderCommandType::SetPixelShaderConstants;
         cmd.setPixelShaderConstants.allocation = g_uploadAllocators[g_frame].allocate<true>(device->pixelShaderFloatConstants, 0xE00, 0x100);
-        g_renderQueue.enqueue(cmd);
 
         device->dirtyFlags[1] = 0;
     }
@@ -2199,14 +2212,16 @@ static uint32_t CheckInstancing()
 
 static void DrawPrimitive(GuestDevice* device, uint32_t primitiveType, uint32_t startVertex, uint32_t primitiveCount) 
 {
-    FlushRenderStateForMainThread(device);
+    LocalRenderCommandQueue queue;
+    FlushRenderStateForMainThread(device, queue);
 
-    RenderCommand cmd;
+    auto& cmd = queue.enqueue();
     cmd.type = RenderCommandType::DrawPrimitive;
     cmd.drawPrimitive.primitiveType = primitiveType;
     cmd.drawPrimitive.startVertex = startVertex;
     cmd.drawPrimitive.primitiveCount = primitiveCount;
-    g_renderQueue.enqueue(cmd);
+
+    queue.submit();
 }
 
 static void ProcDrawPrimitive(const RenderCommand& cmd)
@@ -2237,15 +2252,17 @@ static void ProcDrawPrimitive(const RenderCommand& cmd)
 
 static void DrawIndexedPrimitive(GuestDevice* device, uint32_t primitiveType, int32_t baseVertexIndex, uint32_t startIndex, uint32_t primCount)
 {
-    FlushRenderStateForMainThread(device);
+    LocalRenderCommandQueue queue;
+    FlushRenderStateForMainThread(device, queue);
 
-    RenderCommand cmd;
+    auto& cmd = queue.enqueue();
     cmd.type = RenderCommandType::DrawIndexedPrimitive;
     cmd.drawIndexedPrimitive.primitiveType = primitiveType;
     cmd.drawIndexedPrimitive.baseVertexIndex = baseVertexIndex;
     cmd.drawIndexedPrimitive.startIndex = startIndex;
     cmd.drawIndexedPrimitive.primCount = primCount;
-    g_renderQueue.enqueue(cmd);
+
+    queue.submit();
 }
 
 static void ProcDrawIndexedPrimitive(const RenderCommand& cmd)
@@ -2261,16 +2278,18 @@ static void ProcDrawIndexedPrimitive(const RenderCommand& cmd)
 
 static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_t primitiveCount, void* vertexStreamZeroData, uint32_t vertexStreamZeroStride)
 {
-    FlushRenderStateForMainThread(device);
+    LocalRenderCommandQueue queue;
+    FlushRenderStateForMainThread(device, queue);
     WaitForRenderThread();
 
-    RenderCommand cmd;
+    auto& cmd = queue.enqueue();
     cmd.type = RenderCommandType::DrawPrimitiveUP;
     cmd.drawPrimitiveUP.primitiveType = primitiveType;
     cmd.drawPrimitiveUP.primitiveCount = primitiveCount;
     cmd.drawPrimitiveUP.vertexStreamZeroData = g_uploadAllocators[g_frame].allocate<true>(reinterpret_cast<uint32_t*>(vertexStreamZeroData), primitiveCount * vertexStreamZeroStride, 0x4);
     cmd.drawPrimitiveUP.vertexStreamZeroStride = vertexStreamZeroStride;
-    g_renderQueue.enqueue(cmd);
+    
+    queue.submit();
 }
 
 static void ProcDrawPrimitiveUP(const RenderCommand& cmd)
