@@ -118,6 +118,7 @@ struct GuestBaseTexture : GuestResource
 struct GuestTexture : GuestBaseTexture
 {
     uint32_t depth = 0;
+    RenderTextureViewDimension viewDimension = RenderTextureViewDimension::UNKNOWN;
     void* mappedMemory = nullptr;
     std::unique_ptr<RenderFramebuffer> framebuffer;
 };

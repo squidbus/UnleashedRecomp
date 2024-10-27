@@ -74,7 +74,9 @@ enum class AlphaTestMode : uint32_t
 
 struct SharedConstants
 {
-    uint32_t textureIndices[16]{};
+    uint32_t texture2DIndices[16]{};
+    uint32_t texture3DIndices[16]{};
+    uint32_t textureCubeIndices[16]{};
     uint32_t samplerIndices[16]{};
     AlphaTestMode alphaTestMode{};
     float alphaThreshold{};
@@ -169,10 +171,18 @@ static GuestSurface* g_backBuffer;
 struct std::unique_ptr<RenderDescriptorSet> g_textureDescriptorSet;
 struct std::unique_ptr<RenderDescriptorSet> g_samplerDescriptorSet;
 
+enum
+{
+    TEXTURE_DESCRIPTOR_NULL_TEXTURE_2D,
+    TEXTURE_DESCRIPTOR_NULL_TEXTURE_3D,
+    TEXTURE_DESCRIPTOR_NULL_TEXTURE_CUBE,
+    TEXTURE_DESCRIPTOR_NULL_COUNT
+};
+
 struct TextureDescriptorAllocator
 {
     Mutex mutex;
-    uint32_t capacity = 0;
+    uint32_t capacity = TEXTURE_DESCRIPTOR_NULL_COUNT;
     std::vector<uint32_t> freed;
 
     uint32_t allocate()
@@ -187,7 +197,8 @@ struct TextureDescriptorAllocator
         }
         else
         {
-            value = ++capacity;
+            value = capacity;
+            ++capacity;
         }
 
         return value;
@@ -200,6 +211,9 @@ struct TextureDescriptorAllocator
         freed.push_back(value);
     }
 };
+
+static std::unique_ptr<RenderTexture> g_blankTextures[TEXTURE_DESCRIPTOR_NULL_COUNT];
+static std::unique_ptr<RenderTextureView> g_blankTextureViews[TEXTURE_DESCRIPTOR_NULL_COUNT];
 
 static TextureDescriptorAllocator g_textureDescriptorAllocator;
 
@@ -845,7 +859,55 @@ static void CreateHostDevice()
     descriptorSetBuilder.end(true, TEXTURE_DESCRIPTOR_SIZE);
     
     g_textureDescriptorSet = descriptorSetBuilder.create(g_device.get());
-    g_textureDescriptorSet->setTexture(0, nullptr, RenderTextureLayout::SHADER_READ);
+    
+    for (size_t i = 0; i < TEXTURE_DESCRIPTOR_NULL_COUNT; i++)
+    {
+        auto& texture = g_blankTextures[i];
+        auto& textureView = g_blankTextureViews[i];
+
+        RenderTextureDesc desc;
+        desc.width = 1;
+        desc.height = 1;
+        desc.depth = 1;
+        desc.mipLevels = 1;
+        desc.format = RenderFormat::R8_UNORM;
+
+        RenderTextureViewDesc viewDesc;
+        viewDesc.format = desc.format;
+        viewDesc.componentMapping = RenderComponentMapping(RenderSwizzle::ZERO, RenderSwizzle::ZERO, RenderSwizzle::ZERO, RenderSwizzle::ZERO);
+        viewDesc.mipLevels = 1;
+
+        switch (i)
+        {
+        case TEXTURE_DESCRIPTOR_NULL_TEXTURE_2D:
+            desc.dimension = RenderTextureDimension::TEXTURE_2D;
+            desc.arraySize = 1;
+            viewDesc.dimension = RenderTextureViewDimension::TEXTURE_2D;
+            break;
+
+        case TEXTURE_DESCRIPTOR_NULL_TEXTURE_3D:
+            desc.dimension = RenderTextureDimension::TEXTURE_3D;
+            desc.arraySize = 1;
+            viewDesc.dimension = RenderTextureViewDimension::TEXTURE_3D;
+            break;
+
+        case TEXTURE_DESCRIPTOR_NULL_TEXTURE_CUBE:
+            desc.dimension = RenderTextureDimension::TEXTURE_2D;
+            desc.arraySize = 6;
+            desc.flags = RenderTextureFlag::CUBE;
+            viewDesc.dimension = RenderTextureViewDimension::TEXTURE_CUBE;
+            break;
+
+        default:
+            assert(false && "Unknown null descriptor dimension");
+            break;
+        }
+
+        texture = g_device->createTexture(desc);
+        textureView = texture->createTextureView(viewDesc);
+
+        g_textureDescriptorSet->setTexture(i, texture.get(), RenderTextureLayout::SHADER_READ, textureView.get());
+    }
 
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
@@ -966,6 +1028,13 @@ static void BeginCommandList()
 
     g_backBuffer->layout = RenderTextureLayout::UNKNOWN;
 
+    for (size_t i = 0; i < 16; i++)
+    {
+        g_sharedConstants.texture2DIndices[i] = TEXTURE_DESCRIPTOR_NULL_TEXTURE_2D;
+        g_sharedConstants.texture3DIndices[i] = TEXTURE_DESCRIPTOR_NULL_TEXTURE_3D;
+        g_sharedConstants.textureCubeIndices[i] = TEXTURE_DESCRIPTOR_NULL_TEXTURE_CUBE;
+    }
+
     g_sharedConstants.enableGIBicubicFiltering = (Config::GITextureFiltering == EGITextureFiltering::Bicubic);
 
     auto& commandList = g_commandLists[g_frame];
@@ -989,6 +1058,12 @@ static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4,
     g_backBuffer->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(16, 16, 1, g_backBuffer->format, RenderTextureFlag::RENDER_TARGET));
 
     BeginCommandList();
+
+    RenderTextureBarrier blankTextureBarriers[TEXTURE_DESCRIPTOR_NULL_COUNT];
+    for (size_t i = 0; i < TEXTURE_DESCRIPTOR_NULL_COUNT; i++)
+        blankTextureBarriers[i] = RenderTextureBarrier(g_blankTextures[i].get(), RenderTextureLayout::SHADER_READ);
+
+    g_commandLists[g_frame]->barriers(RenderBarrierStage::NONE, blankTextureBarriers, std::size(blankTextureBarriers));
 
     auto device = g_userHeap.AllocPhysical<GuestDevice>();
     memset(device, 0, sizeof(*device));
@@ -1424,6 +1499,7 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
     texture->height = height;
     texture->depth = depth;
     texture->format = desc.format;
+    texture->viewDimension = viewDesc.dimension;
     texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
 
     g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ, texture->textureView.get());
@@ -1862,7 +1938,17 @@ static void ProcSetTexture(const RenderCommand& cmd)
     const auto& args = cmd.setTexture;
 
     AddBarrier(args.texture, RenderTextureLayout::SHADER_READ);
-    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.textureIndices[args.index], args.texture != nullptr ? args.texture->descriptorIndex : NULL);
+
+    auto viewDimension = args.texture != nullptr ? args.texture->viewDimension : RenderTextureViewDimension::UNKNOWN;
+
+    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.texture2DIndices[args.index],
+        viewDimension == RenderTextureViewDimension::TEXTURE_2D ? args.texture->descriptorIndex : TEXTURE_DESCRIPTOR_NULL_TEXTURE_2D);
+
+    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.texture3DIndices[args.index], args.texture != nullptr &&
+        viewDimension == RenderTextureViewDimension::TEXTURE_3D ? args.texture->descriptorIndex : TEXTURE_DESCRIPTOR_NULL_TEXTURE_3D); 
+    
+    SetDirtyValue(g_dirtyStates.sharedConstants, g_sharedConstants.textureCubeIndices[args.index], args.texture != nullptr &&
+        viewDimension == RenderTextureViewDimension::TEXTURE_CUBE ? args.texture->descriptorIndex : TEXTURE_DESCRIPTOR_NULL_TEXTURE_CUBE);
 }
 
 static void SetScissorRect(GuestDevice* device, GuestRect* rect)
@@ -3172,6 +3258,8 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
             texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
             g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ, texture->textureView.get());
 
+            texture->viewDimension = viewDesc.dimension;
+
             struct Slice
             {
                 uint32_t width;
@@ -3261,6 +3349,7 @@ static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32
                 const auto texture = g_userHeap.AllocPhysical<GuestTexture>(ResourceType::Texture);
                 texture->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(width, height, 1, RenderFormat::R8G8B8A8_UNORM));
                 texture->texture = texture->textureHolder.get();
+                texture->viewDimension = RenderTextureViewDimension::TEXTURE_2D;
                 texture->layout = RenderTextureLayout::COPY_DEST;
 
                 texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
