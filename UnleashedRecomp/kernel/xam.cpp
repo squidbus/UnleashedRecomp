@@ -241,13 +241,11 @@ SWA_API uint32_t XamContentCreateEx(DWORD dwUserIndex, LPCSTR szRootName, const 
 
         if (!exists)
         {
-            const char* root = "";
+            std::string root = "";
+
             if (pContentData->dwContentType == XCONTENTTYPE_SAVEDATA)
             {
-                // auuughh
-                auto savePath = Config::GetSavePath().string();
-                root = new char[savePath.size() + 1];
-                strcpy(const_cast<char*>(root), savePath.c_str());
+                root = Config::GetSavePath().string();
             }
             else if (pContentData->dwContentType == XCONTENTTYPE_DLC)
             {
@@ -259,7 +257,7 @@ SWA_API uint32_t XamContentCreateEx(DWORD dwUserIndex, LPCSTR szRootName, const 
             }
 
             XamRegisterContent(*pContentData, root);
-            CreateDirectoryA(root, nullptr);
+            CreateDirectoryA(root.c_str(), nullptr);
             XamRootCreate(szRootName, root);
         }
         else
