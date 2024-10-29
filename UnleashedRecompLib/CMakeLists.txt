@@ -22,18 +22,27 @@ endforeach()
 add_custom_command(
     OUTPUT ${SWA_PPC_RECOMPILED_SOURCES}
     COMMAND PowerRecomp
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/config/SWA.toml"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/private/default.xex" "${CMAKE_CURRENT_SOURCE_DIR}/config/SWA.toml"
 )
+
+set(SHADER_RECOMP_ROOT "${SWA_THIRDPARTY_ROOT}/ShaderRecomp/ShaderRecomp")
+set(SHADER_RECOMP_INCLUDE "${SHADER_RECOMP_ROOT}/shader_common.hlsli")
 
 target_compile_definitions(ShaderRecomp PRIVATE 
     SHADER_RECOMP_INPUT=\"${CMAKE_CURRENT_SOURCE_DIR}/private\" 
     SHADER_RECOMP_OUTPUT=\"${CMAKE_CURRENT_SOURCE_DIR}/shader/shader_cache.cpp\"
+    SHADER_RECOMP_INCLUDE_INPUT=\"${SHADER_RECOMP_SHADER_INCLUDE}\"
+)
+
+file(GLOB SHADER_RECOMP_SOURCES 
+    "${SHADER_RECOMP_ROOT}/*.h"
+    "${SHADER_RECOMP_ROOT}/*.cpp"
 )
 
 add_custom_command(
     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/shader/shader_cache.cpp"
     COMMAND ShaderRecomp
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/private/shader.ar"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/private/shader.ar" ${SHADER_RECOMP_SOURCES} ${SHADER_RECOMP_INCLUDE}
 )
 
 add_library(UnleashedRecompLib 
