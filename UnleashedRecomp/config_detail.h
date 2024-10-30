@@ -7,17 +7,23 @@
 #define CONFIG_DEFINE(section, type, name, defaultValue) \
     inline static ConfigDef<type> name{section, #name, defaultValue};
 
+#define CONFIG_DEFINE_HIDE(section, type, name, defaultValue) \
+    inline static ConfigDef<type, false> name{section, #name, defaultValue};
+
 #define CONFIG_DEFINE_ENUM_TEMPLATE(type) \
     inline static std::unordered_map<std::string, type> g_##type##_template =
 
 #define CONFIG_DEFINE_ENUM(section, type, name, defaultValue) \
     inline static ConfigDef<type> name{section, #name, defaultValue, g_##type##_template};
 
+#define CONFIG_DEFINE_ENUM_HIDE(section, type, name, defaultValue) \
+    inline static ConfigDef<type, false> name{section, #name, defaultValue, g_##type##_template};
+
 #define CONFIG_DEFINE_IMPL(section, type, name, defaultValue, readImpl) \
-    inline static ConfigDef<type> name{section, #name, defaultValue, [](ConfigDef<type>* def, const toml::v3::table& table) readImpl};
+    inline static ConfigDef<type> name{section, #name, defaultValue, [](ConfigDef<type, true>* def, const toml::v3::table& table) readImpl};
 
 #define CONFIG_DEFINE_CALLBACK(section, type, name, defaultValue, readCallback) \
-    inline static ConfigDef<type> name{section, #name, defaultValue, [](ConfigDef<type>* def) readCallback};
+    inline static ConfigDef<type> name{section, #name, defaultValue, [](ConfigDef<type, true>* def) readCallback};
 
 #define CONFIG_GET_DEFAULT(name) Config::name.DefaultValue
 #define CONFIG_SET_DEFAULT(name) Config::name.MakeDefault();
@@ -34,9 +40,12 @@ public:
     virtual std::string ToString() const = 0;
 };
 
-template<typename T>
+template<typename T, bool isMenuOption = true>
 class ConfigDef : public ConfigDefBase
 {
+protected:
+    bool m_isMenuOption{ isMenuOption };
+
 public:
     std::string Section{};
     std::string Name{};
@@ -44,8 +53,8 @@ public:
     T Value{ DefaultValue };
     std::unordered_map<std::string, T> EnumTemplate{};
     std::unordered_map<T, std::string> EnumTemplateReverse{};
-    std::function<void(ConfigDef<T>*, const toml::v3::table&)> ReadImpl;
-    std::function<void(ConfigDef<T>*)> ReadCallback;
+    std::function<void(ConfigDef<T, isMenuOption>*, const toml::v3::table&)> ReadImpl;
+    std::function<void(ConfigDef<T, isMenuOption>*)> ReadCallback;
 
     ConfigDef(std::string section, std::string name, T defaultValue)
         : Section(section), Name(name), DefaultValue(defaultValue)
@@ -62,13 +71,13 @@ public:
         Config::Definitions.emplace_back(this);
     }
 
-    ConfigDef(std::string section, std::string name, T defaultValue, std::function<void(ConfigDef<T>*)> readCallback)
+    ConfigDef(std::string section, std::string name, T defaultValue, std::function<void(ConfigDef<T, isMenuOption>*)> readCallback)
         : Section(section), Name(name), DefaultValue(defaultValue), ReadCallback(readCallback)
     {
         Config::Definitions.emplace_back(this);
     }
 
-    ConfigDef(std::string section, std::string name, T defaultValue, std::function<void(ConfigDef<T>*, const toml::v3::table&)> readImpl)
+    ConfigDef(std::string section, std::string name, T defaultValue, std::function<void(ConfigDef<T, isMenuOption>*, const toml::v3::table&)> readImpl)
         : Section(section), Name(name), DefaultValue(defaultValue), ReadImpl(readImpl)
     {
         Config::Definitions.emplace_back(this);
@@ -232,6 +241,19 @@ CONFIG_DEFINE_ENUM_TEMPLATE(EGraphicsAPI)
 {
     { "D3D12",  EGraphicsAPI::D3D12  },
     { "Vulkan", EGraphicsAPI::Vulkan }
+};
+
+enum class EWindowState : uint32_t
+{
+    Normal,
+    Maximised
+};
+
+CONFIG_DEFINE_ENUM_TEMPLATE(EWindowState)
+{
+    { "Normal",   EWindowState::Normal   },
+    { "Maximised",  EWindowState::Maximised  },
+    { "Maximized",  EWindowState::Maximised  }
 };
 
 enum class EShadowResolution : int32_t

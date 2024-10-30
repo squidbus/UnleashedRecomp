@@ -12,7 +12,7 @@ public:
     CONFIG_DEFINE_ENUM("System", EScoreBehaviour, ScoreBehaviour, EScoreBehaviour::CheckpointReset);
     CONFIG_DEFINE("System", bool, UnleashOutOfControlDrain, true);
     CONFIG_DEFINE("System", bool, WerehogHubTransformVideo, true);
-    CONFIG_DEFINE("System", bool, LogoSkip, false);
+    CONFIG_DEFINE_HIDE("System", bool, LogoSkip, false);
 
     CONFIG_DEFINE("Controls", bool, CameraXInvert, false);
     CONFIG_DEFINE("Controls", bool, CameraYInvert, false);
@@ -26,10 +26,11 @@ public:
     CONFIG_DEFINE("Audio", bool, WerehogBattleMusic, true);
 
     CONFIG_DEFINE_ENUM("Video", EGraphicsAPI, GraphicsAPI, EGraphicsAPI::D3D12);
-    CONFIG_DEFINE("Video", int32_t, WindowX, -1);
-    CONFIG_DEFINE("Video", int32_t, WindowY, -1);
-    CONFIG_DEFINE("Video", size_t, WindowWidth, 1280);
-    CONFIG_DEFINE("Video", size_t, WindowHeight, 720);
+    CONFIG_DEFINE_HIDE("Video", int32_t, WindowX, -1);
+    CONFIG_DEFINE_HIDE("Video", int32_t, WindowY, -1);
+    CONFIG_DEFINE("Video", int32_t, WindowWidth, 1280);
+    CONFIG_DEFINE("Video", int32_t, WindowHeight, 720);
+    CONFIG_DEFINE_ENUM_HIDE("Video", EWindowState, WindowState, EWindowState::Normal);
 
     CONFIG_DEFINE_CALLBACK("Video", float, ResolutionScale, 1.0f,
     {
@@ -42,7 +43,7 @@ public:
     CONFIG_DEFINE("Video", int32_t, FPS, 60);
     CONFIG_DEFINE("Video", float, Brightness, 0.5f);
     CONFIG_DEFINE("Video", size_t, MSAA, 4);
-    CONFIG_DEFINE("Video", size_t, AnisotropicFiltering, 16);
+    CONFIG_DEFINE_HIDE("Video", size_t, AnisotropicFiltering, 16);
     CONFIG_DEFINE_ENUM("Video", EShadowResolution, ShadowResolution, EShadowResolution::x4096);
     CONFIG_DEFINE_ENUM("Video", EGITextureFiltering, GITextureFiltering, EGITextureFiltering::Bicubic);
     CONFIG_DEFINE("Video", bool, AlphaToCoverage, true);

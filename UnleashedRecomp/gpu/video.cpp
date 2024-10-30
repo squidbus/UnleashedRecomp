@@ -836,7 +836,7 @@ static void CreateHostDevice()
     g_copyCommandList = g_device->createCommandList(RenderCommandListType::COPY);
     g_copyCommandFence = g_device->createCommandFence();
 
-    g_swapChain = g_queue->createSwapChain(Window::s_windowHandle, Config::TripleBuffering ? 3 : 2, RenderFormat::B8G8R8A8_UNORM);
+    g_swapChain = g_queue->createSwapChain(Window::s_handle, Config::TripleBuffering ? 3 : 2, RenderFormat::B8G8R8A8_UNORM);
     g_swapChain->setVsyncEnabled(Config::VSync);
     g_swapChainValid = !g_swapChain->needsResize();
 

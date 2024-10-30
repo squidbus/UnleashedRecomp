@@ -2,20 +2,24 @@
 
 #include <SDL.h>
 #include "res/icon.h"
+#include "ui/window_events.h"
 #include "config.h"
+
+#define DEFAULT_WIDTH 1280
+#define DEFAULT_HEIGHT 720
 
 struct Window
 {
-    inline static std::vector<std::function<void(int, int)>> ms_resizeEvents;
-
 public:
-    inline static SDL_Window* s_window;
-    inline static HWND s_windowHandle;
+    inline static SDL_Window* s_pWindow;
+    inline static HWND s_handle;
+
+    inline static int s_x;
+    inline static int s_y;
+    inline static int s_width = DEFAULT_WIDTH;
+    inline static int s_height = DEFAULT_HEIGHT;
 
     inline static bool s_isFocused;
-
-    inline static int s_width = 1280;
-    inline static int s_height = 720;
 
     static SDL_Surface* GetIconSurface(void* pIconBmp = nullptr, size_t iconSize = 0)
     {
@@ -28,98 +32,131 @@ public:
         return surface;
     }
 
-    static bool IsDisplayResolution(int w, int h, bool isExact = true)
+    static void SetIcon(void* pIconBmp = nullptr, size_t iconSize = 0)
     {
-        auto width = w <= 0 ? Config::WindowWidth : w;
-        auto height = h <= 0 ? Config::WindowHeight : h;
-
-        SDL_Rect displayRect;
-        if (SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(s_window), &displayRect) == ERROR_SUCCESS)
+        if (auto icon = GetIconSurface(pIconBmp, iconSize))
         {
-            if (isExact)
-            {
-                if (displayRect.w == width && displayRect.h == height)
-                    return true;
-            }
-            else
-            {
-                if (displayRect.w <= width && displayRect.h <= height)
-                    return true;
-            }
+            SDL_SetWindowIcon(s_pWindow, icon);
+            SDL_FreeSurface(icon);
+        }
+    }
+
+    static void SetTitle(const char* title = nullptr)
+    {
+        if (!title)
+        {
+            title = Config::Language == ELanguage::Japanese
+                ? "Sonic World Adventure"
+                : "SONIC UNLEASHED";
         }
 
-        return false;
+        SDL_SetWindowTitle(s_pWindow, title);
     }
 
     static bool IsFullscreen()
     {
-        return SDL_GetWindowFlags(s_window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
+        return SDL_GetWindowFlags(s_pWindow) & SDL_WINDOW_FULLSCREEN_DESKTOP;
     }
 
     static bool SetFullscreen(bool isEnabled)
     {
         if (isEnabled)
         {
-            SDL_SetWindowFullscreen(s_window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+            SDL_SetWindowFullscreen(s_pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
             SDL_ShowCursor(SDL_DISABLE);
-
-            return true;
         }
         else
         {
-            SDL_SetWindowFullscreen(s_window, 0);
+            SDL_SetWindowFullscreen(s_pWindow, 0);
             SDL_ShowCursor(SDL_ENABLE);
+            SetIcon();
+        }
 
-            SDL_Rect displayRect;
-            if (SDL_GetDisplayBounds(SDL_GetWindowDisplayIndex(s_window), &displayRect) == ERROR_SUCCESS)
-            {
-                // Maximise window if the config resolution is greater than the display.
-                if (IsDisplayResolution(s_width, s_height, false))
-                    SDL_MaximizeWindow(s_window);
-            }
+        return isEnabled;
+    }
 
+    static bool IsMaximised()
+    {
+        return SDL_GetWindowFlags(s_pWindow) & SDL_WINDOW_MAXIMIZED;
+    }
+
+    static EWindowState SetMaximised(bool isEnabled)
+    {
+        if (isEnabled)
+        {
+            SDL_MaximizeWindow(s_pWindow);
+        }
+        else
+        {
+            SDL_RestoreWindow(s_pWindow);
+        }
+
+        return isEnabled
+            ? EWindowState::Maximised
+            : EWindowState::Normal;
+    }
+
+    static SDL_Rect GetDimensions()
+    {
+        SDL_Rect rect{};
+
+        SDL_GetWindowPosition(s_pWindow, &rect.x, &rect.y);
+        SDL_GetWindowSize(s_pWindow, &rect.w, &rect.h);
+
+        return rect;
+    }
+
+    static void SetDimensions(int x, int y, int w, int h)
+    {
+        s_x = x;
+        s_y = y;
+        s_width = w;
+        s_height = h;
+
+        SDL_SetWindowSize(s_pWindow, w, h);
+        SDL_ResizeEvent(s_pWindow, w, h);
+
+        SDL_SetWindowPosition(s_pWindow, x, y);
+        SDL_MoveEvent(s_pWindow, x, y);
+    }
+
+    static uint32_t GetWindowFlags()
+    {
+        uint32_t flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+
+        if (Config::WindowState == EWindowState::Maximised)
+            flags |= SDL_WINDOW_MAXIMIZED;
+
+        if (Config::Fullscreen)
+            flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+
+        return flags;
+    }
+
+    static bool IsPositionValid()
+    {
+        auto displayCount = SDL_GetNumVideoDisplays();
+
+        if (displayCount <= 0)
+        {
+            printf("Failed to validate window position: %s\n", SDL_GetError());
             return false;
         }
-    }
 
-    static void SetWindowDimensions(int w = -1, int h = -1, bool recenter = false)
-    {
-        auto width = w <= 0 ? Config::WindowWidth : w;
-        auto height = h <= 0 ? Config::WindowHeight : h;
-        auto isPendingMaximise = false;
-
-        if (IsDisplayResolution(width, height))
+        for (int i = 0; i < displayCount; i++)
         {
-            height -= GetSystemMetrics(31);
-            isPendingMaximise = true;
+            SDL_Rect bounds;
+            if (SDL_GetDisplayBounds(i, &bounds) == 0)
+            {
+                if (s_x >= bounds.x && s_x < bounds.x + bounds.w &&
+                    s_y >= bounds.y && s_y < bounds.y + bounds.h)
+                {
+                    return true;
+                }
+            }
         }
 
-        int32_t x = recenter ? SDL_WINDOWPOS_CENTERED : Config::WindowX;
-        int32_t y = recenter ? SDL_WINDOWPOS_CENTERED : Config::WindowY;
-
-        SDL_SetWindowSize(s_window, width, height);
-        SDL_SetWindowMinimumSize(s_window, 640, 480);
-        SDL_SetWindowPosition(s_window, x, y);
-
-        s_width = width;
-        s_height = height;
-
-        if (!isPendingMaximise)
-            return;
-
-        // Maximise window if the config resolution matches the display.
-        SDL_MaximizeWindow(s_window);
-    }
-
-    static void AddResizeEvent(std::function<void(int, int)> resizeEvent)
-    {
-        ms_resizeEvents.push_back(resizeEvent);
-    }
-
-    static void RaiseResizeEvents()
-    {
-        for (const auto& resizeEvent : ms_resizeEvents)
-            resizeEvent(s_width, s_height);
+        return false;
     }
 
     static void Init();

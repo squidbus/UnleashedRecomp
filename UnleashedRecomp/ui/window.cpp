@@ -7,7 +7,6 @@ bool m_isFullscreenKeyReleased = true;
 
 int Window_OnSDLEvent(void*, SDL_Event* event)
 {
-    // TODO (Hyper): prevent window changes during boot to avoid buffer resize crashes.
     switch (event->type)
     {
         case SDL_QUIT:
@@ -25,7 +24,10 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                     if (!(event->key.keysym.mod & KMOD_ALT) || !m_isFullscreenKeyReleased)
                         break;
 
-                    Window::SetFullscreen(!Window::IsFullscreen());
+                    Config::Fullscreen = Window::SetFullscreen(!Window::IsFullscreen());
+
+                    if (!Config::Fullscreen)
+                        Config::WindowState = Window::SetMaximised(Config::WindowState == EWindowState::Maximised);
 
                     // Block holding ALT+ENTER spamming window changes.
                     m_isFullscreenKeyReleased = false;
@@ -35,11 +37,8 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
 
                 // Restore original window dimensions on F2.
                 case SDLK_F2:
-                {
-                    Window::SetFullscreen(Config::Fullscreen);
-                    Window::SetWindowDimensions(-1, -1, true);
+                    Window::SetDimensions(SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DEFAULT_WIDTH, DEFAULT_HEIGHT);
                     break;
-                }
             }
 
             break;
@@ -70,16 +69,43 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                     SDL_ShowCursor(Window::IsFullscreen() ? SDL_DISABLE : SDL_ENABLE);
                     break;
 
+                case SDL_WINDOWEVENT_RESTORED:
+                case SDL_WINDOWEVENT_MAXIMIZED:
+                {
+                    Config::WindowState = Window::IsMaximised()
+                        ? EWindowState::Maximised
+                        : EWindowState::Normal;
+
+                    break;
+                }
+
                 case SDL_WINDOWEVENT_RESIZED:
+                {
                     Window::s_width = event->window.data1;
                     Window::s_height = event->window.data2;
-                    Window::RaiseResizeEvents();
+
+                    if (!Window::IsFullscreen())
+                    {
+                        Config::WindowWidth = Window::s_width;
+                        Config::WindowHeight = Window::s_height;
+                    }
+
                     break;
+                }
 
                 case SDL_WINDOWEVENT_MOVED:
-                    Config::WindowX = event->window.data1;
-                    Config::WindowY = event->window.data2;
+                {
+                    Window::s_x = event->window.data1;
+                    Window::s_y = event->window.data2;
+
+                    if (!Window::IsFullscreen())
+                    {
+                        Config::WindowX = Window::s_x;
+                        Config::WindowY = Window::s_y;
+                    }
+
                     break;
+                }
             }
 
             break;
@@ -91,43 +117,47 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
 
 void Window::Init()
 {
-    /* TODO: move this since it'll have to change
-             on soft reboot from the options menu. */
-    auto title = Config::Language == ELanguage::Japanese
-        ? "Sonic World Adventure"
-        : "SONIC UNLEASHED";
-
     SDL_InitSubSystem(SDL_INIT_VIDEO);
     SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
-    SDL_AddEventWatch(Window_OnSDLEvent, s_window);
-
+    SDL_AddEventWatch(Window_OnSDLEvent, s_pWindow);
     SetProcessDPIAware();
 
-    int32_t x = Config::WindowX < 0 ? SDL_WINDOWPOS_CENTERED : Config::WindowX;
-    int32_t y = Config::WindowY < 0 ? SDL_WINDOWPOS_CENTERED : Config::WindowY;
-    int32_t width = Config::WindowWidth;
-    int32_t height = Config::WindowHeight;
+    s_x = Config::WindowX;
+    s_y = Config::WindowY;
+    s_width = Config::WindowWidth;
+    s_height = Config::WindowHeight;
 
-    s_window = SDL_CreateWindow(title, x, y, width, height, SDL_WINDOW_RESIZABLE);
+    auto isPositionValid = IsPositionValid();
 
-    SDL_GetWindowPosition(s_window, &x, &y);
-
-    Config::WindowX = x;
-    Config::WindowY = y;
-
-    if (auto icon = GetIconSurface())
+    if (!isPositionValid)
     {
-        SDL_SetWindowIcon(s_window, icon);
-        SDL_FreeSurface(icon);
+        s_x = SDL_WINDOWPOS_CENTERED;
+        s_y = SDL_WINDOWPOS_CENTERED;
+        s_width = DEFAULT_WIDTH;
+        s_height = DEFAULT_HEIGHT;
     }
 
-    SetWindowDimensions();
-    SetFullscreen(Config::Fullscreen);
+    s_pWindow = SDL_CreateWindow("SWA", s_x, s_y, s_width, s_height, GetWindowFlags());
+
+    if (!isPositionValid)
+    {
+        auto rect = Window::GetDimensions();
+
+        Config::WindowX = rect.x;
+        Config::WindowY = rect.y;
+        Config::WindowWidth = rect.w;
+        Config::WindowHeight = rect.h;
+    }
+
+    SetIcon();
+    SetTitle();
+    SDL_SetWindowMinimumSize(s_pWindow, 640, 480);
 
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);
-    SDL_GetWindowWMInfo(s_window, &info);
-    s_windowHandle = info.info.win.window;
+    SDL_GetWindowWMInfo(s_pWindow, &info);
+
+    s_handle = info.info.win.window;
 }
 
 // CApplication::Update
