@@ -586,62 +586,32 @@ struct Semaphore : HostObject<XKSEMAPHORE>
     }
 };
 
-extern "C" NTSYSAPI NTSTATUS NTAPI NtReleaseKeyedEvent(
-    IN HANDLE               KeyedEventHandle,
-    IN PVOID                Key,
-    IN BOOLEAN              Alertable,
-    IN PLARGE_INTEGER       Timeout OPTIONAL);
+// https://devblogs.microsoft.com/oldnewthing/20160825-00/?p=94165
 
 void RtlLeaveCriticalSection(XRTL_CRITICAL_SECTION* cs)
 {
-    //printf("!!! STUB !!! RtlLeaveCriticalSection\n");
-
-    if (--cs->RecursionCount != 0)
-    {
-        InterlockedDecrement(&cs->LockCount);
+    cs->RecursionCount--;
+    if (cs->RecursionCount != 0) {
         return;
     }
 
-    cs->OwningThread = NULL;
-
-    if (InterlockedDecrement(&cs->LockCount) != -1)
-        NtReleaseKeyedEvent(nullptr, cs, FALSE, nullptr);
+    InterlockedExchange(&cs->OwningThread, 0);
+    WakeByAddressSingle(&cs->OwningThread);
 }
-
-extern "C" NTSYSAPI NTSTATUS NTAPI NtWaitForKeyedEvent(
-    IN HANDLE               KeyedEventHandle,
-    IN PVOID                Key,
-    IN BOOLEAN              Alertable,
-    IN PLARGE_INTEGER       Timeout OPTIONAL);
 
 void RtlEnterCriticalSection(XRTL_CRITICAL_SECTION* cs)
 {
-    //printf("!!! STUB !!! RtlEnterCriticalSection\n");
-
-    const uint32_t thread = static_cast<uint32_t>(GetPPCContext()->r13.u64);
-    if (cs->OwningThread == thread)
+    DWORD thisThread = GetCurrentThreadId();
+    while (true) 
     {
-        InterlockedIncrement(&cs->LockCount);
-        ++cs->RecursionCount;
-        return;
-    }
-
-    uint32_t spinCount = cs->Header.Absolute * 256;
-    while (spinCount--)
-    {
-        if (InterlockedCompareExchange(&cs->LockCount, 0, -1) == -1)
-        {
-            cs->OwningThread = thread;
-            cs->RecursionCount = 1;
+        DWORD previousOwner = InterlockedCompareExchangeAcquire(&cs->OwningThread, thisThread, 0);
+        if (previousOwner == 0 || previousOwner == thisThread) {
+            cs->RecursionCount++;
             return;
         }
+
+        WaitOnAddress(&cs->OwningThread, &previousOwner, sizeof(previousOwner), INFINITE);
     }
-
-    if (InterlockedIncrement(&cs->LockCount) != 0)
-        NtWaitForKeyedEvent(nullptr, cs, FALSE, nullptr);
-
-    cs->OwningThread = thread;
-    cs->RecursionCount = 1;
 }
 
 void RtlImageXexHeaderField()
@@ -1110,19 +1080,11 @@ void XexGetModuleHandle()
 
 bool RtlTryEnterCriticalSection(XRTL_CRITICAL_SECTION* cs)
 {
-    const uint32_t thread = static_cast<uint32_t>(GetPPCContext()->r13.u64);
+    DWORD thisThread = GetCurrentThreadId();
+    DWORD previousOwner = InterlockedCompareExchangeAcquire(&cs->OwningThread, thisThread, 0);
 
-    if (InterlockedCompareExchange(&cs->LockCount, 0, -1) == -1)
-    {
-        cs->OwningThread = thread;
-        cs->RecursionCount = 1;
-        return true;
-    }
-
-    if (cs->OwningThread == thread)
-    {
-        InterlockedIncrement(&cs->LockCount);
-        ++cs->RecursionCount;
+    if (previousOwner == 0 || previousOwner == thisThread) {
+        cs->RecursionCount++;
         return true;
     }
 

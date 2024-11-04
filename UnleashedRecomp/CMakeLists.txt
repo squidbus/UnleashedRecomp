@@ -132,6 +132,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     PkgConfig::tomlplusplus
     zstd::libzstd_static
     unofficial::concurrentqueue::concurrentqueue
+    Synchronization
 )
 
 target_include_directories(UnleashedRecomp PRIVATE
