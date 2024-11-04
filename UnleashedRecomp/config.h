@@ -26,8 +26,8 @@ public:
     CONFIG_DEFINE("Audio", bool, WerehogBattleMusic, true);
 
     CONFIG_DEFINE_ENUM("Video", EGraphicsAPI, GraphicsAPI, EGraphicsAPI::D3D12);
-    CONFIG_DEFINE_HIDE("Video", int32_t, WindowX, -1);
-    CONFIG_DEFINE_HIDE("Video", int32_t, WindowY, -1);
+    CONFIG_DEFINE_HIDE("Video", int32_t, WindowX, WINDOWPOS_CENTRED);
+    CONFIG_DEFINE_HIDE("Video", int32_t, WindowY, WINDOWPOS_CENTRED);
     CONFIG_DEFINE("Video", int32_t, WindowWidth, 1280);
     CONFIG_DEFINE("Video", int32_t, WindowHeight, 720);
     CONFIG_DEFINE_ENUM_HIDE("Video", EWindowState, WindowState, EWindowState::Normal);

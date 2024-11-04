@@ -40,6 +40,17 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                     Config::Fullscreen = Window::SetFullscreen(false);
                     Window::SetDimensions(SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DEFAULT_WIDTH, DEFAULT_HEIGHT);
                     break;
+
+                // Recentre window on F3.
+                case SDLK_F3:
+                {
+                    if (Window::IsFullscreen())
+                        break;
+
+                    Window::SetDimensions(SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, Window::s_width, Window::s_height);
+
+                    break;
+                }
             }
 
             break;
@@ -128,27 +139,20 @@ void Window::Init()
     s_width = Config::WindowWidth;
     s_height = Config::WindowHeight;
 
-    auto isPositionValid = IsPositionValid();
-
-    if (!isPositionValid)
+    if (!IsPositionValid())
     {
         s_x = SDL_WINDOWPOS_CENTERED;
         s_y = SDL_WINDOWPOS_CENTERED;
         s_width = DEFAULT_WIDTH;
         s_height = DEFAULT_HEIGHT;
+
+        Config::WindowX = s_x;
+        Config::WindowY = s_y;
+        Config::WindowWidth = s_width;
+        Config::WindowHeight = s_height;
     }
 
     s_pWindow = SDL_CreateWindow("SWA", s_x, s_y, s_width, s_height, GetWindowFlags());
-
-    if (!isPositionValid)
-    {
-        auto rect = Window::GetDimensions();
-
-        Config::WindowX = rect.x;
-        Config::WindowY = rect.y;
-        Config::WindowWidth = rect.w;
-        Config::WindowHeight = rect.h;
-    }
 
     SetIcon();
     SetTitle();

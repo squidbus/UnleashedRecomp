@@ -148,8 +148,17 @@ public:
             SDL_Rect bounds;
             if (SDL_GetDisplayBounds(i, &bounds) == 0)
             {
-                if (s_x >= bounds.x && s_x < bounds.x + bounds.w &&
-                    s_y >= bounds.y && s_y < bounds.y + bounds.h)
+                auto x = s_x;
+                auto y = s_y;
+
+                if (x == SDL_WINDOWPOS_CENTERED)
+                    x = bounds.w / 2 - s_width / 2;
+
+                if (y == SDL_WINDOWPOS_CENTERED)
+                    y = bounds.h / 2 - s_height / 2;
+
+                if (x >= bounds.x && x < bounds.x + bounds.w &&
+                    y >= bounds.y && y < bounds.y + bounds.h)
                 {
                     return true;
                 }

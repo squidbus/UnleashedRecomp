@@ -28,6 +28,8 @@
 #define CONFIG_GET_DEFAULT(name) Config::name.DefaultValue
 #define CONFIG_SET_DEFAULT(name) Config::name.MakeDefault();
 
+#define WINDOWPOS_CENTRED 0x2FFF0000
+
 class ConfigDefBase
 {
 public:
