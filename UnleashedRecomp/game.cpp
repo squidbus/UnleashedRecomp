@@ -370,4 +370,9 @@ void CameraTargetSideOffsetLerpFixMidAsmHook(PPCVRegister& v13, PPCVRegister& v6
     }
 }
 
+void Camera2DLerpFixMidAsmHook(PPCRegister& t, PPCRegister& deltaTime)
+{
+    t.f64 = ComputeLerpFactor(std::min<double>(1.0, t.f64 * 2.0), deltaTime.f64 / 60.0);
+}
+
 #pragma endregion
