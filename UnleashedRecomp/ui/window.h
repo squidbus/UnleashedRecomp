@@ -106,12 +106,12 @@ public:
         return rect;
     }
 
-    static void SetDimensions(int x, int y, int w, int h)
+    static void SetDimensions(int w, int h, int x = SDL_WINDOWPOS_CENTERED, int y = SDL_WINDOWPOS_CENTERED)
     {
-        s_x = x;
-        s_y = y;
         s_width = w;
         s_height = h;
+        s_x = x;
+        s_y = y;
 
         SDL_SetWindowSize(s_pWindow, w, h);
         SDL_ResizeEvent(s_pWindow, w, h);
@@ -151,6 +151,9 @@ public:
                 auto x = s_x;
                 auto y = s_y;
 
+                if (!Config::Fullscreen && s_width == bounds.w && s_height == bounds.h)
+                    return false;
+
                 if (x == SDL_WINDOWPOS_CENTERED)
                     x = bounds.w / 2 - s_width / 2;
 
@@ -169,4 +172,5 @@ public:
     }
 
     static void Init();
+    static void Update();
 };
