@@ -48,6 +48,7 @@ public:
     CONFIG_DEFINE_ENUM("Video", EShadowResolution, ShadowResolution, EShadowResolution::x4096);
     CONFIG_DEFINE_ENUM("Video", EGITextureFiltering, GITextureFiltering, EGITextureFiltering::Bicubic);
     CONFIG_DEFINE("Video", bool, AlphaToCoverage, true);
+    CONFIG_DEFINE("Video", bool, MotionBlur, true);
     CONFIG_DEFINE("Video", bool, Xbox360ColourCorrection, false);
     CONFIG_DEFINE_ENUM("Video", EMovieScaleMode, MovieScaleMode, EMovieScaleMode::Fit);
     CONFIG_DEFINE_ENUM("Video", EUIScaleMode, UIScaleMode, EUIScaleMode::Centre);

@@ -269,6 +269,11 @@ PPC_FUNC(sub_82547DF0)
     }
 }
 
+bool MotionBlurMidAsmHook()
+{
+    return Config::MotionBlur;
+}
+
 #pragma endregion
 
 #pragma region DLC Hooks
