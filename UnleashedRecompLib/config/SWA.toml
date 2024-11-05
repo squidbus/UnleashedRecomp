@@ -287,6 +287,43 @@ name = "CameraTargetSideOffsetLerpFixMidAsmHook"
 address = 0x8247F12C # Target side offset
 registers = ["v13", "v62", "f21"]
 
+# 2D camera HFR fixes
+[[midasm_hook]]
+name = "Camera2DLerpFixMidAsmHook"
+address = 0x824761AC # Player velocity
+registers = ["f0", "f28"]
+jump_address = 0x824761B0
+
+[[midasm_hook]]
+name = "Camera2DLerpFixMidAsmHook"
+address = 0x824762AC # Player position
+registers = ["f0", "f28"]
+jump_address = 0x824762B0
+
+[[midasm_hook]]
+name = "Camera2DLerpFixMidAsmHook"
+address = 0x8247645C # Spherical position
+registers = ["f0", "f28"]
+jump_address = 0x82476460
+
+[[midasm_hook]]
+name = "Camera2DLerpFixMidAsmHook"
+address = 0x82476514 # Target up offset
+registers = ["f0", "f28"]
+jump_address = 0x82476518
+
+[[midasm_hook]]
+name = "Camera2DLerpFixMidAsmHook"
+address = 0x824768A0 # Spherical position
+registers = ["f0", "f28"]
+jump_address = 0x824768A4
+
+[[midasm_hook]]
+name = "Camera2DLerpFixMidAsmHook"
+address = 0x824768C8 # Spherical position
+registers = ["f0", "f28"]
+jump_address = 0x824768CC
+
 [[midasm_hook]]
 name = "GetStageIDMidAsmHook"
 address = 0x82528198
