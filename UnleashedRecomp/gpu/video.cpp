@@ -2911,6 +2911,29 @@ static std::thread g_renderThread([]
         }
     });
 
+static void D3DXFillTexture(GuestTexture* texture, uint32_t function, void* data)
+{
+    if (texture->width == 1 && texture->height == 1 && texture->format == RenderFormat::R8_UNORM && function == 0x82BA2150)
+    {
+        auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(PLACEMENT_ALIGNMENT));
+
+        uint8_t* mappedData = reinterpret_cast<uint8_t*>(uploadBuffer->map());
+        *mappedData = 0xFF;
+        uploadBuffer->unmap();
+
+        ExecuteCopyCommandList([&]
+            {
+                g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture, RenderTextureLayout::COPY_DEST));
+
+                g_copyCommandList->copyTextureRegion(
+                    RenderTextureCopyLocation::Subresource(texture->texture, 0),
+                    RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), texture->format, 1, 1, 1, PLACEMENT_ALIGNMENT, 0));
+            });
+
+        texture->layout = RenderTextureLayout::COPY_DEST;
+    }
+}
+
 static void D3DXFillVolumeTexture(GuestTexture* texture, uint32_t function, void* data)
 {
     uint32_t rowPitch0 = (texture->width * 4 + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
@@ -3540,6 +3563,7 @@ GUEST_FUNCTION_HOOK(sub_82BDD218, SetIndices);
 GUEST_FUNCTION_HOOK(sub_82BE1990, CreatePixelShader);
 GUEST_FUNCTION_HOOK(sub_82BDFE58, SetPixelShader);
 
+GUEST_FUNCTION_HOOK(sub_82C003B8, D3DXFillTexture);
 GUEST_FUNCTION_HOOK(sub_82C00910, D3DXFillVolumeTexture);
 
 GUEST_FUNCTION_HOOK(sub_82E43FC8, MakePictureData);
@@ -3562,5 +3586,4 @@ GUEST_FUNCTION_STUB(sub_82BE9B28);
 GUEST_FUNCTION_STUB(sub_82BEA018);
 GUEST_FUNCTION_STUB(sub_82BEA7C0);
 GUEST_FUNCTION_STUB(sub_82BFFF88); // D3DXFilterTexture
-GUEST_FUNCTION_STUB(sub_82E9EF90); // D3DXFillTexture
 GUEST_FUNCTION_STUB(sub_82BD96D0);
