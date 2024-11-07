@@ -1,16 +1,16 @@
 #include <stdafx.h>
 #include "xaudio_driver.h"
 #include <xaudio2.h>
-
 #include <cpu/code_cache.h>
 #include <cpu/guest_thread.h>
 #include <cpu/guest_code.h>
 #include <cpu/ppc_context.h>
+#include <kernel/heap.h>
 
 #define XAUDIO_DRIVER_KEY (uint32_t)('XAUD')
 
 PPCFunc* g_clientCallback{};
-DWORD g_clientCallbackParam{};
+DWORD g_clientCallbackParam{}; // pointer in guest memory
 DWORD g_driverThread{};
 
 // TODO: Should use a counted ptr
@@ -97,8 +97,12 @@ void XAudioInitializeSystem()
 
 void XAudioRegisterClient(PPCFunc* callback, uint32_t param)
 {
+    auto* pClientParam = static_cast<uint32_t*>(g_userHeap.Alloc(sizeof(param)));
+    ByteSwap(param);
+    *pClientParam = param;
+    g_clientCallbackParam = g_memory.MapVirtual(pClientParam);
+
     g_clientCallback = callback;
-    g_clientCallbackParam = param;
 }
 
 void XAudioSubmitFrame(void* samples)
