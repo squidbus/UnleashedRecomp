@@ -3507,6 +3507,33 @@ PPC_FUNC(sub_8258CAE0)
     __imp__sub_8258CAE0(ctx, base);
 }
 
+void PostProcessResolutionFix(PPCRegister& r4, PPCRegister& f1, PPCRegister& f2)
+{
+    auto device = reinterpret_cast<be<uint32_t>*>(g_memory.Translate(r4.u32));
+
+    uint32_t width = device[46].get();
+    uint32_t height = device[47].get();
+
+#if 0
+    // TODO: Figure out why this breaks for height > weight
+    double factor;
+    if (width > height)
+        factor = 720.0 / double(height);
+    else
+        factor = 1280.0 / double(width);
+#else 
+    double factor = 720.0 / double(height);
+#endif
+
+    f1.f64 *= factor;
+    f2.f64 *= factor;
+}
+
+void LightShaftAspectRatioFix(PPCRegister& f28, PPCRegister& f0)
+{
+    f28.f64 = f0.f64;
+}
+
 GUEST_FUNCTION_HOOK(sub_82BD99B0, CreateDevice);
 
 GUEST_FUNCTION_HOOK(sub_82BE6230, DestructResource);

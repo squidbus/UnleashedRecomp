@@ -364,3 +364,45 @@ registers = ["r11"]
 name = "MotionBlurMidAsmHook"
 address = 0x82BA99D0
 jump_address_on_false = 0x82BAA544
+
+# Bloom glare resolution fix
+[[midasm_hook]]
+name = "PostProcessResolutionFix"
+address = 0x82BA3E9C
+registers = ["r4", "f1", "f2"]
+
+[[midasm_hook]]
+name = "PostProcessResolutionFix"
+address = 0x82BA3EF4
+registers = ["r4", "f1", "f2"]
+
+[[midasm_hook]]
+name = "PostProcessResolutionFix"
+address = 0x82BA3F4C
+registers = ["r4", "f1", "f2"]
+
+[[midasm_hook]]
+name = "PostProcessResolutionFix"
+address = 0x82BA3F9C
+registers = ["r4", "f1", "f2"]
+
+[[midasm_hook]]
+name = "PostProcessResolutionFix"
+address = 0x82BA4000
+registers = ["r4", "f1", "f2"]
+
+[[midasm_hook]]
+name = "PostProcessResolutionFix"
+address = 0x82BA4064
+registers = ["r4", "f1", "f2"]
+
+# Light shaft resolution fix
+[[midasm_hook]]
+name = "PostProcessResolutionFix"
+address = 0x82BB0EE0
+registers = ["r4", "f1", "f2"]
+
+[[midasm_hook]]
+name = "LightShaftAspectRatioFix"
+address = 0x82BB1314
+registers = ["f28", "f0"]
