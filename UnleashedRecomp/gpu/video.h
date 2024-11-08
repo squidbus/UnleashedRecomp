@@ -165,6 +165,7 @@ struct GuestSurfaceDesc
 // RenderTarget/DepthStencil
 struct GuestSurface : GuestBaseTexture
 {
+    uint32_t guestFormat = 0;
     ankerl::unordered_dense::map<const RenderTexture*, std::unique_ptr<RenderFramebuffer>> framebuffers;
     RenderSampleCounts sampleCount = RenderSampleCount::COUNT_1;
 };

@@ -91,6 +91,7 @@ static GuestSurface* g_depthStencil;
 static RenderFramebuffer* g_framebuffer;
 static RenderViewport g_viewport(0.0f, 0.0f, 1280.0f, 720.0f);
 static bool g_halfPixel = true;
+static uint32_t g_zFunc;
 static PipelineState g_pipelineState;
 static SharedConstants g_sharedConstants;
 static RenderSamplerDesc g_samplerDescs[16];
@@ -662,6 +663,36 @@ static RenderBlend ConvertBlendMode(uint32_t blendMode)
     }
 }
 
+// The game renders the main scene with reverse Z where the viewport's minDepth and maxDepth
+// values are swapped. We negate this to improve compatibility with old hardware.
+static RenderComparisonFunction ConvertComparisonFunc(uint32_t cmpFunc, bool reverseZ)
+{
+    switch (cmpFunc)
+    {
+    case D3DCMP_LESS:
+        return reverseZ ? RenderComparisonFunction::GREATER : RenderComparisonFunction::LESS;
+    case D3DCMP_LESSEQUAL:
+        return reverseZ ? RenderComparisonFunction::GREATER_EQUAL : RenderComparisonFunction::LESS_EQUAL;
+    case D3DCMP_GREATER:
+        return reverseZ ? RenderComparisonFunction::LESS : RenderComparisonFunction::GREATER;
+    case D3DCMP_GREATEREQUAL:
+        return reverseZ ? RenderComparisonFunction::LESS_EQUAL : RenderComparisonFunction::GREATER_EQUAL;
+
+    case D3DCMP_NEVER:
+        return RenderComparisonFunction::NEVER;
+    case D3DCMP_EQUAL:
+        return RenderComparisonFunction::EQUAL;
+    case D3DCMP_NOTEQUAL:
+        return RenderComparisonFunction::NOT_EQUAL;
+    case D3DCMP_ALWAYS:
+        return RenderComparisonFunction::ALWAYS;
+
+    default:
+        assert(false && "Unknown comparison function");
+        return RenderComparisonFunction::NEVER;
+    }
+}
+
 static RenderBlendOperation ConvertBlendOp(uint32_t blendOp)
 {
     switch (blendOp)
@@ -740,41 +771,8 @@ static void ProcSetRenderState(const RenderCommand& cmd)
     }
     case D3DRS_ZFUNC:
     {
-        RenderComparisonFunction comparisonFunc;
-
-        switch (value)
-        {
-        case D3DCMP_NEVER:
-            comparisonFunc = RenderComparisonFunction::NEVER;
-            break;
-        case D3DCMP_LESS:
-            comparisonFunc = RenderComparisonFunction::LESS;
-            break;
-        case D3DCMP_EQUAL:
-            comparisonFunc = RenderComparisonFunction::EQUAL;
-            break;
-        case D3DCMP_LESSEQUAL:
-            comparisonFunc = RenderComparisonFunction::LESS_EQUAL;
-            break;
-        case D3DCMP_GREATER:
-            comparisonFunc = RenderComparisonFunction::GREATER;
-            break;
-        case D3DCMP_NOTEQUAL:
-            comparisonFunc = RenderComparisonFunction::NOT_EQUAL;
-            break;
-        case D3DCMP_GREATEREQUAL:
-            comparisonFunc = RenderComparisonFunction::GREATER_EQUAL;
-            break;
-        case D3DCMP_ALWAYS:
-            comparisonFunc = RenderComparisonFunction::ALWAYS;
-            break;
-        default:
-            assert(false && "Unknown comparison function");
-            comparisonFunc = RenderComparisonFunction::NEVER;
-            break;
-        }
-
-        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zFunc, comparisonFunc);
+        g_zFunc = value;
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zFunc, ConvertComparisonFunc(value, g_viewport.minDepth >= g_viewport.maxDepth));
         break;
     }
     case D3DRS_ALPHAREF:
@@ -1543,6 +1541,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     surface->width = width;
     surface->height = height;
     surface->format = desc.format;
+    surface->guestFormat = format;
     surface->sampleCount = desc.multisampling.sampleCount;
 
     if (desc.multisampling.sampleCount != RenderSampleCount::COUNT_1 && desc.format == RenderFormat::D32_FLOAT)
@@ -1588,6 +1587,12 @@ static void FlushViewport()
             viewport.y *= height / 720.0f;    
             viewport.width *= width / 1280.0f;
             viewport.height *= height / 720.0f;
+        }
+
+        if (viewport.minDepth >= viewport.maxDepth)
+        {
+            viewport.minDepth = 1.0f - viewport.minDepth;
+            viewport.maxDepth = 1.0f - viewport.maxDepth;
         }
 
         commandList->setViewports(viewport);
@@ -1873,7 +1878,8 @@ static void ProcClear(const RenderCommand& cmd)
         if (!canClearInOnePass)
             SetFramebuffer(nullptr, g_depthStencil, true);
 
-        commandList->clearDepth(true, args.z);
+        // The condition here is done by the game to determine reverse Z.
+        commandList->clearDepth(true, g_depthStencil->guestFormat == D3DFMT_D24FS8 ? (1.0f - args.z) : args.z);
     }
 }
 
@@ -1909,6 +1915,9 @@ static void ProcSetViewport(const RenderCommand& cmd)
     SetDirtyValue<float>(g_dirtyStates.viewport, g_viewport.maxDepth, args.maxDepth);
 
     g_dirtyStates.scissorRect |= g_dirtyStates.viewport;
+
+    // Update Z function as it's dependent on reverse Z.
+    SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.zFunc, ConvertComparisonFunc(g_zFunc, args.minDepth >= args.maxDepth));
 }
 
 static void SetTexture(GuestDevice* device, uint32_t index, GuestTexture* texture) 
