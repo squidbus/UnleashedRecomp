@@ -406,3 +406,14 @@ registers = ["r4", "f1", "f2"]
 name = "LightShaftAspectRatioFix"
 address = 0x82BB1314
 registers = ["f28", "f0"]
+
+[[midasm_hook]]
+name = "ParticleTestIndexBufferMidAsmHook"
+address = 0x827D20A0
+registers = ["r30"]
+jump_address_on_true = 0x827D20EC
+
+[[midasm_hook]]
+name = "ParticleTestDrawIndexedPrimitiveMidAsmHook"
+address = 0x827D25AC
+registers = ["r7"]

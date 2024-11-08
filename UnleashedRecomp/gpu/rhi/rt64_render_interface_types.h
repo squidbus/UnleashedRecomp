@@ -1766,6 +1766,9 @@ namespace RT64 {
 
         // HDR.
         bool preferHDR = false;
+
+        // Draw.
+        bool triangleFan = false;
     };
 
     struct RenderInterfaceCapabilities {

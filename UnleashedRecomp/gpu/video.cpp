@@ -145,6 +145,8 @@ static bool g_vulkan;
 static std::unique_ptr<RenderInterface> g_interface;
 static std::unique_ptr<RenderDevice> g_device;
 
+static bool g_triangleFanSupported;
+
 static constexpr size_t NUM_FRAMES = 2;
 
 static uint32_t g_frame = 0;
@@ -316,8 +318,93 @@ static UploadAllocator g_uploadAllocators[NUM_FRAMES];
 
 static std::vector<GuestResource*> g_tempResources[NUM_FRAMES];
 static std::vector<std::unique_ptr<RenderBuffer>> g_tempBuffers[NUM_FRAMES];
-static RenderBufferReference g_quadIndexBuffer;
-static uint32_t g_quadCount;
+
+template<GuestPrimitiveType PrimitiveType>
+struct PrimitiveIndexData
+{
+    std::vector<uint16_t> indexData;
+    RenderBufferReference indexBuffer;
+    uint32_t currentIndexCount = 0;
+
+    uint32_t prepare(uint32_t guestPrimCount)
+    {
+        uint32_t primCount;
+        uint32_t indexCountPerPrimitive;
+
+        switch (PrimitiveType)
+        {
+        case D3DPT_TRIANGLEFAN:
+            primCount = guestPrimCount - 2;
+            indexCountPerPrimitive = 3; 
+            break;
+        case D3DPT_QUADLIST:
+            primCount = guestPrimCount / 4;
+            indexCountPerPrimitive = 6;
+            break;
+        default:
+            assert(false && "Unknown primitive type.");
+            break;
+        }
+
+        uint32_t indexCount = primCount * indexCountPerPrimitive;
+
+        if (indexData.size() < indexCount)
+        {
+            const size_t oldPrimCount = indexData.size() / indexCountPerPrimitive;
+            indexData.resize(indexCount);
+
+            for (size_t i = oldPrimCount; i < primCount; i++)
+            {
+                switch (PrimitiveType)
+                {
+                case D3DPT_TRIANGLEFAN:
+                {
+                    indexData[i * 3 + 0] = 0;
+                    indexData[i * 3 + 1] = static_cast<uint16_t>(i + 1);
+                    indexData[i * 3 + 2] = static_cast<uint16_t>(i + 2);
+                    break;
+                }
+                case D3DPT_QUADLIST:
+                {
+                    indexData[i * 6 + 0] = static_cast<uint16_t>(i * 4 + 0);
+                    indexData[i * 6 + 1] = static_cast<uint16_t>(i * 4 + 1);
+                    indexData[i * 6 + 2] = static_cast<uint16_t>(i * 4 + 2);
+
+                    indexData[i * 6 + 3] = static_cast<uint16_t>(i * 4 + 0);
+                    indexData[i * 6 + 4] = static_cast<uint16_t>(i * 4 + 2);
+                    indexData[i * 6 + 5] = static_cast<uint16_t>(i * 4 + 3);
+                    break;
+                }
+                default:
+                    assert(false && "Unknown primitive type.");
+                    break;
+                }
+            }
+        }
+
+        if (indexBuffer == NULL || currentIndexCount < indexCount)
+        {
+            auto allocation = g_uploadAllocators[g_frame].allocate<false>(indexData.data(), indexCount * 2, 2);
+            indexBuffer = allocation.buffer->at(allocation.offset);
+            currentIndexCount = indexCount;
+        }
+
+        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.buffer, indexBuffer);
+        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, indexCount * 2);
+        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, RenderFormat::R16_UINT);
+
+        return indexCount;
+    }
+
+    void reset()
+    {
+        indexBuffer = {};
+        currentIndexCount = 0;
+    }
+};
+
+static PrimitiveIndexData<D3DPT_TRIANGLEFAN> g_triangleFanIndexData;
+static PrimitiveIndexData<D3DPT_QUADLIST> g_quadIndexData;
 
 static void DestructTempResources()
 {
@@ -879,6 +966,8 @@ static void CreateHostDevice()
     g_interface = g_vulkan ? CreateVulkanInterface() : CreateD3D12Interface();
     g_device = g_interface->createDevice();
 
+    g_triangleFanSupported = g_device->getCapabilities().triangleFan;
+
     g_queue = g_device->createCommandQueue(RenderCommandListType::DIRECT);
 
     for (auto& commandList : g_commandLists)
@@ -1398,8 +1487,8 @@ static void ProcPresent(const RenderCommand& cmd)
     g_dirtyStates = DirtyStates(true);
     g_uploadAllocators[g_frame].reset();
     DestructTempResources();
-    g_quadIndexBuffer = {};
-    g_quadCount = 0;
+    g_triangleFanIndexData.reset();
+    g_quadIndexData.reset();
 
     BeginCommandList();
 
@@ -2299,7 +2388,7 @@ static RenderPrimitiveTopology ConvertPrimitiveType(uint32_t primitiveType)
     case D3DPT_TRIANGLESTRIP:
         return RenderPrimitiveTopology::TRIANGLE_STRIP;
     case D3DPT_TRIANGLEFAN:
-        return RenderPrimitiveTopology::TRIANGLE_FAN;
+        return g_triangleFanSupported ? RenderPrimitiveTopology::TRIANGLE_FAN : RenderPrimitiveTopology::TRIANGLE_LIST;
     default:
         assert(false && "Unknown primitive type");
         return RenderPrimitiveTopology::UNKNOWN;
@@ -2421,48 +2510,19 @@ static void ProcDrawPrimitiveUP(const RenderCommand& cmd)
     g_inputSlots[0].stride = args.vertexStreamZeroStride;
     g_dirtyStates.vertexStreamFirst = 0;
 
+    uint32_t indexCount = 0;
+
     if (args.primitiveType == D3DPT_QUADLIST)
-    {
-        static std::vector<uint16_t> quadIndexData;
-        const uint32_t quadCount = args.primitiveCount / 4;
-        const uint32_t triangleCount = quadCount * 6;
+        indexCount = g_quadIndexData.prepare(args.primitiveCount);
+    else if (!g_triangleFanSupported && args.primitiveType == D3DPT_TRIANGLEFAN)
+        indexCount = g_triangleFanIndexData.prepare(args.primitiveCount);
 
-        if (quadIndexData.size() < triangleCount)
-        {
-            const size_t oldQuadCount = quadIndexData.size() / 6;
-            quadIndexData.resize(triangleCount);
+    FlushRenderStateForRenderThread();
 
-            for (size_t i = oldQuadCount; i < quadCount; i++)
-            {
-                quadIndexData[i * 6 + 0] = static_cast<uint16_t>(i * 4 + 0);
-                quadIndexData[i * 6 + 1] = static_cast<uint16_t>(i * 4 + 1);
-                quadIndexData[i * 6 + 2] = static_cast<uint16_t>(i * 4 + 2);
-
-                quadIndexData[i * 6 + 3] = static_cast<uint16_t>(i * 4 + 0);
-                quadIndexData[i * 6 + 4] = static_cast<uint16_t>(i * 4 + 2);
-                quadIndexData[i * 6 + 5] = static_cast<uint16_t>(i * 4 + 3);
-            }
-        }
-
-        if (g_quadIndexBuffer == NULL || g_quadCount < quadCount)
-        {
-            auto allocation = g_uploadAllocators[g_frame].allocate<false>(quadIndexData.data(), triangleCount * 2, 2);
-            g_quadIndexBuffer = allocation.buffer->at(allocation.offset);
-            g_quadCount = quadCount;
-        }
-
-        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.buffer, g_quadIndexBuffer);
-        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.size, g_quadCount * 12);
-        SetDirtyValue(g_dirtyStates.indices, g_indexBufferView.format, RenderFormat::R16_UINT);
-
-        FlushRenderStateForRenderThread();
-        g_commandLists[g_frame]->drawIndexedInstanced(triangleCount, 1, 0, 0, 0);
-    }
+    if (indexCount != 0)
+        g_commandLists[g_frame]->drawIndexedInstanced(indexCount, 1, 0, 0, 0);
     else
-    {
-        FlushRenderStateForRenderThread();
         g_commandLists[g_frame]->drawInstanced(args.primitiveCount, 1, 0, 0);
-    }
 }
 
 static const char* ConvertDeclUsage(uint32_t usage)
@@ -3541,6 +3601,35 @@ void PostProcessResolutionFix(PPCRegister& r4, PPCRegister& f1, PPCRegister& f2)
 void LightShaftAspectRatioFix(PPCRegister& f28, PPCRegister& f0)
 {
     f28.f64 = f0.f64;
+}
+
+static const be<uint16_t> g_particleTestIndexBuffer[] =
+{
+    0, 1, 2,
+    0, 2, 3,
+    0, 3, 4,
+    0, 4, 5
+};
+
+bool ParticleTestIndexBufferMidAsmHook(PPCRegister& r30)
+{
+    if (!g_triangleFanSupported)
+    {
+        auto buffer = CreateIndexBuffer(sizeof(g_particleTestIndexBuffer), 0, D3DFMT_INDEX16);
+        void* memory = LockIndexBuffer(buffer, 0, 0, 0);
+        memcpy(memory, g_particleTestIndexBuffer, sizeof(g_particleTestIndexBuffer));
+        UnlockIndexBuffer(buffer);
+
+        r30.u32 = g_memory.MapVirtual(buffer);
+        return true;
+    }
+    return false;
+}
+
+void ParticleTestDrawIndexedPrimitiveMidAsmHook(PPCRegister& r7)
+{
+    if (!g_triangleFanSupported)
+        r7.u64 = std::size(g_particleTestIndexBuffer);
 }
 
 GUEST_FUNCTION_HOOK(sub_82BD99B0, CreateDevice);

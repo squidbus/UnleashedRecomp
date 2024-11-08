@@ -3280,6 +3280,14 @@ namespace RT64 {
                 rtStateUpdateSupportOption = d3d12Options5.RaytracingTier >= D3D12_RAYTRACING_TIER_1_1;
             }
 
+            // Check if triangle fan is supported.
+            bool triangleFanSupportOption = false;
+            D3D12_FEATURE_DATA_D3D12_OPTIONS15 d3d12Options15 = {};
+            res = deviceOption->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS15, &d3d12Options15, sizeof(d3d12Options15));
+            if (SUCCEEDED(res)) {
+                triangleFanSupportOption = d3d12Options15.TriangleFanSupported;
+            }
+
             // Pick this adapter and device if it has better feature support than the current one.
             bool preferOverNothing = (adapter == nullptr) || (d3d == nullptr);
             bool preferVideoMemory = adapterDesc.DedicatedVideoMemory > description.dedicatedVideoMemory;
@@ -3300,6 +3308,7 @@ namespace RT64 {
                 capabilities.raytracing = rtSupportOption;
                 capabilities.raytracingStateUpdate = rtStateUpdateSupportOption;
                 capabilities.sampleLocations = samplePositionsOption;
+                capabilities.triangleFan = triangleFanSupportOption;
                 description.name = Utf16ToUtf8(adapterDesc.Description);
                 description.dedicatedVideoMemory = adapterDesc.DedicatedVideoMemory;
 
