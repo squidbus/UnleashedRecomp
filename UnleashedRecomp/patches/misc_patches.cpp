@@ -32,11 +32,6 @@ void WerehogBattleMusicMidAsmHook(PPCRegister& r11)
         r11.u8 = 3;
 }
 
-void SetXButtonHomingMidAsmHook(PPCRegister& r30)
-{
-    r30.u32 = Config::XButtonHoming;
-}
-
 /* Hook function that gets the game region
    and force result to zero for Japanese
    to display the correct logos. */
