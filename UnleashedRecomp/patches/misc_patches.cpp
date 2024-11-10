@@ -64,3 +64,16 @@ PPC_FUNC(sub_82547DF0)
         __imp__sub_82547DF0(ctx, base);
     }
 }
+
+/* Ignore xercesc::EmptyStackException to
+   allow DLC stages with invalid XML to load. */
+PPC_FUNC_IMPL(__imp__sub_8305D5B8);
+PPC_FUNC(sub_8305D5B8)
+{
+    auto value = PPC_LOAD_U32(ctx.r3.u32 + 4);
+
+    if (!value)
+        return;
+
+    __imp__sub_8305D5B8(ctx, base);
+}
