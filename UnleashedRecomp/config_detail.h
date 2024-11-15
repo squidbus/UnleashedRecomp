@@ -42,6 +42,8 @@ public:
     virtual std::string ToString() const = 0;
 };
 
+inline static std::vector<ConfigDefBase*> g_configDefs{};
+
 template<typename T, bool isMenuOption = true>
 class ConfigDef : public ConfigDefBase
 {
@@ -61,7 +63,7 @@ public:
     ConfigDef(std::string section, std::string name, T defaultValue)
         : Section(section), Name(name), DefaultValue(defaultValue)
     {
-        Config::Definitions.emplace_back(this);
+        g_configDefs.emplace_back(this);
     }
 
     ConfigDef(std::string section, std::string name, T defaultValue, std::unordered_map<std::string, T> enumTemplate)
@@ -70,19 +72,19 @@ public:
         for (const auto& pair : EnumTemplate)
             EnumTemplateReverse[pair.second] = pair.first;
 
-        Config::Definitions.emplace_back(this);
+        g_configDefs.emplace_back(this);
     }
 
     ConfigDef(std::string section, std::string name, T defaultValue, std::function<void(ConfigDef<T, isMenuOption>*)> readCallback)
         : Section(section), Name(name), DefaultValue(defaultValue), ReadCallback(readCallback)
     {
-        Config::Definitions.emplace_back(this);
+        g_configDefs.emplace_back(this);
     }
 
     ConfigDef(std::string section, std::string name, T defaultValue, std::function<void(ConfigDef<T, isMenuOption>*, const toml::v3::table&)> readImpl)
         : Section(section), Name(name), DefaultValue(defaultValue), ReadImpl(readImpl)
     {
-        Config::Definitions.emplace_back(this);
+        g_configDefs.emplace_back(this);
     }
 
     void ReadValue(toml::v3::ex::parse_result& toml) override

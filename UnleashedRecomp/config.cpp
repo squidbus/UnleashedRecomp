@@ -14,7 +14,7 @@ void Config::Load()
     {
         auto toml = toml::parse_file(configPath.string());
 
-        for (auto def : Definitions)
+        for (auto def : g_configDefs)
         {
             def->ReadValue(toml);
 #if _DEBUG
@@ -38,7 +38,7 @@ void Config::Save()
     std::string result;
     std::string section;
 
-    for (auto def : Definitions)
+    for (auto def : g_configDefs)
     {
         auto isFirstSection = section.empty();
         auto isDefWithSection = section != def->GetSection();
