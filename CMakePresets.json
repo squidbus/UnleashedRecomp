@@ -36,11 +36,6 @@
                     "value": "x64-windows-static",
                     "type": "STRING"
                 }
-            },
-            "vendor": {
-                "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "intelliSenseMode": "windows-clang-x64"
-                }
             }
         },
         {
