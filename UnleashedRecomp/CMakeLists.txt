@@ -79,6 +79,8 @@ set(SWA_UI_CXX_SOURCES
     "ui/window.cpp"
 )
 
+set(SMOLV_SOURCE_DIR "${SWA_THIRDPARTY_ROOT}/ShaderRecomp/thirdparty/smol-v/source")
+
 set(SWA_CXX_SOURCES
     "app.cpp"
     "main.cpp"
@@ -93,6 +95,8 @@ set(SWA_CXX_SOURCES
     ${SWA_HID_CXX_SOURCES}
     ${SWA_PATCHES_CXX_SOURCES}
     ${SWA_UI_CXX_SOURCES}
+
+    "${SMOLV_SOURCE_DIR}/smolv.cpp"
 )
 
 if (WIN32)
@@ -122,6 +126,7 @@ find_package(zstd CONFIG REQUIRED)
 find_package(Stb REQUIRED)
 find_package(unofficial-concurrentqueue REQUIRED)
 find_package(imgui CONFIG REQUIRED)
+find_package(magic_enum CONFIG REQUIRED)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
 add_custom_command(TARGET UnleashedRecomp POST_BUILD
@@ -130,10 +135,13 @@ add_custom_command(TARGET UnleashedRecomp POST_BUILD
    COMMAND_EXPAND_LISTS
 )
 
+file(COPY ${PACKAGE_PREFIX_DIR}/bin/dxil.dll DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 target_link_libraries(UnleashedRecomp PRIVATE
     Microsoft::DirectX-Headers 
     Microsoft::DirectX-Guids 
     Microsoft::DirectX12-Agility
+    Microsoft::DirectXShaderCompiler
     comctl32
     dxgi
     Vulkan::Headers
@@ -154,6 +162,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     unofficial::concurrentqueue::concurrentqueue
     Synchronization
     imgui::imgui
+    magic_enum::magic_enum
 )
 
 target_include_directories(UnleashedRecomp PRIVATE
@@ -161,6 +170,7 @@ target_include_directories(UnleashedRecomp PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/api
     ${SWA_THIRDPARTY_ROOT}/ddspp 
     ${Stb_INCLUDE_DIR}
+    ${SMOLV_SOURCE_DIR}
 )
 
 target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})
