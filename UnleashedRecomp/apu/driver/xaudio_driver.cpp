@@ -9,7 +9,7 @@
 
 #define XAUDIO_DRIVER_KEY (uint32_t)('XAUD')
 
-PPCFunc* g_clientCallback{};
+PPCFunc* volatile g_clientCallback{};
 DWORD g_clientCallbackParam{}; // pointer in guest memory
 DWORD g_driverThread{};
 
@@ -49,8 +49,6 @@ PPC_FUNC(DriverLoop)
     {
         if (!g_clientCallback)
         {
-            // NOTE: This if statement doesn't get compiled in without this barrier. What?
-            _ReadBarrier();
             continue;
         }
 
