@@ -5,35 +5,22 @@
 #include <kernel/heap.h>
 
 #define SDLAUDIO_DRIVER_KEY (uint32_t)('SDLA')
-constexpr uint32_t g_semaphoreCount = 16;
-constexpr uint32_t g_audioFrameSize = XAUDIO_NUM_SAMPLES * XAUDIO_NUM_CHANNELS;
 
-PPCFunc* volatile g_clientCallback{};
-DWORD g_clientCallbackParam{}; // pointer in guest memory
+static constexpr uint32_t AUDIO_FRAME_SIZE = XAUDIO_NUM_SAMPLES * XAUDIO_NUM_CHANNELS;
 
-SDL_AudioDeviceID g_audioDevice{};
-SDL_sem* g_audioSemaphore{ SDL_CreateSemaphore(g_semaphoreCount) };
-uint32_t g_audioFrames[g_audioFrameSize * g_semaphoreCount];
-uint32_t g_audioFrameIndex = 0;
-uint32_t g_renderFrameIndex = 0; // Index of frame that's being rendered
-uint32_t g_numRenderFrames = 0; // Number of frames to render
-Mutex g_framesMutex{};
+static std::atomic<PPCFunc*> g_clientCallback{};
+static DWORD g_clientCallbackParam{}; // pointer in guest memory
+
+static SDL_AudioDeviceID g_audioDevice{};
+static moodycamel::BlockingReaderWriterCircularBuffer<std::array<uint32_t, AUDIO_FRAME_SIZE>> g_audioQueue(16);
 
 static void SDLAudioCallback(void*, uint8_t* frames, int len)
 {
-    std::lock_guard guard{ g_framesMutex };
-    if (g_numRenderFrames == 0)
-    {
-        memset(frames, 0, len);
-    }
+    std::array<uint32_t, AUDIO_FRAME_SIZE> audioFrame;
+    if (g_audioQueue.try_dequeue(audioFrame))
+        memcpy(frames, &audioFrame, sizeof(audioFrame));
     else
-    {
-        g_renderFrameIndex = (g_renderFrameIndex + 1) % g_semaphoreCount;
-        auto* srcFrames = &g_audioFrames[g_renderFrameIndex * g_audioFrameSize];
-        memcpy(frames, srcFrames, g_audioFrameSize * sizeof(float));
-        --g_numRenderFrames;
-    }
-    SDL_SemPost(g_audioSemaphore);
+        memset(frames, 0, len);
 }
 
 static PPC_FUNC(DriverLoop)
@@ -43,11 +30,8 @@ static PPC_FUNC(DriverLoop)
     while (true)
     {
         if (!g_clientCallback)
-        {
             continue;
-        }
 
-        SDL_SemWait(g_audioSemaphore);
         ctx.r3.u64 = g_clientCallbackParam;
         GuestCode::Run((void*)g_clientCallback, &ctx);
     }
@@ -55,8 +39,6 @@ static PPC_FUNC(DriverLoop)
 
 void XAudioInitializeSystem()
 {
-    assert(g_audioSemaphore);
-
     SDL_SetHint(SDL_HINT_AUDIO_CATEGORY, "playback");
     SDL_SetHint(SDL_HINT_AUDIO_DEVICE_APP_NAME, "SWA");
 
@@ -87,9 +69,7 @@ void XAudioRegisterClient(PPCFunc* callback, uint32_t param)
 
 void XAudioSubmitFrame(void* samples)
 {
-    std::lock_guard guard{ g_framesMutex };
-    uint32_t* audioFrame = &g_audioFrames[g_audioFrameSize * g_audioFrameIndex];
-    g_audioFrameIndex = (g_audioFrameIndex + 1) % g_semaphoreCount;
+    std::array<uint32_t, AUDIO_FRAME_SIZE> audioFrame;
 
     for (size_t i = 0; i < XAUDIO_NUM_SAMPLES; i++)
     {
@@ -97,5 +77,5 @@ void XAudioSubmitFrame(void* samples)
             audioFrame[i * XAUDIO_NUM_CHANNELS + j] = std::byteswap(((uint32_t*)samples)[j * XAUDIO_NUM_SAMPLES + i]);
     }
 
-    ++g_numRenderFrames;
+    g_audioQueue.wait_enqueue(audioFrame);
 }

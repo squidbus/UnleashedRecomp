@@ -160,6 +160,7 @@ find_package(unofficial-concurrentqueue REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(unofficial-tiny-aes-c CONFIG REQUIRED)
+find_path(READERWRITERQUEUE_INCLUDE_DIRS "readerwriterqueue/atomicops.h")
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
 add_custom_command(TARGET UnleashedRecomp POST_BUILD
@@ -207,6 +208,7 @@ target_include_directories(UnleashedRecomp PRIVATE
     ${LIBMSPACK_PATH}
     ${Stb_INCLUDE_DIR}
     ${SMOLV_SOURCE_DIR}
+    ${READERWRITERQUEUE_INCLUDE_DIRS}
 )
 
 target_precompile_headers(UnleashedRecomp PUBLIC ${SWA_PRECOMPILED_HEADERS})
