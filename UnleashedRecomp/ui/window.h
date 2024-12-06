@@ -1,9 +1,9 @@
 #pragma once
 
-#include <res/icon.h>
-#include <res/icon_night.h>
+#include <res/images/game_icon.bmp.h>
+#include <res/images/game_icon_night.bmp.h>
 #include <ui/window_events.h>
-#include <cfg/config.h>
+#include <user/config.h>
 
 #if _WIN32
 #include <dwmapi.h>
@@ -13,8 +13,6 @@
 
 #define DEFAULT_WIDTH 1280
 #define DEFAULT_HEIGHT 720
-
-class SDLEventListener;
 
 class Window
 {
@@ -29,8 +27,7 @@ public:
 
     inline static bool s_isFocused;
     inline static bool s_isIconNight;
-
-    inline static std::vector<SDLEventListener*> s_eventListeners;
+    inline static bool s_cursorAllowed = false;
 
     static SDL_Surface* GetIconSurface(void* pIconBmp, size_t iconSize)
     {
@@ -56,24 +53,24 @@ public:
     {
         if (isNight)
         {
-            SetIcon((void*)g_iconNight, g_iconNight_size);
+            SetIcon(g_game_icon_night, sizeof(g_game_icon_night));
         }
         else
         {
-            SetIcon((void*)g_icon, g_icon_size);
+            SetIcon(g_game_icon, sizeof(g_game_icon));
         }
+    }
+
+    static const char* GetTitle()
+    {
+        return Config::Language == ELanguage::Japanese
+            ? "SONIC WORLD ADVENTURE"
+            : "SONIC UNLEASHED";
     }
 
     static void SetTitle(const char* title = nullptr)
     {
-        if (!title)
-        {
-            title = Config::Language == ELanguage::Japanese
-                ? "SONIC WORLD ADVENTURE"
-                : "SONIC UNLEASHED";
-        }
-
-        SDL_SetWindowTitle(s_pWindow, title);
+        SDL_SetWindowTitle(s_pWindow, title ? title : GetTitle());
     }
 
     static void SetDarkTitleBar(bool isEnabled)
@@ -103,7 +100,7 @@ public:
         if (isEnabled)
         {
             SDL_SetWindowFullscreen(s_pWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-            SDL_ShowCursor(SDL_DISABLE);
+            SDL_ShowCursor(s_cursorAllowed ? SDL_ENABLE : SDL_DISABLE);
         }
         else
         {
@@ -113,6 +110,14 @@ public:
         }
 
         return isEnabled;
+    }
+    
+    static void SetCursorAllowed(bool isCursorAllowed)
+    {
+        s_cursorAllowed = isCursorAllowed;
+
+        // Refresh fullscreen state to enable the right cursor behavior.
+        SetFullscreen(IsFullscreen());
     }
 
     static bool IsMaximised()

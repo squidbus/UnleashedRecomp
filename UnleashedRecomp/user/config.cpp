@@ -18,13 +18,13 @@ void Config::Load()
         {
             def->ReadValue(toml);
 #if _DEBUG
-            printf("%s\n", def->GetDefinition().c_str());
+            printf("%s (0x%p)\n", def->GetDefinition().c_str(), def->GetValue());
 #endif
         }
     }
     catch (toml::parse_error& err)
     {
-        printf("Failed to parse configuration: %s\n", err.what());
+        printf("[*] Failed to parse configuration: %s\n", err.what());
     }
 }
 
@@ -62,6 +62,6 @@ void Config::Save()
     }
     else
     {
-        printf("Failed to write configuration.\n");
+        printf("[*] Failed to write configuration.\n");
     }
 }

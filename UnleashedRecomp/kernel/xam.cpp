@@ -8,6 +8,7 @@
 #include <unordered_set>
 #include <CommCtrl.h>
 #include "xxHashMap.h"
+#include <user/paths.h>
 
 // Needed for commctrl
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -245,7 +246,7 @@ SWA_API uint32_t XamContentCreateEx(DWORD dwUserIndex, LPCSTR szRootName, const 
 
             if (pContentData->dwContentType == XCONTENTTYPE_SAVEDATA)
             {
-                root = Config::GetSavePath().string();
+                root = GetSavePath().string();
             }
             else if (pContentData->dwContentType == XCONTENTTYPE_DLC)
             {
@@ -333,9 +334,6 @@ SWA_API uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_S
 {
     //printf("!!! STUB !!! XamInputGetState\n");
 
-    if (!Window::s_isFocused)
-        return 0;
-
     uint32_t result = hid::GetState(userIndex, state);
 
     if (result == ERROR_SUCCESS)
@@ -349,6 +347,9 @@ SWA_API uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_S
     }
     else if (userIndex == 0)
     {
+        if (!Window::s_isFocused)
+            return ERROR_SUCCESS;
+
         memset(state, 0, sizeof(*state));
         if (GetAsyncKeyState('W') & 0x8000)
             state->Gamepad.wButtons |= XAMINPUT_GAMEPAD_Y;

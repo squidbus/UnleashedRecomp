@@ -1,7 +1,13 @@
 #include <cpu/guest_code.h>
 #include <api/SWA.h>
 #include <ui/window.h>
-#include <cfg/config.h>
+#include <user/achievement_data.h>
+#include <user/config.h>
+
+void AchievementManagerUnlockMidAsmHook(PPCRegister& id)
+{
+    AchievementData::Unlock(id.u32);
+}
 
 bool DisableHintsMidAsmHook()
 {
@@ -22,9 +28,16 @@ bool DisableEvilControlTutorialMidAsmHook(PPCRegister& r4, PPCRegister& r5)
     return r4.u32 == 1 && r5.u32 == 1;
 }
 
+void ToggleSubtitlesMidAsmHook(PPCRegister& r27)
+{
+    auto pApplicationDocument = (SWA::CApplicationDocument*)g_memory.Translate(r27.u32);
+
+    pApplicationDocument->m_InspireSubtitles = Config::Subtitles;
+}
+
 void WerehogBattleMusicMidAsmHook(PPCRegister& r11)
 {
-    if (Config::WerehogBattleMusic)
+    if (Config::BattleTheme)
         return;
 
     // Swap CStateBattle for CStateNormal.
@@ -53,7 +66,7 @@ PPC_FUNC(sub_825197C0)
 PPC_FUNC_IMPL(__imp__sub_82547DF0);
 PPC_FUNC(sub_82547DF0)
 {
-    if (Config::LogoSkip)
+    if (Config::SkipIntroLogos)
     {
         ctx.r4.u64 = 0;
         ctx.r5.u64 = 0;

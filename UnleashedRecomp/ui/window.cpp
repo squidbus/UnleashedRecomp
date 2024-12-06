@@ -1,16 +1,17 @@
 #include "window.h"
 #include "sdl_listener.h"
-#include <cfg/config.h>
+#include <user/config.h>
 #include <SDL_syswm.h>
 
 bool m_isFullscreenKeyReleased = true;
+bool m_isResizing = false;
 
 int Window_OnSDLEvent(void*, SDL_Event* event)
 {
     if (ImGui::GetIO().BackendPlatformUserData != nullptr)
         ImGui_ImplSDL2_ProcessEvent(event);
 
-    for (auto listener : Window::s_eventListeners)
+    for (auto listener : GetEventListeners())
         listener->OnSDLEvent(event);
 
     switch (event->type)
@@ -84,7 +85,7 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
 
                 case SDL_WINDOWEVENT_FOCUS_GAINED:
                     Window::s_isFocused = true;
-                    SDL_ShowCursor(Window::IsFullscreen() ? SDL_DISABLE : SDL_ENABLE);
+                    SDL_ShowCursor(Window::IsFullscreen() && !Window::s_cursorAllowed ? SDL_DISABLE : SDL_ENABLE);
                     break;
 
                 case SDL_WINDOWEVENT_RESTORED:
@@ -96,8 +97,10 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                     break;
 
                 case SDL_WINDOWEVENT_RESIZED:
+                    m_isResizing = true;
                     Window::s_width = event->window.data1;
                     Window::s_height = event->window.data2;
+                    Window::SetTitle(std::format("{} - [{}x{}]", Window::GetTitle(), Window::s_width, Window::s_height).c_str());
                     break;
 
                 case SDL_WINDOWEVENT_MOVED:
@@ -114,6 +117,20 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
             Window::s_isIconNight = event->user.code;
             Window::SetIcon(Window::s_isIconNight);
             break;
+        }
+    }
+
+    if (!Window::IsFullscreen())
+    {
+        if (event->type == SDL_CONTROLLERBUTTONDOWN || event->type == SDL_CONTROLLERBUTTONUP || event->type == SDL_CONTROLLERAXISMOTION)
+        {
+            // Hide mouse cursor when controller input is detected.
+            SDL_ShowCursor(SDL_DISABLE);
+        }
+        else if (event->type == SDL_MOUSEMOTION)
+        {
+            // Restore mouse cursor when mouse input is detected.
+            SDL_ShowCursor(SDL_ENABLE);
         }
     }
 
@@ -176,5 +193,11 @@ void Window::Update()
         Config::WindowY = Window::s_y;
         Config::WindowWidth = Window::s_width;
         Config::WindowHeight = Window::s_height;
+    }
+
+    if (m_isResizing)
+    {
+        SetTitle();
+        m_isResizing = false;
     }
 }

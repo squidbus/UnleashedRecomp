@@ -10,6 +10,14 @@
 
 using namespace plume;
 
+struct Video
+{
+    static void CreateHostDevice();
+    static void HostPresent();
+    static void StartPipelinePrecompilation();
+    static void WaitForGPU();
+};
+
 struct GuestSamplerState
 {
     be<uint32_t> data[6];
@@ -378,3 +386,7 @@ enum GuestTextureAddress
     D3DTADDRESS_MIRRORONCE = 3,
     D3DTADDRESS_BORDER = 6
 };
+
+extern std::unique_ptr<GuestTexture> LoadTexture(const uint8_t* data, size_t dataSize, RenderComponentMapping componentMapping = RenderComponentMapping());
+
+extern void VideoConfigValueChangedCallback(class IConfigDef* config);

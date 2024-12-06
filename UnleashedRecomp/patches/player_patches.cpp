@@ -2,7 +2,7 @@
 #include <api/SWA.h>
 #include <ui/window.h>
 #include <ui/window_events.h>
-#include <cfg/config.h>
+#include <user/config.h>
 
 uint32_t m_lastCheckpointScore = 0;
 float m_lastDarkGaiaEnergy = 0.0f;
@@ -15,7 +15,7 @@ PPC_FUNC(sub_82624308)
 {
     __imp__sub_82624308(ctx, base);
 
-    if (Config::ScoreBehaviour != EScoreBehaviour::CheckpointRetain)
+    if (!Config::SaveScoreAtCheckpoints)
         return;
 
     auto pGameDocument = SWA::CGameDocument::GetInstance();
@@ -24,6 +24,8 @@ PPC_FUNC(sub_82624308)
         return;
 
     m_lastCheckpointScore = pGameDocument->m_pMember->m_Score;
+
+    printf("[*] Score: %d\n", m_lastCheckpointScore);
 }
 
 /* Hook function that resets the score
@@ -33,7 +35,7 @@ PPC_FUNC(sub_8245F048)
 {
     __imp__sub_8245F048(ctx, base);
 
-    if (Config::ScoreBehaviour != EScoreBehaviour::CheckpointRetain)
+    if (!Config::SaveScoreAtCheckpoints)
         return;
 
     auto pGameDocument = SWA::CGameDocument::GetInstance();
@@ -41,7 +43,7 @@ PPC_FUNC(sub_8245F048)
     if (!pGameDocument)
         return;
 
-    printf("[*] Resetting score to %d\n", m_lastCheckpointScore);
+    printf("[*] Score: %d\n", m_lastCheckpointScore);
 
     pGameDocument->m_pMember->m_Score = m_lastCheckpointScore;
 }
@@ -60,12 +62,12 @@ PPC_FUNC(sub_823AF7A8)
     m_lastDarkGaiaEnergy = pEvilSonicContext->m_DarkGaiaEnergy;
 
     // Don't drain energy if out of control.
-    if (!Config::UnleashOutOfControlDrain && pEvilSonicContext->m_OutOfControlCount && ctx.f1.f64 < 0.0)
+    if (Config::UnleashGaugeBehaviour == EUnleashGaugeBehaviour::Revised && pEvilSonicContext->m_OutOfControlCount && ctx.f1.f64 < 0.0)
         return;
 
     __imp__sub_823AF7A8(ctx, base);
 
-    if (!Config::UnleashCancel)
+    if (!Config::AllowCancellingUnleash)
         return;
 
     auto pInputState = SWA::CInputState::GetInstance();
@@ -86,7 +88,7 @@ void PostUnleashMidAsmHook(PPCRegister& r30)
     if (m_isUnleashCancelled)
     {
         if (auto pEvilSonicContext = (SWA::Player::CEvilSonicContext*)g_memory.Translate(r30.u32))
-            pEvilSonicContext->m_DarkGaiaEnergy = m_lastDarkGaiaEnergy;
+            pEvilSonicContext->m_DarkGaiaEnergy = std::max(0.0f, m_lastDarkGaiaEnergy - 35.0f);
 
         m_isUnleashCancelled = false;
     }

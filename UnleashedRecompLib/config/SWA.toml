@@ -98,8 +98,9 @@ jump_address_on_false = 0x82468EE0
 
 [[midasm_hook]]
 name = "CameraBoostAspectRatioMidAsmHook"
-address = 0x8246BDA8
-registers = ["r31", "f0"]
+address = 0x8246BDA0
+registers = ["r31", "f0", "f10", "f12"]
+jump_address_on_true = 0x8246BDAC
 
 [[midasm_hook]]
 name = "CSDAspectRatioMidAsmHook"
@@ -453,3 +454,91 @@ registers = ["r1", "r30"]
 name = "StorageDevicePromptMidAsmHook"
 address = 0x822C53CC
 jump_address = 0x822C53F8
+
+# World Map Pause Menu
+[[midasm_hook]]
+name = "CHudPauseAddOptionsItemMidAsmHook"
+address = 0x824AF140
+registers = ["r31"]
+
+# Village Pause Menu
+[[midasm_hook]]
+name = "CHudPauseAddOptionsItemMidAsmHook"
+address = 0x824AF5BC
+registers = ["r31"]
+
+# Stage Pause Menu
+[[midasm_hook]]
+name = "CHudPauseAddOptionsItemMidAsmHook"
+address = 0x824AF988
+registers = ["r31"]
+
+# Hub Pause Menu
+[[midasm_hook]]
+name = "CHudPauseAddOptionsItemMidAsmHook"
+address = 0x824AFB20
+registers = ["r31"]
+
+# Misc Pause Menu
+[[midasm_hook]]
+name = "CHudPauseAddOptionsItemMidAsmHook"
+address = 0x824AFCC8
+registers = ["r31"]
+
+# World Map Pause Menu
+[[midasm_hook]]
+name = "CHudPauseItemCountMidAsmHook"
+address = 0x824B02F8
+registers = ["r3", "r11"]
+return_on_true = true
+
+# Village Pause Menu
+[[midasm_hook]]
+name = "CHudPauseVillageItemCountMidAsmHook"
+address = 0x824B04AC
+registers = ["r31", "r10"]
+
+# Stage Pause Menu
+[[midasm_hook]]
+name = "CHudPauseItemCountMidAsmHook"
+address = 0x824B061C
+registers = ["r3", "r11"]
+return_on_true = true
+
+# Hub Pause Menu
+[[midasm_hook]]
+name = "CHudPauseItemCountMidAsmHook"
+address = 0x824B07C4
+registers = ["r3", "r10"]
+return_on_true = true
+
+# Misc Pause Menu Index Wrap-around
+[[midasm_hook]]
+name = "CHudPauseItemCountMidAsmHook"
+address = 0x824B08A8
+registers = ["r3", "r11"]
+return_on_true = true
+
+# Misc Pause Menu Index Comparison
+[[midasm_hook]]
+name = "CHudPauseMiscItemCountMidAsmHook"
+address = 0x824B08B0
+registers = ["r11"]
+jump_address_on_true = 0x824B08C0
+
+# Misc Pause Menu Inject Options Behaviour
+[[midasm_hook]]
+name = "CHudPauseMiscInjectOptionsMidAsmHook"
+address = 0x824B08C0
+registers = ["r3"]
+return_on_true = true
+
+[[midasm_hook]]
+name = "ToggleSubtitlesMidAsmHook"
+address = 0x82B9BB74
+registers = ["r27"]
+
+[[midasm_hook]]
+name = "AchievementManagerUnlockMidAsmHook"
+address = 0x82BCFF28
+registers = ["r31"]

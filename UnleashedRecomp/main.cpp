@@ -11,8 +11,12 @@
 #include <xex.h>
 #include <apu/audio.h>
 #include <hid/hid.h>
-#include <cfg/config.h>
+#include <user/achievement_data.h>
+#include <user/config.h>
+#include <user/paths.h>
+#include <kernel/xdbf.h>
 #include <install/installer.h>
+#include <ui/installer_wizard.h>
 
 #define GAME_XEX_PATH "game:\\default.xex"
 
@@ -22,9 +26,10 @@ const size_t XMAIOEnd = XMAIOBegin + 0x0000FFFF;
 Memory g_memory{ reinterpret_cast<void*>(0x100000000), 0x100000000 };
 Heap g_userHeap;
 CodeCache g_codeCache;
+XDBFWrapper g_xdbfWrapper;
+std::unordered_map<uint16_t, GuestTexture*> g_xdbfTextureCache;
 
-// Name inspired from nt's entry point
-void KiSystemStartup()
+void HostStartup()
 {
 #ifdef _WIN32
     CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -36,12 +41,18 @@ void KiSystemStartup()
 
     g_memory.Alloc(XMAIOBegin, 0xFFFF, MEM_COMMIT);
 
+    hid::Init();
+}
+
+// Name inspired from nt's entry point
+void KiSystemStartup()
+{
     const auto gameContent = XamMakeContent(XCONTENTTYPE_RESERVED, "Game");
     const auto updateContent = XamMakeContent(XCONTENTTYPE_RESERVED, "Update");
     XamRegisterContent(gameContent, DirectoryExists(".\\game") ? ".\\game" : ".");
     XamRegisterContent(updateContent, ".\\update");
 
-    const auto savePath = Config::GetSavePath();
+    const auto savePath = GetSavePath();
     const auto saveName = "SYS-DATA";
 
     // TODO: implement save slots?
@@ -77,7 +88,6 @@ void KiSystemStartup()
     }
 
     XAudioInitializeSystem();
-    hid::Init();
 }
 
 uint32_t LdrLoadModule(const char* path)
@@ -125,16 +135,45 @@ uint32_t LdrLoadModule(const char* path)
         assert(false && "Unknown compression type.");
     }
 
+    auto res = Xex2FindOptionalHeader<XEX_RESOURCE_INFO>(xex, XEX_HEADER_RESOURCE_INFO);
+
+    g_xdbfWrapper = XDBFWrapper((uint8_t*)g_memory.Translate(res->Offset.get()), res->SizeOfData);
+
     return entry;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    bool forceInstaller = false;
+    bool forceDLCInstaller = false;
+    for (uint32_t i = 1; i < argc; i++)
+    {
+        forceInstaller = forceInstaller || (strcmp(argv[i], "--install") == 0);
+        forceDLCInstaller = forceDLCInstaller || (strcmp(argv[i], "--install-dlc") == 0);
+    }
+
     Config::Load();
+
+    HostStartup();
+
+    Video::CreateHostDevice();
+
+    bool isGameInstalled = Installer::checkGameInstall(".");
+    if (forceInstaller || forceDLCInstaller || !isGameInstalled)
+    {
+        if (!InstallerWizard::Run(isGameInstalled && forceDLCInstaller))
+        {
+            return 1;
+        }
+    }
+
+    AchievementData::Load();
 
     KiSystemStartup();
 
     uint32_t entry = LdrLoadModule(FileSystem::TransformPath(GAME_XEX_PATH));
+
+    Video::StartPipelinePrecompilation();
 
     GuestThread::Start(entry);
 

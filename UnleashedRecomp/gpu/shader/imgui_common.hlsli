@@ -2,8 +2,15 @@
 
 struct PushConstants
 {
+    float2 GradientMin;
+    float2 GradientMax;
+    uint GradientTop;
+    uint GradientBottom;
+    uint ShaderModifier;
     uint Texture2DDescriptorIndex;
     float2 InverseDisplaySize;
+    float2 Origin;
+    float2 Scale;
 };
 
 Texture2D<float4> g_Texture2DDescriptorHeap[] : register(t0, space0);

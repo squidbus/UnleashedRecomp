@@ -6,13 +6,25 @@
 #include <cpu/guest_code.h>
 #include <cpu/guest_thread.h>
 #include <kernel/memory.h>
+#include <kernel/xdbf.h>
 #include <xxHashMap.h>
 #include <shader/shader_cache.h>
+#include <ui/achievement_menu.h>
+#include <ui/achievement_overlay.h>
+#include <ui/button_guide.h>
+#include <ui/message_window.h>
+#include <ui/options_menu.h>
+#include <ui/installer_wizard.h>
 
 #include "imgui_snapshot.h"
+#include "imgui_common.h"
 #include "video.h"
 #include <ui/sdl_listener.h>
-#include <cfg/config.h>
+#include <ui/window.h>
+#include <user/config.h>
+
+#include <res/font/im_font_atlas.dds.h>
+#include <decompressor.h>
 
 #include <SWA.h>
 
@@ -768,7 +780,7 @@ static void SetAlphaTestMode(bool enable)
 
     if (enable)
     {
-        enableAlphaToCoverage = Config::AlphaToCoverage && g_renderTarget != nullptr && g_renderTarget->sampleCount != RenderSampleCount::COUNT_1;
+        enableAlphaToCoverage = Config::TransparencyAntiAliasing && g_renderTarget != nullptr && g_renderTarget->sampleCount != RenderSampleCount::COUNT_1;
 
         if (enableAlphaToCoverage)
             specConstants = SPEC_CONSTANT_ALPHA_TO_COVERAGE;
@@ -1020,10 +1032,7 @@ static bool DetectWine()
 static constexpr size_t TEXTURE_DESCRIPTOR_SIZE = 65536;
 static constexpr size_t SAMPLER_DESCRIPTOR_SIZE = 1024;
 
-static std::unique_ptr<RenderTexture> g_imFontTexture;
-static std::unique_ptr<RenderTextureView> g_imFontTextureView;
-static uint32_t g_imFontTextureDescriptorIndex;
-static bool g_imPendingBarrier = true;
+static std::unique_ptr<GuestTexture> g_imFontTexture;
 static std::unique_ptr<RenderPipelineLayout> g_imPipelineLayout;
 static std::unique_ptr<RenderPipeline> g_imPipeline;
 static ImDrawDataSnapshot g_imSnapshot;
@@ -1043,12 +1052,51 @@ static void ExecuteCopyCommandList(const T& function)
 static constexpr uint32_t PITCH_ALIGNMENT = 0x100;
 static constexpr uint32_t PLACEMENT_ALIGNMENT = 0x200;
 
+struct ImGuiPushConstants
+{
+    ImVec2 gradientMin{};
+    ImVec2 gradientMax{};
+    ImU32 gradientTop{};
+    ImU32 gradientBottom{};
+    uint32_t shaderModifier{};
+    uint32_t texture2DDescriptorIndex{};
+    ImVec2 inverseDisplaySize{};
+    ImVec2 origin{ 0.0f, 0.0f };
+    ImVec2 scale{ 1.0f, 1.0f };
+};
+
 static void CreateImGuiBackend()
 {
     ImGuiIO& io = ImGui::GetIO();
+    io.IniFilename = nullptr;
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
+#ifdef ENABLE_IM_FONT_ATLAS_SNAPSHOT
+    IM_DELETE(io.Fonts);
+    io.Fonts = ImFontAtlasSnapshot::Load();
+#else
+    io.Fonts->TexDesiredWidth = 4096;
+    io.Fonts->AddFontDefault();
+    ImFontAtlasSnapshot::GenerateGlyphRanges();
+#endif
+
+    AchievementMenu::Init();
+    AchievementOverlay::Init();
+    ButtonGuide::Init();
+    MessageWindow::Init();
+    OptionsMenu::Init();
+    InstallerWizard::Init();
 
     ImGui_ImplSDL2_InitForOther(Window::s_pWindow);
+
+    RenderComponentMapping componentMapping(RenderSwizzle::ONE, RenderSwizzle::ONE, RenderSwizzle::ONE, RenderSwizzle::R);
+
+#ifdef ENABLE_IM_FONT_ATLAS_SNAPSHOT
+    g_imFontTexture = LoadTexture(decompressZstd(g_im_font_atlas_texture, g_im_font_atlas_texture_uncompressed_size).get(),
+        g_im_font_atlas_texture_uncompressed_size, componentMapping);
+#else
+    g_imFontTexture = std::make_unique<GuestTexture>(ResourceType::Texture);
 
     uint8_t* pixels;
     int width, height;
@@ -1062,7 +1110,9 @@ static void CreateImGuiBackend()
     textureDesc.mipLevels = 1;
     textureDesc.arraySize = 1;
     textureDesc.format = RenderFormat::R8_UNORM;
-    g_imFontTexture = g_device->createTexture(textureDesc);
+
+    g_imFontTexture->textureHolder = g_device->createTexture(textureDesc);
+    g_imFontTexture->texture = g_imFontTexture->textureHolder.get();
 
     uint32_t rowPitch = (width + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
     uint32_t slicePitch = (rowPitch * height + PLACEMENT_ALIGNMENT - 1) & ~(PLACEMENT_ALIGNMENT - 1);
@@ -1087,24 +1137,27 @@ static void CreateImGuiBackend()
 
     ExecuteCopyCommandList([&]
         {
-            g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(g_imFontTexture.get(), RenderTextureLayout::COPY_DEST));
+            g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(g_imFontTexture->texture, RenderTextureLayout::COPY_DEST));
 
             g_copyCommandList->copyTextureRegion(
-                RenderTextureCopyLocation::Subresource(g_imFontTexture.get(), 0),
+                RenderTextureCopyLocation::Subresource(g_imFontTexture->texture, 0),
                 RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), RenderFormat::R8_UNORM, width, height, 1, rowPitch, 0));
         });
+
+    g_imFontTexture->layout = RenderTextureLayout::COPY_DEST;
 
     RenderTextureViewDesc textureViewDesc;
     textureViewDesc.format = textureDesc.format;
     textureViewDesc.dimension = RenderTextureViewDimension::TEXTURE_2D;
     textureViewDesc.mipLevels = 1;
-    textureViewDesc.componentMapping = RenderComponentMapping(RenderSwizzle::ONE, RenderSwizzle::ONE, RenderSwizzle::ONE, RenderSwizzle::R);
-    g_imFontTextureView = g_imFontTexture->createTextureView(textureViewDesc);
+    textureViewDesc.componentMapping = componentMapping;
+    g_imFontTexture->textureView = g_imFontTexture->texture->createTextureView(textureViewDesc);
 
-    g_imFontTextureDescriptorIndex = g_textureDescriptorAllocator.allocate();
-    g_textureDescriptorSet->setTexture(g_imFontTextureDescriptorIndex, g_imFontTexture.get(), RenderTextureLayout::SHADER_READ, g_imFontTextureView.get());
+    g_imFontTexture->descriptorIndex = g_textureDescriptorAllocator.allocate();
+    g_textureDescriptorSet->setTexture(g_imFontTexture->descriptorIndex, g_imFontTexture->texture, RenderTextureLayout::SHADER_READ, g_imFontTexture->textureView.get());
+#endif
 
-    io.Fonts->SetTexID(ImTextureID(g_imFontTextureDescriptorIndex));
+    io.Fonts->SetTexID(g_imFontTexture.get());
 
     RenderPipelineLayoutBuilder pipelineLayoutBuilder;
     pipelineLayoutBuilder.begin(false, true);
@@ -1120,7 +1173,7 @@ static void CreateImGuiBackend()
     descriptorSetBuilder.end(true, SAMPLER_DESCRIPTOR_SIZE);
     pipelineLayoutBuilder.addDescriptorSet(descriptorSetBuilder);
 
-    pipelineLayoutBuilder.addPushConstant(0, 2, 12, RenderShaderStageFlag::VERTEX | RenderShaderStageFlag::PIXEL);
+    pipelineLayoutBuilder.addPushConstant(0, 2, sizeof(ImGuiPushConstants), RenderShaderStageFlag::VERTEX | RenderShaderStageFlag::PIXEL);
 
     pipelineLayoutBuilder.end();
     g_imPipelineLayout = pipelineLayoutBuilder.create(g_device.get());
@@ -1147,9 +1200,37 @@ static void CreateImGuiBackend()
     pipelineDesc.inputSlots = &inputSlot;
     pipelineDesc.inputSlotsCount = 1;
     g_imPipeline = g_device->createGraphicsPipeline(pipelineDesc);
+
+#ifndef ENABLE_IM_FONT_ATLAS_SNAPSHOT
+    ImFontAtlasSnapshot snapshot;
+    snapshot.Snap();
+
+    FILE* file = fopen("im_font_atlas.bin", "wb");
+    if (file)
+    {
+        fwrite(snapshot.data.data(), 1, snapshot.data.size(), file);
+        fclose(file);
+    }
+
+    ddspp::Header header;
+    ddspp::HeaderDXT10 headerDX10;
+    ddspp::encode_header(ddspp::R8_UNORM, width, height, 1, ddspp::Texture2D, 1, 1, header, headerDX10);
+
+    file = fopen("im_font_atlas.dds", "wb");
+    if (file)
+    {
+        fwrite(&ddspp::DDS_MAGIC, 4, 1, file);
+        fwrite(&header, sizeof(header), 1, file);
+        fwrite(&headerDX10, sizeof(headerDX10), 1, file);
+        fwrite(pixels, 1, width * height, file);
+        fclose(file);
+    }
+#endif
 }
 
-static void CreateHostDevice()
+static void BeginCommandList();
+
+void Video::CreateHostDevice()
 {
     for (uint32_t i = 0; i < 16; i++)
         g_inputSlots[i].index = i;
@@ -1180,7 +1261,22 @@ static void CreateHostDevice()
     g_copyCommandList = g_device->createCommandList(RenderCommandListType::COPY);
     g_copyCommandFence = g_device->createCommandFence();
 
-    g_swapChain = g_queue->createSwapChain(Window::s_handle, Config::TripleBuffering ? 3 : 2, BACKBUFFER_FORMAT);
+    uint32_t bufferCount = 2;
+
+    switch (Config::TripleBuffering)
+    {
+    case ETripleBuffering::Auto:
+        bufferCount = g_vulkan ? 2 : 3; // Defaulting to 3 is fine on D3D12 thanks to flip discard model.
+        break;
+    case ETripleBuffering::On:
+        bufferCount = 3;
+        break;
+    case ETripleBuffering::Off:
+        bufferCount = 2;
+        break;
+    }
+
+    g_swapChain = g_queue->createSwapChain(Window::s_handle, bufferCount, BACKBUFFER_FORMAT);
     g_swapChain->setVsyncEnabled(Config::VSync);
     g_swapChainValid = !g_swapChain->needsResize();
 
@@ -1323,9 +1419,23 @@ static void CreateHostDevice()
     desc.renderTargetBlend[0] = RenderBlendDesc::Copy();
     desc.renderTargetCount = 1;
     g_gammaCorrectionPipeline = g_device->createGraphicsPipeline(desc);
+
+    g_backBuffer = g_userHeap.AllocPhysical<GuestSurface>(ResourceType::RenderTarget);
+    g_backBuffer->width = 1280;
+    g_backBuffer->height = 720;
+    g_backBuffer->format = BACKBUFFER_FORMAT;
+    g_backBuffer->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(1, 1, 1, BACKBUFFER_FORMAT, RenderTextureFlag::RENDER_TARGET));
+
+    BeginCommandList();
+
+    RenderTextureBarrier blankTextureBarriers[TEXTURE_DESCRIPTOR_NULL_COUNT];
+    for (size_t i = 0; i < TEXTURE_DESCRIPTOR_NULL_COUNT; i++)
+        blankTextureBarriers[i] = RenderTextureBarrier(g_blankTextures[i].get(), RenderTextureLayout::SHADER_READ);
+
+    g_commandLists[g_frame]->barriers(RenderBarrierStage::NONE, blankTextureBarriers, std::size(blankTextureBarriers));
 }
 
-static void WaitForGPU()
+void Video::WaitForGPU()
 {
     if (g_vulkan)
     {
@@ -1346,12 +1456,11 @@ static void WaitForGPU()
     }
 }
 
-static bool g_pendingRenderThread;
+static std::atomic<bool> g_pendingRenderThread;
 
 static void WaitForRenderThread()
 {
-    while (g_pendingRenderThread)
-        Sleep(0);
+    g_pendingRenderThread.wait(true);
 }
 
 static void BeginCommandList()
@@ -1363,11 +1472,12 @@ static void BeginCommandList()
     g_pipelineState.renderTargetFormat = BACKBUFFER_FORMAT;
     g_pipelineState.depthStencilFormat = RenderFormat::UNKNOWN;
 
+    g_swapChain->setVsyncEnabled(Config::VSync);
     g_swapChainValid &= !g_swapChain->needsResize();
 
     if (!g_swapChainValid)
     {
-        WaitForGPU();
+        Video::WaitForGPU();
         g_backBuffer->framebuffers.clear();
         g_swapChainValid = g_swapChain->resize();
         g_needsResize = g_swapChainValid;
@@ -1378,7 +1488,7 @@ static void BeginCommandList()
 
     if (g_swapChainValid)
     {
-        bool applyingGammaCorrection = Config::Xbox360ColourCorrection || abs(Config::Brightness - 0.5f) > 0.001f;
+        bool applyingGammaCorrection = Config::XboxColourCorrection || abs(Config::Brightness - 0.5f) > 0.001f;
 
         if (applyingGammaCorrection)
         {
@@ -1391,7 +1501,7 @@ static void BeginCommandList()
                 if (g_intermediaryBackBufferTextureDescriptorIndex == NULL)
                     g_intermediaryBackBufferTextureDescriptorIndex = g_textureDescriptorAllocator.allocate();
 
-                WaitForGPU(); // Fine to wait for GPU, this'll only happen during resize.
+                Video::WaitForGPU(); // Fine to wait for GPU, this'll only happen during resize.
 
                 g_intermediaryBackBufferTexture = g_device->createTexture(RenderTextureDesc::Texture2D(width, height, 1, BACKBUFFER_FORMAT, RenderTextureFlag::RENDER_TARGET));
                 g_textureDescriptorSet->setTexture(g_intermediaryBackBufferTextureDescriptorIndex, g_intermediaryBackBufferTexture.get(), RenderTextureLayout::SHADER_READ);
@@ -1438,21 +1548,17 @@ static void BeginCommandList()
 
 static uint32_t CreateDevice(uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5, be<uint32_t>* a6)
 {
-    CreateHostDevice();
+    g_xdbfTextureCache = std::unordered_map<uint16_t, GuestTexture *>();
 
-    g_backBuffer = g_userHeap.AllocPhysical<GuestSurface>(ResourceType::RenderTarget);
-    g_backBuffer->width = 1280;
-    g_backBuffer->height = 720;
-    g_backBuffer->format = BACKBUFFER_FORMAT;
-    g_backBuffer->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(1, 1, 1, BACKBUFFER_FORMAT, RenderTextureFlag::RENDER_TARGET));
+    for (auto &achievement : g_xdbfWrapper.GetAchievements(XDBF_LANGUAGE_ENGLISH))
+    {
+        // huh?
+        if (!achievement.pImageBuffer || !achievement.ImageBufferSize)
+            continue;
 
-    BeginCommandList();
-
-    RenderTextureBarrier blankTextureBarriers[TEXTURE_DESCRIPTOR_NULL_COUNT];
-    for (size_t i = 0; i < TEXTURE_DESCRIPTOR_NULL_COUNT; i++)
-        blankTextureBarriers[i] = RenderTextureBarrier(g_blankTextures[i].get(), RenderTextureLayout::SHADER_READ);
-
-    g_commandLists[g_frame]->barriers(RenderBarrierStage::NONE, blankTextureBarriers, std::size(blankTextureBarriers));
+        g_xdbfTextureCache[achievement.ID] =
+            LoadTexture((uint8_t *)achievement.pImageBuffer, achievement.ImageBufferSize).release();
+    }
 
     auto device = g_userHeap.AllocPhysical<GuestDevice>();
     memset(device, 0, sizeof(*device));
@@ -1668,6 +1774,8 @@ static void DrawImGui()
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
+    ResetImGuiCallbacks();
+
 #ifdef ASYNC_PSO_DEBUG
     if (ImGui::Begin("Async PSO Stats"))
     {
@@ -1684,6 +1792,13 @@ static void DrawImGui()
     ImGui::End();
 #endif
 
+    AchievementMenu::Draw();
+    OptionsMenu::Draw();
+    AchievementOverlay::Draw();
+    InstallerWizard::Draw();
+    MessageWindow::Draw();
+    ButtonGuide::Draw();
+
     ImGui::Render();
 
     auto drawData = ImGui::GetDrawData();
@@ -1697,15 +1812,16 @@ static void DrawImGui()
     }
 }
 
+static void SetFramebuffer(GuestSurface *renderTarget, GuestSurface *depthStencil, bool settingForClear);
+
 static void ProcDrawImGui(const RenderCommand& cmd)
 {
-    auto& commandList = g_commandLists[g_frame];
+    // Make sure the backbuffer is the current target.
+    AddBarrier(g_backBuffer, RenderTextureLayout::COLOR_WRITE);
+    FlushBarriers();
+    SetFramebuffer(g_backBuffer, nullptr, false);
 
-    if (g_imPendingBarrier)
-    {
-        commandList->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(g_imFontTexture.get(), RenderTextureLayout::SHADER_READ));
-        g_imPendingBarrier = false;
-    }
+    auto& commandList = g_commandLists[g_frame];
 
     commandList->setGraphicsPipelineLayout(g_imPipelineLayout.get());
     commandList->setPipeline(g_imPipeline.get());
@@ -1715,8 +1831,9 @@ static void ProcDrawImGui(const RenderCommand& cmd)
     auto& drawData = g_imSnapshot.DrawData;
     commandList->setViewports(RenderViewport(drawData.DisplayPos.x, drawData.DisplayPos.y, drawData.DisplaySize.x, drawData.DisplaySize.y));
 
-    float inverseDisplaySize[] = { 1.0f / drawData.DisplaySize.x, 1.0f / drawData.DisplaySize.y };
-    commandList->setGraphicsPushConstants(0, inverseDisplaySize, 4, 8);
+    ImGuiPushConstants pushConstants{};
+    pushConstants.inverseDisplaySize = { 1.0f / drawData.DisplaySize.x, 1.0f / drawData.DisplaySize.y };
+    commandList->setGraphicsPushConstants(0, &pushConstants);
 
     for (int i = 0; i < drawData.CmdListsCount; i++)
     {
@@ -1735,33 +1852,69 @@ static void ProcDrawImGui(const RenderCommand& cmd)
         for (int j = 0; j < drawList->CmdBuffer.Size; j++)
         {
             auto& drawCmd = drawList->CmdBuffer[j];
+            if (drawCmd.UserCallback != nullptr)
+            {
+                auto callbackData = reinterpret_cast<const ImGuiCallbackData*>(drawCmd.UserCallbackData);
 
-            if (drawCmd.ClipRect.z <= drawCmd.ClipRect.x || drawCmd.ClipRect.w <= drawCmd.ClipRect.y)
-                continue;
+                switch (static_cast<ImGuiCallback>(reinterpret_cast<size_t>(drawCmd.UserCallback)))
+                {
+                case ImGuiCallback::SetGradient:
+                    commandList->setGraphicsPushConstants(0, &callbackData->setGradient, offsetof(ImGuiPushConstants, gradientMin), sizeof(callbackData->setGradient));
+                    break;       
+                case ImGuiCallback::SetShaderModifier:
+                    commandList->setGraphicsPushConstants(0, &callbackData->setShaderModifier, offsetof(ImGuiPushConstants, shaderModifier), sizeof(callbackData->setShaderModifier));
+                    break;
+                case ImGuiCallback::SetOrigin:
+                    commandList->setGraphicsPushConstants(0, &callbackData->setOrigin, offsetof(ImGuiPushConstants, origin), sizeof(callbackData->setOrigin));
+                    break;
+                case ImGuiCallback::SetScale:
+                    commandList->setGraphicsPushConstants(0, &callbackData->setScale, offsetof(ImGuiPushConstants, scale), sizeof(callbackData->setScale));
+                    break;
+                }
+            }
+            else
+            {
+                if (drawCmd.ClipRect.z <= drawCmd.ClipRect.x || drawCmd.ClipRect.w <= drawCmd.ClipRect.y)
+                    continue;
 
-            uint32_t descriptorIndex = uint32_t(drawCmd.GetTexID());
-            commandList->setGraphicsPushConstants(0, &descriptorIndex, 0, 4);
-            commandList->setScissors(RenderRect(int32_t(drawCmd.ClipRect.x), int32_t(drawCmd.ClipRect.y), int32_t(drawCmd.ClipRect.z), int32_t(drawCmd.ClipRect.w)));
-            commandList->drawIndexedInstanced(drawCmd.ElemCount, 1, drawCmd.IdxOffset, drawCmd.VtxOffset, 0);
+                auto texture = reinterpret_cast<GuestTexture*>(drawCmd.TextureId);
+                uint32_t descriptorIndex = TEXTURE_DESCRIPTOR_NULL_TEXTURE_2D;
+                if (texture != nullptr)
+                {
+                    if (texture->layout != RenderTextureLayout::SHADER_READ)
+                    {
+                        commandList->barriers(RenderBarrierStage::GRAPHICS | RenderBarrierStage::COPY,
+                            RenderTextureBarrier(texture->texture, RenderTextureLayout::SHADER_READ));
+
+                        texture->layout = RenderTextureLayout::SHADER_READ;
+                    }
+
+                    descriptorIndex = texture->descriptorIndex;
+                }
+
+                commandList->setGraphicsPushConstants(0, &descriptorIndex, offsetof(ImGuiPushConstants, texture2DDescriptorIndex), sizeof(descriptorIndex));
+                commandList->setScissors(RenderRect(int32_t(drawCmd.ClipRect.x), int32_t(drawCmd.ClipRect.y), int32_t(drawCmd.ClipRect.z), int32_t(drawCmd.ClipRect.w)));
+                commandList->drawIndexedInstanced(drawCmd.ElemCount, 1, drawCmd.IdxOffset, drawCmd.VtxOffset, 0);
+            }
         }
     }
 }
 
-static bool g_precompiledPipelineStateCache = false;
+static bool g_shouldPrecompilePipelines = false;
 
-static void Present() 
+void Video::HostPresent() 
 {
-    DrawImGui();
     WaitForRenderThread();
+    DrawImGui();
 
-    g_pendingRenderThread = true;
+    g_pendingRenderThread.store(true);
 
     RenderCommand cmd;
     cmd.type = RenderCommandType::Present;
     g_renderQueue.enqueue(cmd);
 
     // All the shaders are available at this point. We can precompile embedded PSOs then.
-    if (!g_precompiledPipelineStateCache)
+    if (g_shouldPrecompilePipelines)
     {
         // This is all the model consumer thread needs to see.
         ++g_compilingDataCount;
@@ -1769,8 +1922,18 @@ static void Present()
         if ((++g_pendingDataCount) == 1)
             g_pendingDataCount.notify_all();
 
-        g_precompiledPipelineStateCache = true;
+        g_shouldPrecompilePipelines = false;
     }
+}
+
+void Video::StartPipelinePrecompilation()
+{
+    g_shouldPrecompilePipelines = true;
+}
+
+static void GuestPresent() 
+{
+    Video::HostPresent();
 }
 
 static void SetRootDescriptor(const UploadAllocation& allocation, size_t index)
@@ -1798,7 +1961,7 @@ static void ProcPresent(const RenderCommand& cmd)
                 uint32_t textureDescriptorIndex;
             } constants;
 
-            if (Config::Xbox360ColourCorrection)
+            if (Config::XboxColourCorrection)
             {
                 constants.gammaR = 1.2f;
                 constants.gammaG = 1.17f;
@@ -1818,11 +1981,11 @@ static void ProcPresent(const RenderCommand& cmd)
             constants.gammaB = 1.0f / std::clamp(constants.gammaB + offset, 0.1f, 4.0f);
             constants.textureDescriptorIndex = g_intermediaryBackBufferTextureDescriptorIndex;
 
-            auto& framebuffer = g_backBuffer->framebuffers[swapChainTexture];
+            auto &framebuffer = g_backBuffer->framebuffers[swapChainTexture];
             if (!framebuffer)
             {
                 RenderFramebufferDesc desc;
-                desc.colorAttachments = const_cast<const RenderTexture**>(&swapChainTexture);
+                desc.colorAttachments = const_cast<const RenderTexture **>(&swapChainTexture);
                 desc.colorAttachmentsCount = 1;
                 framebuffer = g_device->createFramebuffer(desc);
             }
@@ -1833,7 +1996,7 @@ static void ProcPresent(const RenderCommand& cmd)
                 RenderTextureBarrier(swapChainTexture, RenderTextureLayout::COLOR_WRITE)
             };
 
-            auto& commandList = g_commandLists[g_frame];
+            auto &commandList = g_commandLists[g_frame];
             commandList->barriers(RenderBarrierStage::GRAPHICS, srcBarriers, std::size(srcBarriers));
             commandList->setGraphicsPipelineLayout(g_pipelineLayout.get());
             commandList->setPipeline(g_gammaCorrectionPipeline.get());
@@ -1852,14 +2015,14 @@ static void ProcPresent(const RenderCommand& cmd)
         }
     }
 
-    auto& commandList = g_commandLists[g_frame];
+    auto &commandList = g_commandLists[g_frame];
     commandList->end();
 
     if (g_swapChainValid)
     {
-        const RenderCommandList* commandLists[] = { commandList.get() };
-        RenderCommandSemaphore* waitSemaphores[] = { g_acquireSemaphores[g_frame].get() };
-        RenderCommandSemaphore* signalSemaphores[] = { g_renderSemaphores[g_frame].get() };
+        const RenderCommandList *commandLists[] = { commandList.get() };
+        RenderCommandSemaphore *waitSemaphores[] = { g_acquireSemaphores[g_frame].get() };
+        RenderCommandSemaphore *signalSemaphores[] = { g_renderSemaphores[g_frame].get() };
 
         g_queue->executeCommandLists(
             commandLists, std::size(commandLists),
@@ -1893,7 +2056,8 @@ static void ProcPresent(const RenderCommand& cmd)
 
     BeginCommandList();
 
-    g_pendingRenderThread = false;
+    g_pendingRenderThread.store(false);
+    g_pendingRenderThread.notify_all();
 }
 
 static GuestSurface* GetBackBuffer() 
@@ -2019,7 +2183,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     desc.depth = 1;
     desc.mipLevels = 1;
     desc.arraySize = 1;
-    desc.multisampling.sampleCount = multiSample != 0 && Config::MSAA > 1 ? Config::MSAA : RenderSampleCount::COUNT_1;
+    desc.multisampling.sampleCount = multiSample != 0 && Config::AntiAliasing != EAntiAliasing::None ? int32_t(Config::AntiAliasing.Value) : RenderSampleCount::COUNT_1;
     desc.format = ConvertFormat(format);
     desc.flags = desc.format == RenderFormat::D32_FLOAT ? RenderTextureFlag::DEPTH_TARGET : RenderTextureFlag::RENDER_TARGET;
 
@@ -4039,176 +4203,194 @@ static RenderFormat ConvertDXGIFormat(ddspp::DXGIFormat format)
     }
 }
 
-static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32_t dataSize)
+static bool LoadTexture(GuestTexture& texture, const uint8_t* data, size_t dataSize, RenderComponentMapping componentMapping)
 {
-    if ((pictureData->flags & 0x1) == 0 && data != nullptr)
+    ddspp::Descriptor ddsDesc;
+    if (ddspp::decode_header((unsigned char *)(data), ddsDesc) != ddspp::Error)
     {
-        ddspp::Descriptor ddsDesc;
-        if (ddspp::decode_header(data, ddsDesc) != ddspp::Error)
+        RenderTextureDesc desc;
+        desc.dimension = ConvertTextureDimension(ddsDesc.type);
+        desc.width = ddsDesc.width;
+        desc.height = ddsDesc.height;
+        desc.depth = ddsDesc.depth;
+        desc.mipLevels = ddsDesc.numMips;
+        desc.arraySize = ddsDesc.type == ddspp::TextureType::Cubemap ? ddsDesc.arraySize * 6 : ddsDesc.arraySize;
+        desc.format = ConvertDXGIFormat(ddsDesc.format);
+        desc.flags = ddsDesc.type == ddspp::TextureType::Cubemap ? RenderTextureFlag::CUBE : RenderTextureFlag::NONE;
+
+        texture.textureHolder = g_device->createTexture(desc);
+        texture.texture = texture.textureHolder.get();
+        texture.layout = RenderTextureLayout::COPY_DEST;
+
+        RenderTextureViewDesc viewDesc;
+        viewDesc.format = desc.format;
+        viewDesc.dimension = ConvertTextureViewDimension(ddsDesc.type);
+        viewDesc.mipLevels = ddsDesc.numMips;
+        viewDesc.componentMapping = componentMapping;
+        texture.textureView = texture.texture->createTextureView(viewDesc);
+        texture.descriptorIndex = g_textureDescriptorAllocator.allocate();
+        g_textureDescriptorSet->setTexture(texture.descriptorIndex, texture.texture, RenderTextureLayout::SHADER_READ, texture.textureView.get());
+
+        texture.viewDimension = viewDesc.dimension;
+
+        struct Slice
         {
-            const auto texture = g_userHeap.AllocPhysical<GuestTexture>(ResourceType::Texture);
+            uint32_t width;
+            uint32_t height;
+            uint32_t depth;
+            uint32_t srcOffset;
+            uint32_t dstOffset;
+            uint32_t srcRowPitch;
+            uint32_t dstRowPitch;
+            uint32_t rowCount;
+        };
 
-            RenderTextureDesc desc;
-            desc.dimension = ConvertTextureDimension(ddsDesc.type);
-            desc.width = ddsDesc.width;
-            desc.height = ddsDesc.height;
-            desc.depth = ddsDesc.depth;
-            desc.mipLevels = ddsDesc.numMips;
-            desc.arraySize = ddsDesc.type == ddspp::TextureType::Cubemap ? ddsDesc.arraySize * 6 : ddsDesc.arraySize;
-            desc.format = ConvertDXGIFormat(ddsDesc.format);
-            desc.flags = ddsDesc.type == ddspp::TextureType::Cubemap ? RenderTextureFlag::CUBE : RenderTextureFlag::NONE;
+        std::vector<Slice> slices;
+        uint32_t curSrcOffset = 0;
+        uint32_t curDstOffset = 0;
 
-            texture->textureHolder = g_device->createTexture(desc);
-            texture->texture = texture->textureHolder.get();
-            texture->layout = RenderTextureLayout::COPY_DEST;
-
-#ifdef _DEBUG
-            texture->texture->setName(reinterpret_cast<char*>(g_memory.Translate(pictureData->name + 2)));
-#endif
-
-            RenderTextureViewDesc viewDesc;
-            viewDesc.format = desc.format;
-            viewDesc.dimension = ConvertTextureViewDimension(ddsDesc.type);
-            viewDesc.mipLevels = ddsDesc.numMips;
-            texture->textureView = texture->texture->createTextureView(viewDesc);
-            texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
-            g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ, texture->textureView.get());
-
-            texture->viewDimension = viewDesc.dimension;
-
-            struct Slice
+        for (uint32_t arraySlice = 0; arraySlice < desc.arraySize; arraySlice++)
+        {
+            for (uint32_t mipSlice = 0; mipSlice < ddsDesc.numMips; mipSlice++)
             {
-                uint32_t width;
-                uint32_t height;
-                uint32_t depth;
-                uint32_t srcOffset;
-                uint32_t dstOffset;
-                uint32_t srcRowPitch;
-                uint32_t dstRowPitch;
-                uint32_t rowCount;
-            };
+                auto& slice = slices.emplace_back();
 
-            std::vector<Slice> slices;
-            uint32_t curSrcOffset = 0;
-            uint32_t curDstOffset = 0;
+                slice.width = std::max(1u, ddsDesc.width >> mipSlice);
+                slice.height = std::max(1u, ddsDesc.height >> mipSlice);
+                slice.depth = std::max(1u, ddsDesc.depth >> mipSlice);
+                slice.srcOffset = curSrcOffset;
+                slice.dstOffset = curDstOffset;
+                uint32_t rowPitch = ((slice.width + ddsDesc.blockWidth - 1) / ddsDesc.blockWidth) * ddsDesc.bitsPerPixelOrBlock;
+                slice.srcRowPitch = (rowPitch + 7) / 8;
+                slice.dstRowPitch = (slice.srcRowPitch + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
+                slice.rowCount = (slice.height + ddsDesc.blockHeight - 1) / ddsDesc.blockHeight;
 
-            for (uint32_t arraySlice = 0; arraySlice < desc.arraySize; arraySlice++)
+                curSrcOffset += slice.srcRowPitch * slice.rowCount * slice.depth;
+                curDstOffset += (slice.dstRowPitch * slice.rowCount * slice.depth + PLACEMENT_ALIGNMENT - 1) & ~(PLACEMENT_ALIGNMENT - 1);
+            }
+        }
+
+        auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(curDstOffset));
+        uint8_t* mappedMemory = reinterpret_cast<uint8_t*>(uploadBuffer->map());
+
+        for (auto& slice : slices)
+        {
+            const uint8_t* srcData = data + ddsDesc.headerSize + slice.srcOffset;
+            uint8_t* dstData = mappedMemory + slice.dstOffset;
+
+            if (slice.srcRowPitch == slice.dstRowPitch)
             {
-                for (uint32_t mipSlice = 0; mipSlice < ddsDesc.numMips; mipSlice++)
+                memcpy(dstData, srcData, slice.srcRowPitch * slice.rowCount * slice.depth);
+            }
+            else
+            {
+                for (size_t i = 0; i < slice.rowCount * slice.depth; i++)
                 {
-                    auto& slice = slices.emplace_back();
-
-                    slice.width = std::max(1u, ddsDesc.width >> mipSlice);
-                    slice.height = std::max(1u, ddsDesc.height >> mipSlice);
-                    slice.depth = std::max(1u, ddsDesc.depth >> mipSlice);
-                    slice.srcOffset = curSrcOffset;
-                    slice.dstOffset = curDstOffset;
-                    uint32_t rowPitch = ((slice.width + ddsDesc.blockWidth - 1) / ddsDesc.blockWidth) * ddsDesc.bitsPerPixelOrBlock;
-                    slice.srcRowPitch = (rowPitch + 7) / 8;
-                    slice.dstRowPitch = (slice.srcRowPitch + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
-                    slice.rowCount = (slice.height + ddsDesc.blockHeight - 1) / ddsDesc.blockHeight;
-
-                    curSrcOffset += slice.srcRowPitch * slice.rowCount * slice.depth;
-                    curDstOffset += (slice.dstRowPitch * slice.rowCount * slice.depth + PLACEMENT_ALIGNMENT - 1) & ~(PLACEMENT_ALIGNMENT - 1);
+                    memcpy(dstData, srcData, slice.srcRowPitch);
+                    srcData += slice.srcRowPitch;
+                    dstData += slice.dstRowPitch;
                 }
             }
+        }
 
-            auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(curDstOffset));
+        uploadBuffer->unmap();
+
+        ExecuteCopyCommandList([&]
+            {
+                g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture.texture, RenderTextureLayout::COPY_DEST));
+
+                for (size_t i = 0; i < slices.size(); i++)
+                {
+                    auto& slice = slices[i];
+
+                    g_copyCommandList->copyTextureRegion(
+                        RenderTextureCopyLocation::Subresource(texture.texture, i),
+                        RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), desc.format, slice.width, slice.height, slice.depth, (slice.dstRowPitch * 8) / ddsDesc.bitsPerPixelOrBlock * ddsDesc.blockWidth, slice.dstOffset));
+                }
+            });
+
+        return true;
+    }
+    else
+    {
+        int width, height;
+        void* stbImage = stbi_load_from_memory(data, dataSize, &width, &height, nullptr, 4);
+
+        if (stbImage != nullptr)
+        {
+            texture.textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(width, height, 1, RenderFormat::R8G8B8A8_UNORM));
+            texture.texture = texture.textureHolder.get();
+            texture.viewDimension = RenderTextureViewDimension::TEXTURE_2D;
+            texture.layout = RenderTextureLayout::COPY_DEST;
+
+            texture.descriptorIndex = g_textureDescriptorAllocator.allocate();
+            g_textureDescriptorSet->setTexture(texture.descriptorIndex, texture.texture, RenderTextureLayout::SHADER_READ);
+
+            uint32_t rowPitch = (width * 4 + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
+            uint32_t slicePitch = rowPitch * height;
+
+            auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(slicePitch));
             uint8_t* mappedMemory = reinterpret_cast<uint8_t*>(uploadBuffer->map());
 
-            for (auto& slice : slices)
+            if (rowPitch == (width * 4))
             {
-                uint8_t* srcData = data + ddsDesc.headerSize + slice.srcOffset;
-                uint8_t* dstData = mappedMemory + slice.dstOffset;
+                memcpy(mappedMemory, stbImage, slicePitch);
+            }
+            else
+            {
+                auto data = reinterpret_cast<const uint8_t*>(stbImage);
 
-                if (slice.srcRowPitch == slice.dstRowPitch)
+                for (size_t i = 0; i < height; i++)
                 {
-                    memcpy(dstData, srcData, slice.srcRowPitch * slice.rowCount * slice.depth);
-                }
-                else
-                {
-                    for (size_t i = 0; i < slice.rowCount * slice.depth; i++)
-                    {
-                        memcpy(dstData, srcData, slice.srcRowPitch);
-                        srcData += slice.srcRowPitch;
-                        dstData += slice.dstRowPitch;
-                    }
+                    memcpy(mappedMemory, data, width * 4);
+                    data += width * 4;
+                    mappedMemory += rowPitch;
                 }
             }
 
             uploadBuffer->unmap();
 
+            stbi_image_free(stbImage);
+
             ExecuteCopyCommandList([&]
                 {
-                    g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture, RenderTextureLayout::COPY_DEST));
+                    g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture.texture, RenderTextureLayout::COPY_DEST));
 
-                    for (size_t i = 0; i < slices.size(); i++)
-                    {
-                        auto& slice = slices[i];
-
-                        g_copyCommandList->copyTextureRegion(
-                            RenderTextureCopyLocation::Subresource(texture->texture, i),
-                            RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), desc.format, slice.width, slice.height, slice.depth, (slice.dstRowPitch * 8) / ddsDesc.bitsPerPixelOrBlock * ddsDesc.blockWidth, slice.dstOffset));
-                    }
+                    g_copyCommandList->copyTextureRegion(
+                        RenderTextureCopyLocation::Subresource(texture.texture, 0),
+                        RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), RenderFormat::R8G8B8A8_UNORM, width, height, 1, rowPitch / 4, 0));
                 });
 
-            pictureData->texture = g_memory.MapVirtual(texture);
-            pictureData->type = 0;
+            return true;
         }
-        else
+    }
+
+    return false;
+}
+
+std::unique_ptr<GuestTexture> LoadTexture(const uint8_t* data, size_t dataSize, RenderComponentMapping componentMapping)
+{
+    GuestTexture texture(ResourceType::Texture);
+
+    if (LoadTexture(texture, data, dataSize, componentMapping))
+        return std::make_unique<GuestTexture>(std::move(texture));
+
+    return nullptr;
+}
+
+static void MakePictureData(GuestPictureData* pictureData, uint8_t* data, uint32_t dataSize)
+{
+    if ((pictureData->flags & 0x1) == 0 && data != nullptr)
+    {
+        GuestTexture texture(ResourceType::Texture);
+
+        if (LoadTexture(texture, data, dataSize, {}))
         {
-            int width, height;
-            void* stbImage = stbi_load_from_memory(data, dataSize, &width, &height, nullptr, 4);
-
-            if (stbImage != nullptr)
-            {
-                const auto texture = g_userHeap.AllocPhysical<GuestTexture>(ResourceType::Texture);
-                texture->textureHolder = g_device->createTexture(RenderTextureDesc::Texture2D(width, height, 1, RenderFormat::R8G8B8A8_UNORM));
-                texture->texture = texture->textureHolder.get();
-                texture->viewDimension = RenderTextureViewDimension::TEXTURE_2D;
-                texture->layout = RenderTextureLayout::COPY_DEST;
-
-                texture->descriptorIndex = g_textureDescriptorAllocator.allocate();
-                g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ);
-
-                uint32_t rowPitch = (width * 4 + PITCH_ALIGNMENT - 1) & ~(PITCH_ALIGNMENT - 1);
-                uint32_t slicePitch = rowPitch * height;
-
-                auto uploadBuffer = g_device->createBuffer(RenderBufferDesc::UploadBuffer(slicePitch));
-                uint8_t* mappedMemory = reinterpret_cast<uint8_t*>(uploadBuffer->map());
-
-                if (rowPitch == (width * 4))
-                {
-                    memcpy(mappedMemory, stbImage, slicePitch);
-                }
-                else
-                {
-                    auto data = reinterpret_cast<const uint8_t*>(stbImage);
-
-                    for (size_t i = 0; i < height; i++)
-                    {
-                        memcpy(mappedMemory, data, width * 4);
-                        data += width * 4;
-                        mappedMemory += rowPitch;
-                    }
-                }
-
-                uploadBuffer->unmap();
-
-                stbi_image_free(stbImage);
-
-                ExecuteCopyCommandList([&]
-                    {
-                        g_copyCommandList->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(texture->texture, RenderTextureLayout::COPY_DEST));
-
-                        g_copyCommandList->copyTextureRegion(
-                            RenderTextureCopyLocation::Subresource(texture->texture, 0),
-                            RenderTextureCopyLocation::PlacedFootprint(uploadBuffer.get(), RenderFormat::R8G8B8A8_UNORM, width, height, 1, rowPitch / 4, 0));
-                    });
-
-                pictureData->texture = g_memory.MapVirtual(texture);
-                pictureData->type = 0;
-            }
+#ifdef _DEBUG
+            texture.texture->setName(reinterpret_cast<char*>(g_memory.Translate(pictureData->name + 2)));
+#endif
+            pictureData->texture = g_memory.MapVirtual(g_userHeap.AllocPhysical<GuestTexture>(std::move(texture)));
+            pictureData->type = 0;
         }
     }
 }
@@ -4700,7 +4882,7 @@ static void CompileMeshPipeline(Hedgehog::Mirage::CMeshData* mesh, MeshLayer lay
             pipelineState.vertexStrides[2] = isFur ? 4 : 0;
             pipelineState.renderTargetFormat = RenderFormat::R16G16B16A16_FLOAT;
             pipelineState.depthStencilFormat = RenderFormat::D32_FLOAT;
-            pipelineState.sampleCount = Config::MSAA > 1 ? Config::MSAA : 1;
+            pipelineState.sampleCount = Config::AntiAliasing != EAntiAliasing::None ? int32_t(Config::AntiAliasing.Value) : 1;
 
             if (pipelineState.vertexDeclaration->hasR11G11B10Normal)
                 pipelineState.specConstants |= SPEC_CONSTANT_R11G11B10_NORMAL;
@@ -4710,7 +4892,7 @@ static void CompileMeshPipeline(Hedgehog::Mirage::CMeshData* mesh, MeshLayer lay
 
             if (layer == MeshLayer::PunchThrough)
             {
-                if (Config::MSAA > 1 && Config::AlphaToCoverage)
+                if (Config::AntiAliasing != EAntiAliasing::None && Config::TransparencyAntiAliasing)
                 {
                     pipelineState.enableAlphaToCoverage = true;
                     pipelineState.specConstants |= SPEC_CONSTANT_ALPHA_TO_COVERAGE;
@@ -4870,7 +5052,7 @@ static void CompileParticleMaterialPipeline(const Hedgehog::Sparkle::CParticleMa
     pipelineState.vertexStrides[0] = isMeshShader ? 104 : 28;
     pipelineState.renderTargetFormat = RenderFormat::R16G16B16A16_FLOAT;
     pipelineState.depthStencilFormat = RenderFormat::D32_FLOAT;
-    pipelineState.sampleCount = Config::MSAA > 1 ? Config::MSAA : 1;
+    pipelineState.sampleCount = Config::AntiAliasing != EAntiAliasing::None ? int32_t(Config::AntiAliasing.Value) : 1;
     pipelineState.specConstants = SPEC_CONSTANT_REVERSE_Z;
 
     if (pipelineState.vertexDeclaration->hasR11G11B10Normal)
@@ -5147,14 +5329,14 @@ static void ModelConsumerThread()
                     pipelineState.specConstants |= SPEC_CONSTANT_BICUBIC_GI_FILTER;
 
                 // Compile both MSAA and non MSAA variants to work with reflection maps. The render formats are an assumption but it should hold true.
-                if (Config::MSAA > 1 &&
+                if (Config::AntiAliasing != EAntiAliasing::None &&
                     pipelineState.renderTargetFormat == RenderFormat::R16G16B16A16_FLOAT && 
                     pipelineState.depthStencilFormat == RenderFormat::D32_FLOAT)
                 {
                     auto msaaPipelineState = pipelineState;
-                    msaaPipelineState.sampleCount = Config::MSAA;
+                    msaaPipelineState.sampleCount = int32_t(Config::AntiAliasing.Value);
 
-                    if (Config::AlphaToCoverage && (msaaPipelineState.specConstants & SPEC_CONSTANT_ALPHA_TEST) != 0)
+                    if (Config::TransparencyAntiAliasing && (msaaPipelineState.specConstants & SPEC_CONSTANT_ALPHA_TEST) != 0)
                     {
                         msaaPipelineState.enableAlphaToCoverage = true;
                         msaaPipelineState.specConstants &= ~SPEC_CONSTANT_ALPHA_TEST;
@@ -5404,6 +5586,15 @@ public:
 SDLEventListenerForPSOCaching g_sdlEventListenerForPSOCaching;
 #endif
 
+void VideoConfigValueChangedCallback(IConfigDef* config)
+{
+    // Config options that require internal resolution resize
+    g_needsResize |=
+        config == &Config::ResolutionScale ||
+        config == &Config::AntiAliasing ||
+        config == &Config::ShadowResolution;
+}
+
 GUEST_FUNCTION_HOOK(sub_82BD99B0, CreateDevice);
 
 GUEST_FUNCTION_HOOK(sub_82BE6230, DestructResource);
@@ -5424,7 +5615,7 @@ GUEST_FUNCTION_HOOK(sub_82BE96F0, GetSurfaceDesc);
 GUEST_FUNCTION_HOOK(sub_82BE04B0, GetVertexDeclaration);
 GUEST_FUNCTION_HOOK(sub_82BE0530, HashVertexDeclaration);
 
-GUEST_FUNCTION_HOOK(sub_82BDA8C0, Present);
+GUEST_FUNCTION_HOOK(sub_82BDA8C0, GuestPresent);
 GUEST_FUNCTION_HOOK(sub_82BDD330, GetBackBuffer);
 
 GUEST_FUNCTION_HOOK(sub_82BE9498, CreateTexture);

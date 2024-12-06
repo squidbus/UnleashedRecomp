@@ -3,6 +3,36 @@ set(TARGET_NAME "SWA")
 
 option(SWA_XAUDIO2 "Use XAudio2 for audio playback" OFF)
 
+function(BIN2C)
+    cmake_parse_arguments(BIN2C_ARGS "" "TARGET_OBJ;SOURCE_FILE;DEST_FILE;ARRAY_NAME;COMPRESSION_TYPE" "" ${ARGN})
+
+    if(NOT BIN2C_ARGS_TARGET_OBJ)
+        message(FATAL_ERROR "TARGET_OBJ not specified.")
+    endif()
+
+    if(NOT BIN2C_ARGS_SOURCE_FILE)
+        message(FATAL_ERROR "SOURCE_FILE not specified.")
+    endif()
+
+    if(NOT BIN2C_ARGS_DEST_FILE)
+        set(BIN2C_ARGS_DEST_FILE "${BIN2C_ARGS_SOURCE_FILE}")
+    endif()
+
+    if(NOT BIN2C_ARGS_COMPRESSION_TYPE)
+        set(BIN2C_ARGS_COMPRESSION_TYPE "none")
+    endif()
+
+    add_custom_command(OUTPUT "${BIN2C_ARGS_DEST_FILE}.c"
+        COMMAND file_to_c "${BIN2C_ARGS_SOURCE_FILE}" "${BIN2C_ARGS_ARRAY_NAME}" "${BIN2C_ARGS_COMPRESSION_TYPE}" "${BIN2C_ARGS_DEST_FILE}.c" "${BIN2C_ARGS_DEST_FILE}.h"
+        DEPENDS "${BIN2C_ARGS_SOURCE_FILE}" file_to_c
+        BYPRODUCTS "${BIN2C_ARGS_DEST_FILE}.h"
+        COMMENT "Generating binary header for ${BIN2C_ARGS_SOURCE_FILE}..."
+    )
+
+    set_source_files_properties(${BIN2C_ARGS_DEST_FILE}.c PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+    target_sources(${BIN2C_ARGS_TARGET_OBJ} PRIVATE ${BIN2C_ARGS_DEST_FILE}.c)
+endfunction()
+
 add_compile_options(
     /fp:strict
     -march=sandybridge
@@ -23,17 +53,8 @@ add_compile_definitions(
     _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR # Microsoft wtf?
     _CRT_SECURE_NO_WARNINGS)
 
-# Generate icon bitmap header for SDL surface.
-BIN2H(SOURCE_FILE "../UnleashedRecompResources/images/game_icon.bmp" HEADER_FILE "res/icon.h" ARRAY_TYPE "unsigned char" VARIABLE_NAME "g_icon")
-BIN2H(SOURCE_FILE "../UnleashedRecompResources/images/game_icon_night.bmp" HEADER_FILE "res/icon_night.h" ARRAY_TYPE "unsigned char" VARIABLE_NAME "g_iconNight")
-
 set(SWA_PRECOMPILED_HEADERS
     "stdafx.h"
-)
-
-set(SWA_CFG_CXX_SOURCES
-    "cfg/config.cpp"
-    "cfg/config_detail.cpp"
 )
 
 set(SWA_KERNEL_CXX_SOURCES
@@ -53,6 +74,7 @@ set(SWA_CPU_CXX_SOURCES
 
 set(SWA_GPU_CXX_SOURCES
     "gpu/video.cpp"
+    "gpu/imgui_common.cpp"
     "gpu/imgui_snapshot.cpp"
     "gpu/rhi/plume_d3d12.cpp"
     "gpu/rhi/plume_vulkan.cpp"
@@ -74,7 +96,11 @@ set(SWA_HID_CXX_SOURCES
 )
 
 set(SWA_PATCHES_CXX_SOURCES
+    "patches/ui/CHudPause_patches.cpp"
+    "patches/ui/CTitleStateMenu_patches.cpp"
     "patches/ui/frontend_listener.cpp"
+    "patches/audio_patches.cpp"
+    "patches/camera_patches.cpp"
     "patches/fps_patches.cpp"
     "patches/misc_patches.cpp"
     "patches/object_patches.cpp"
@@ -84,6 +110,13 @@ set(SWA_PATCHES_CXX_SOURCES
 )
 
 set(SWA_UI_CXX_SOURCES
+    "ui/achievement_menu.cpp"
+    "ui/achievement_overlay.cpp"
+    "ui/installer_wizard.cpp"
+    "ui/button_guide.cpp"
+    "ui/message_window.cpp"
+    "ui/options_menu.cpp"
+    "ui/sdl_listener.cpp"
     "ui/window.cpp"
 )
 
@@ -113,13 +146,19 @@ set_source_files_properties(${LIBMSPACK_C_SOURCES} PROPERTIES SKIP_PRECOMPILE_HE
 
 set(SMOLV_SOURCE_DIR "${SWA_THIRDPARTY_ROOT}/ShaderRecomp/thirdparty/smol-v/source")
 
+set(SWA_USER_CXX_SOURCES
+    "user/achievement_data.cpp"
+    "user/config.cpp"
+    "user/config_detail.cpp"
+)
+
 set(SWA_CXX_SOURCES
     "app.cpp"
+    "exports.cpp"
     "main.cpp"
     "misc_impl.cpp"
     "stdafx.cpp"
-
-    ${SWA_CFG_CXX_SOURCES}
+    
     ${SWA_KERNEL_CXX_SOURCES}
     ${SWA_CPU_CXX_SOURCES}
     ${SWA_GPU_CXX_SOURCES}
@@ -130,6 +169,7 @@ set(SWA_CXX_SOURCES
     ${SWA_INSTALL_CXX_SOURCES}
     ${LIBMSPACK_C_SOURCES}
     "${SMOLV_SOURCE_DIR}/smolv.cpp"
+    ${SWA_USER_CXX_SOURCES}
 )
 
 if (WIN32)
@@ -161,6 +201,7 @@ find_package(unofficial-concurrentqueue REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(unofficial-tiny-aes-c CONFIG REQUIRED)
+find_package(nfd CONFIG REQUIRED)
 find_path(MINIAUDIO_INCLUDE_DIRS "miniaudio.h")
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
@@ -199,6 +240,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     imgui::imgui
     magic_enum::magic_enum
     unofficial::tiny-aes-c::tiny-aes-c
+    nfd::nfd
 )
 
 target_include_directories(UnleashedRecomp PRIVATE
@@ -276,3 +318,29 @@ generate_aggregate_header(
     "${CMAKE_CURRENT_SOURCE_DIR}/api"
     "${CMAKE_CURRENT_SOURCE_DIR}/api/SWA.h"
 )
+
+set(RESOURCES_SOURCE_PATH "${PROJECT_SOURCE_DIR}/../UnleashedRecompResources")
+set(RESOURCES_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/res")
+
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/font/im_font_atlas.bin" DEST_FILE "${RESOURCES_OUTPUT_PATH}/font/im_font_atlas.bin" ARRAY_NAME "g_im_font_atlas" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/font/im_font_atlas.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/font/im_font_atlas.dds" ARRAY_NAME "g_im_font_atlas_texture" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/achievements_menu/trophy.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/achievements_menu/trophy.dds" ARRAY_NAME "g_trophy" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/general_window.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/general_window.dds" ARRAY_NAME "g_general_window" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/left_mouse_button.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/left_mouse_button.dds" ARRAY_NAME "g_left_mouse_button" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/mat_comon_x360_001.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/mat_comon_x360_001.dds" ARRAY_NAME "g_mat_comon_x360_001" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/select_fade.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/select_fade.dds" ARRAY_NAME "g_select_fade" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/select_fill.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/select_fill.dds" ARRAY_NAME "g_select_fill" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/common/start_back.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/common/start_back.dds" ARRAY_NAME "g_start_back" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/game_icon.bmp" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/game_icon.bmp" ARRAY_NAME "g_game_icon")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/game_icon_night.bmp" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/game_icon_night.bmp" ARRAY_NAME "g_game_icon_night")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/arrow_circle.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/arrow_circle.dds" ARRAY_NAME "g_arrow_circle" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_001.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_001.dds" ARRAY_NAME "g_install_001" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_002.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_002.dds" ARRAY_NAME "g_install_002" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_003.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_003.dds" ARRAY_NAME "g_install_003" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_004.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_004.dds" ARRAY_NAME "g_install_004" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_005.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_005.dds" ARRAY_NAME "g_install_005" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_006.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_006.dds" ARRAY_NAME "g_install_006" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_007.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_007.dds" ARRAY_NAME "g_install_007" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/install_008.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/install_008.dds" ARRAY_NAME "g_install_008" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/miles_electric_icon.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/miles_electric_icon.dds" ARRAY_NAME "g_miles_electric_icon" COMPRESSION_TYPE "zstd")
+BIN2C(TARGET_OBJ UnleashedRecomp SOURCE_FILE "${RESOURCES_SOURCE_PATH}/images/installer/pulse_install.dds" DEST_FILE "${RESOURCES_OUTPUT_PATH}/images/installer/pulse_install.dds" ARRAY_NAME "g_pulse_install" COMPRESSION_TYPE "zstd")

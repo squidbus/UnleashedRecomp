@@ -14,6 +14,7 @@
 #include <string>
 #include <cassert>
 #include <chrono>
+#include <span>
 #include <xbox.h>
 #include <xxhash.h>
 #include <ankerl/unordered_dense.h>
@@ -32,6 +33,7 @@
 #include <wrl/client.h>
 #include <smolv.h>
 #include <print>
+#include <set>
 
 using Microsoft::WRL::ComPtr;
 
