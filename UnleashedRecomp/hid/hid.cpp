@@ -2,6 +2,8 @@
 #include "hid.h"
 #include "hid_detail.h"
 
+hid::detail::EInputDevice hid::detail::g_inputDevice;
+
 void hid::Init()
 {
     detail::Init();

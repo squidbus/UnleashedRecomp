@@ -166,8 +166,18 @@ int HID_OnSDLEvent(void*, SDL_Event* event)
                 {
                     controller->Poll();
                 }
+
+                hid::detail::g_inputDevice = hid::detail::EInputDevice::Controller;
             }
         }
+    }
+    else if (event->type == SDL_KEYDOWN || event->type == SDL_KEYUP)
+    {
+        hid::detail::g_inputDevice = hid::detail::EInputDevice::Keyboard;
+    }
+    else if (event->type == SDL_MOUSEMOTION || event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP)
+    {
+        hid::detail::g_inputDevice = hid::detail::EInputDevice::Mouse;
     }
 
     return 0;
@@ -178,6 +188,7 @@ void hid::detail::Init()
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS3, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5, "1");
+    SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_WII, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     SDL_SetHint(SDL_HINT_XINPUT_ENABLED, "1");

@@ -4,6 +4,7 @@
 
 enum class EButtonIcon
 {
+    // Controller
     A,
     B,
     X,
@@ -16,7 +17,10 @@ enum class EButtonIcon
     LTRT,
     Start,
     Back,
-    LMB
+
+    // Keyboard + Mouse (temporary)
+    LMB,
+    Enter
 };
 
 enum class EButtonAlignment
@@ -55,7 +59,8 @@ public:
 
     static void Init();
     static void Draw();
-    static void Open(const std::vector<Button> buttons);
+    static void Open(Button button);
+    static void Open(const std::span<Button> buttons);
     static void SetSideMargins(float width);
     static void Close();
 };

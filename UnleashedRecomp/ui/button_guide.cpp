@@ -3,7 +3,7 @@
 #include <gpu/imgui_snapshot.h>
 #include <gpu/video.h>
 #include <decompressor.h>
-#include <res/images/common/left_mouse_button.dds.h>
+#include <res/images/common/kbm.dds.h>
 #include <res/images/common/mat_comon_x360_001.dds.h>
 #include <res/images/common/start_back.dds.h>
 
@@ -13,7 +13,7 @@ ImFont* g_fntNewRodin;
 ImFont* g_fntNewRodinLQ;
 
 std::unique_ptr<GuestTexture> g_upIcons;
-std::unique_ptr<GuestTexture> g_upLMBIcon;
+std::unique_ptr<GuestTexture> g_upKBMIcons;
 std::unique_ptr<GuestTexture> g_upStartBackIcons;
 
 float g_sideMargins = DEFAULT_SIDE_MARGINS;
@@ -34,7 +34,8 @@ std::unordered_map<EButtonIcon, float> g_iconWidths =
     { EButtonIcon::LTRT, 42 },
     { EButtonIcon::Start, 40 },
     { EButtonIcon::Back, 40 },
-    { EButtonIcon::LMB, 40 }
+    { EButtonIcon::LMB, 40 },
+    { EButtonIcon::Enter, 40 }
 };
 
 std::unordered_map<EButtonIcon, float> g_iconHeights =
@@ -51,7 +52,8 @@ std::unordered_map<EButtonIcon, float> g_iconHeights =
     { EButtonIcon::LTRT, 42 },
     { EButtonIcon::Start, 40 },
     { EButtonIcon::Back, 40 },
-    { EButtonIcon::LMB, 40 }
+    { EButtonIcon::LMB, 40 },
+    { EButtonIcon::Enter, 40 }
 };
 
 std::tuple<std::tuple<ImVec2, ImVec2>, GuestTexture*> GetButtonIcon(EButtonIcon icon)
@@ -112,8 +114,13 @@ std::tuple<std::tuple<ImVec2, ImVec2>, GuestTexture*> GetButtonIcon(EButtonIcon 
             break;
 
         case EButtonIcon::LMB:
-            btn = PIXELS_TO_UV_COORDS(128, 128, 0, 0, 128, 128);
-            texture = g_upLMBIcon.get();
+            btn = PIXELS_TO_UV_COORDS(256, 128, 0, 0, 128, 128);
+            texture = g_upKBMIcons.get();
+            break;
+
+        case EButtonIcon::Enter:
+            btn = PIXELS_TO_UV_COORDS(256, 128, 128, 0, 128, 128);
+            texture = g_upKBMIcons.get();
             break;
     }
 
@@ -207,9 +214,9 @@ void ButtonGuide::Init()
         decompressZstd(g_mat_comon_x360_001, g_mat_comon_x360_001_uncompressed_size).get(),
         g_mat_comon_x360_001_uncompressed_size);
 
-    g_upLMBIcon = LoadTexture(
-        decompressZstd(g_left_mouse_button, g_left_mouse_button_uncompressed_size).get(),
-        g_left_mouse_button_uncompressed_size);
+    g_upKBMIcons = LoadTexture(
+        decompressZstd(g_kbm, g_kbm_uncompressed_size).get(),
+        g_kbm_uncompressed_size);
 
     g_upStartBackIcons = LoadTexture(
         decompressZstd(g_start_back, g_start_back_uncompressed_size).get(),
@@ -287,11 +294,20 @@ void ButtonGuide::Draw()
     }
 }
 
-void ButtonGuide::Open(const std::vector<Button> buttons)
+void ButtonGuide::Open(Button button)
 {
     s_isVisible = true;
     g_sideMargins = DEFAULT_SIDE_MARGINS;
-    g_buttons = buttons;
+
+    g_buttons = {};
+    g_buttons.push_back(button);
+}
+
+void ButtonGuide::Open(const std::span<Button> buttons)
+{
+    s_isVisible = true;
+    g_sideMargins = DEFAULT_SIDE_MARGINS;
+    g_buttons = std::vector(buttons.begin(), buttons.end());
 }
 
 void ButtonGuide::SetSideMargins(float width = DEFAULT_SIDE_MARGINS)

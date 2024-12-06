@@ -1030,15 +1030,15 @@ void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
 
     *(bool*)g_memory.Translate(0x8328BB26) = false;
 
-    ButtonGuide::Open
-    (
-        {
-            Button(Localise("Common_Switch"), EButtonIcon::LBRB, EButtonAlignment::Left),
-            Button(Localise("Common_Reset"), EButtonIcon::X, &g_canReset),
-            Button(Localise("Common_Select"), EButtonIcon::A),
-            Button(Localise("Common_Back"), EButtonIcon::B)
-        }
-    );
+    std::array<Button, 4> buttons =
+    {
+        Button(Localise("Common_Switch"), EButtonIcon::LBRB, EButtonAlignment::Left),
+        Button(Localise("Common_Reset"), EButtonIcon::X, &g_canReset),
+        Button(Localise("Common_Select"), EButtonIcon::A),
+        Button(Localise("Common_Back"), EButtonIcon::B)
+    };
+
+    ButtonGuide::Open(buttons);
     
     ButtonGuide::SetSideMargins(250);
 

@@ -6,8 +6,10 @@
 #include <gpu/video.h>
 #include <gpu/imgui_snapshot.h>
 #include <hid/hid.h>
+#include <hid/hid_detail.h>
 #include <locale/locale.h>
 #include <ui/imgui_utils.h>
+#include <ui/button_guide.h>
 #include <ui/message_window.h>
 #include <ui/sdl_listener.h>
 #include <ui/window.h>
@@ -676,6 +678,21 @@ static void DrawDescriptionContainer()
     ImVec2 sideMax = { Scale(AlignToNextGrid(CONTAINER_X + CONTAINER_WIDTH + SIDE_CONTAINER_WIDTH)), descriptionMax.y };
     DrawContainer(sideMin, sideMax, false);
     drawList->PopClipRect();
+
+    if (g_currentPage != WizardPage::Installing && textAlpha >= 1.0)
+    {
+        auto icon = hid::detail::g_inputDevice == hid::detail::EInputDevice::Controller
+            ? EButtonIcon::A
+            : hid::detail::g_inputDevice == hid::detail::EInputDevice::Keyboard
+                ? EButtonIcon::Enter
+                : EButtonIcon::LMB;
+
+        ButtonGuide::Open(Button(Localise("Common_Select"), icon));
+    }
+    else
+    {
+        ButtonGuide::Close();
+    }
 }
 
 static void DrawButtonContainer(ImVec2 min, ImVec2 max, int baser, int baseg, float alpha)
@@ -1416,7 +1433,7 @@ bool InstallerWizard::Run(bool skipGame)
         g_currentPage = g_firstPage;
     }
 
-    Window::SetCursorAllowed(true);
+    Window::SetFullscreenCursorVisibility(true);
     s_isVisible = true;
 
     while (s_isVisible)
@@ -1427,7 +1444,7 @@ bool InstallerWizard::Run(bool skipGame)
         Video::HostPresent();
     }
 
-    Window::SetCursorAllowed(false);
+    Window::SetFullscreenCursorVisibility(false);
     NFD_Quit();
 
     InstallerWizard::Shutdown();

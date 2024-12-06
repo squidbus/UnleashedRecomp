@@ -2,8 +2,10 @@
 #include "imgui_utils.h"
 #include <api/SWA.h>
 #include <gpu/video.h>
+#include <hid/hid_detail.h>
 #include <locale/locale.h>
 #include <ui/button_guide.h>
+#include <ui/sdl_listener.h>
 #include <app.h>
 #include <exports.h>
 #include <res/images/common/general_window.dds.h>
@@ -28,6 +30,10 @@ static int g_foregroundCount;
 static bool g_upWasHeld;
 static bool g_downWasHeld;
 
+static ImVec2 g_joypadAxis = {};
+static bool g_isAccepted;
+static bool g_isDeclined;
+
 static double g_appearTime;
 static double g_controlsAppearTime;
 
@@ -40,6 +46,98 @@ std::string g_text;
 int g_result;
 std::vector<std::string> g_buttons;
 int g_defaultButtonIndex;
+int g_cancelButtonIndex;
+
+class SDLEventListenerForMessageWindow : public SDLEventListener
+{
+public:
+    void OnSDLEvent(SDL_Event* event) override
+    {
+        if (!MessageWindow::s_isVisible)
+            return;
+
+        constexpr float axisValueRange = 32767.0f;
+        constexpr float axisTapRange = 0.5f;
+
+        ImVec2 tapDirection = {};
+
+        switch (event->type)
+        {
+            case SDL_KEYDOWN:
+            {
+                switch (event->key.keysym.scancode)
+                {
+                    case SDL_SCANCODE_UP:
+                        g_joypadAxis.y = -1.0f;
+                        break;
+
+                    case SDL_SCANCODE_DOWN:
+                        g_joypadAxis.y = 1.0f;
+                        break;
+
+                    case SDL_SCANCODE_RETURN:
+                    case SDL_SCANCODE_KP_ENTER:
+                        g_isAccepted = true;
+                        break;
+
+                    case SDL_SCANCODE_ESCAPE:
+                        g_isDeclined = true;
+                        break;
+                }
+
+                break;
+            }
+
+            case SDL_MOUSEBUTTONDOWN:
+                g_isAccepted = true;
+                break;
+
+            case SDL_CONTROLLERBUTTONDOWN:
+            {
+                switch (event->cbutton.button)
+                {
+                    case SDL_CONTROLLER_BUTTON_DPAD_UP:
+                        g_joypadAxis = { 0.0f, -1.0f };
+                        break;
+
+                    case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
+                        g_joypadAxis = { 0.0f, 1.0f };
+                        break;
+
+                    case SDL_CONTROLLER_BUTTON_A:
+                        g_isAccepted = true;
+                        break;
+
+                    case SDL_CONTROLLER_BUTTON_B:
+                        g_isDeclined = true;
+                        break;
+                }
+
+                break;
+            }
+
+            case SDL_CONTROLLERAXISMOTION:
+            {
+                if (event->caxis.axis < 2)
+                {
+                    float newAxisValue = event->caxis.value / axisValueRange;
+                    bool sameDirection = (newAxisValue * g_joypadAxis[event->caxis.axis]) > 0.0f;
+                    bool wasInRange = abs(g_joypadAxis[event->caxis.axis]) > axisTapRange;
+                    bool isInRange = abs(newAxisValue) > axisTapRange;
+
+                    if (sameDirection && !wasInRange && isInRange)
+                        tapDirection[event->caxis.axis] = newAxisValue;
+
+                    g_joypadAxis[event->caxis.axis] = newAxisValue;
+                }
+
+                break;
+            }
+        }
+    }
+};
+
+static SDLEventListenerForMessageWindow g_eventListener;
 
 bool DrawContainer(float appearTime, ImVec2 centre, ImVec2 max, bool isForeground = true)
 {
@@ -134,6 +232,9 @@ static void ResetSelection()
     g_selectedRowIndex = g_defaultButtonIndex;
     g_upWasHeld = false;
     g_downWasHeld = false;
+    g_joypadAxis = {};
+    g_isAccepted = false;
+    g_isDeclined = false;
 }
 
 void MessageWindow::Init()
@@ -153,7 +254,6 @@ void MessageWindow::Draw()
     if (!s_isVisible)
         return;
 
-    auto pInputState = g_isGameLoaded ? SWA::CInputState::GetInstance() : nullptr;
     auto drawList = ImGui::GetForegroundDrawList();
     auto& res = ImGui::GetIO().DisplaySize;
 
@@ -163,6 +263,9 @@ void MessageWindow::Draw()
     auto textSize = MeasureCentredParagraph(g_fntSeurat, fontSize, 5, g_text.c_str());
     auto textMarginX = Scale(37);
     auto textMarginY = Scale(45);
+
+    bool isController = hid::detail::g_inputDevice == hid::detail::EInputDevice::Controller;
+    bool isKeyboard = hid::detail::g_inputDevice == hid::detail::EInputDevice::Keyboard;
 
     if (DrawContainer(g_appearTime, centre, { textSize.x / 2 + textMarginX, textSize.y / 2 + textMarginY }, !g_isControlsVisible))
     {
@@ -182,10 +285,6 @@ void MessageWindow::Draw()
 
         drawList->PopClipRect();
 
-        bool isAccepted = pInputState
-            ? pInputState->GetPadState().IsTapped(SWA::eKeyState_A)
-            : ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-
         if (g_buttons.size())
         {
             auto itemWidth = std::max(Scale(162), Scale(CalcWidestTextSize(g_fntSeurat, fontSize, g_buttons)));
@@ -202,13 +301,10 @@ void MessageWindow::Draw()
                 for (auto& button : g_buttons)
                     DrawButton(rowCount++, windowMarginY, itemWidth, itemHeight, button);
 
-                if (pInputState)
+                if (isController || isKeyboard)
                 {
-                    bool upIsHeld = pInputState->GetPadState().IsDown(SWA::eKeyState_DpadUp) ||
-                        pInputState->GetPadState().LeftStickVertical > 0.5f;
-
-                    bool downIsHeld = pInputState->GetPadState().IsDown(SWA::eKeyState_DpadDown) ||
-                        pInputState->GetPadState().LeftStickVertical < -0.5f;
+                    bool upIsHeld = g_joypadAxis.y > 0.5f;
+                    bool downIsHeld = g_joypadAxis.y < -0.5f;
 
                     bool scrollUp = !g_upWasHeld && upIsHeld;
                     bool scrollDown = !g_downWasHeld && downIsHeld;
@@ -232,21 +328,28 @@ void MessageWindow::Draw()
                     g_upWasHeld = upIsHeld;
                     g_downWasHeld = downIsHeld;
 
-                    if (pInputState->GetPadState().IsTapped(SWA::eKeyState_B))
+                    if (g_isDeclined)
                     {
-                        g_result = -1;
+                        g_result = g_cancelButtonIndex;
 
                         Game_PlaySound("sys_actstg_pausecansel");
                         MessageWindow::Close();
                     }
 
-                    ButtonGuide::Open
-                    (
+                    if (isController)
+                    {
+                        std::array<Button, 2> buttons =
                         {
                             Button(Localise("Common_Select"), EButtonIcon::A),
-                            Button(Localise("Common_Back"),EButtonIcon::B),
-                        }
-                    );
+                            Button(Localise("Common_Back"), EButtonIcon::B),
+                        };
+
+                        ButtonGuide::Open(buttons);
+                    }
+                    else
+                    {
+                        ButtonGuide::Open(Button(Localise("Common_Select"), EButtonIcon::Enter));
+                    }
                 }
                 else
                 {
@@ -264,10 +367,10 @@ void MessageWindow::Draw()
                             g_selectedRowIndex = i;
                     }
 
-                    ButtonGuide::Open({ Button(Localise("Common_Select"), EButtonIcon::LMB) });
+                    ButtonGuide::Open(Button(Localise("Common_Select"), EButtonIcon::LMB));
                 }
 
-                if (g_selectedRowIndex != -1 && isAccepted)
+                if (g_selectedRowIndex != -1 && g_isAccepted)
                 {
                     g_result = g_selectedRowIndex;
 
@@ -279,18 +382,27 @@ void MessageWindow::Draw()
             }
             else
             {
-                if (!g_isControlsVisible && isAccepted)
+                auto icon = isController
+                    ? EButtonIcon::A
+                    : isKeyboard
+                        ? EButtonIcon::Enter
+                        : EButtonIcon::LMB;
+
+                ButtonGuide::Open(Button(Localise("Common_Next"), icon));
+
+                if (!g_isControlsVisible && g_isAccepted)
                 {
                     g_controlsAppearTime = ImGui::GetTime();
                     g_isControlsVisible = true;
 
+                    ResetSelection();
                     Game_PlaySound("sys_actstg_pausewinopen");
                 }
             }
         }
         else
         {
-            if (isAccepted)
+            if (g_isAccepted)
             {
                 g_result = 0;
 
@@ -304,7 +416,7 @@ void MessageWindow::Draw()
     }
 }
 
-bool MessageWindow::Open(std::string text, int* result, std::span<std::string> buttons, int defaultButtonIndex)
+bool MessageWindow::Open(std::string text, int* result, std::span<std::string> buttons, int defaultButtonIndex, int cancelButtonIndex)
 {
     if (!g_isAwaitingResult && *result == -1)
     {
@@ -317,11 +429,10 @@ bool MessageWindow::Open(std::string text, int* result, std::span<std::string> b
 
         g_text = text;
         g_buttons = std::vector(buttons.begin(), buttons.end());
-        g_defaultButtonIndex = g_isGameLoaded ? defaultButtonIndex : -1;
+        g_defaultButtonIndex = defaultButtonIndex;
+        g_cancelButtonIndex = cancelButtonIndex;
 
         ResetSelection();
-
-        ButtonGuide::Open({ Button(Localise("Common_Next"), g_isGameLoaded ? EButtonIcon::A : EButtonIcon::LMB) });
 
         Game_PlaySound("sys_actstg_pausewinopen");
 
