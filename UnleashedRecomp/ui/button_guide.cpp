@@ -2,9 +2,12 @@
 #include "imgui_utils.h"
 #include <gpu/imgui_snapshot.h>
 #include <gpu/video.h>
+#include <hid/hid_detail.h>
+#include <user/config.h>
+#include <app.h>
 #include <decompressor.h>
+#include <res/images/common/controller.dds.h>
 #include <res/images/common/kbm.dds.h>
-#include <res/images/common/mat_comon_x360_001.dds.h>
 #include <res/images/common/start_back.dds.h>
 
 constexpr float DEFAULT_SIDE_MARGINS = 379;
@@ -12,9 +15,8 @@ constexpr float DEFAULT_SIDE_MARGINS = 379;
 ImFont* g_fntNewRodin;
 ImFont* g_fntNewRodinLQ;
 
-std::unique_ptr<GuestTexture> g_upIcons;
+std::unique_ptr<GuestTexture> g_upControllerIcons;
 std::unique_ptr<GuestTexture> g_upKBMIcons;
-std::unique_ptr<GuestTexture> g_upStartBackIcons;
 
 float g_sideMargins = DEFAULT_SIDE_MARGINS;
 
@@ -61,56 +63,63 @@ std::tuple<std::tuple<ImVec2, ImVec2>, GuestTexture*> GetButtonIcon(EButtonIcon 
     std::tuple<ImVec2, ImVec2> btn;
     GuestTexture* texture;
 
+    auto isPlayStation = g_isAppInit
+        ? Config::ControllerIcons == EControllerIcons::PlayStation
+        : hid::detail::g_inputDevice == hid::detail::EInputDevice::PlayStation;
+
+    auto yOffsetCmn = isPlayStation ? 42 : 0;
+    auto yOffsetStartBack = isPlayStation ? 47 : 0;
+
     switch (icon)
     {
         case EButtonIcon::A:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 0, 0, 40, 40);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 0, yOffsetCmn, 40, 40);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::B:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 40, 0, 40, 40);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 40, yOffsetCmn, 40, 40);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::X:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 80, 0, 40, 40);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 80, yOffsetCmn, 40, 40);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::Y:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 120, 0, 40, 40);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 120, yOffsetCmn, 40, 40);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::LB:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 166, 0, 70, 40);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 166, yOffsetCmn, 70, 40);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::RB:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 246, 0, 70, 40);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 246, yOffsetCmn, 70, 40);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::LT:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 319, 0, 42, 42);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 320, yOffsetCmn, 40, 42);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::RT:
-            btn = PIXELS_TO_UV_COORDS(512, 512, 359, 0, 42, 42);
-            texture = g_upIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 360, yOffsetCmn, 40, 42);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::Start:
-            btn = PIXELS_TO_UV_COORDS(256, 256, 0, 0, 128, 128);
-            texture = g_upStartBackIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 455, yOffsetStartBack, 47, 47);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::Back:
-            btn = PIXELS_TO_UV_COORDS(256, 256, 0, 128, 128, 128);
-            texture = g_upStartBackIcons.get();
+            btn = PIXELS_TO_UV_COORDS(512, 128, 407, yOffsetStartBack, 47, 47);
+            texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::LMB:
@@ -210,17 +219,13 @@ void ButtonGuide::Init()
     g_fntNewRodin = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf", 24.0f * FONT_SCALE);
     g_fntNewRodinLQ = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf", 19.0f);
 
-    g_upIcons = LoadTexture(
-        decompressZstd(g_mat_comon_x360_001, g_mat_comon_x360_001_uncompressed_size).get(),
-        g_mat_comon_x360_001_uncompressed_size);
+    g_upControllerIcons = LoadTexture(
+        decompressZstd(g_controller, g_controller_uncompressed_size).get(),
+        g_controller_uncompressed_size);
 
     g_upKBMIcons = LoadTexture(
         decompressZstd(g_kbm, g_kbm_uncompressed_size).get(),
         g_kbm_uncompressed_size);
-
-    g_upStartBackIcons = LoadTexture(
-        decompressZstd(g_start_back, g_start_back_uncompressed_size).get(),
-        g_start_back_uncompressed_size);
 }
 
 void ButtonGuide::Draw()

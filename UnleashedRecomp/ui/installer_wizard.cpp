@@ -681,7 +681,7 @@ static void DrawDescriptionContainer()
 
     if (g_currentPage != WizardPage::Installing && textAlpha >= 1.0)
     {
-        auto icon = hid::detail::g_inputDevice == hid::detail::EInputDevice::Controller
+        auto icon = hid::detail::IsInputDeviceController()
             ? EButtonIcon::A
             : hid::detail::g_inputDevice == hid::detail::EInputDevice::Keyboard
                 ? EButtonIcon::Enter

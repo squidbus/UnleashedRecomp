@@ -15,9 +15,14 @@ public:
     SDL_JoystickID id{ -1 };
     XAMINPUT_GAMEPAD state{};
     XAMINPUT_VIBRATION vibration{ 0, 0 };
+    int index{};
 
     Controller() = default;
-    explicit Controller(int index) : Controller(SDL_GameControllerOpen(index)) {}
+
+    explicit Controller(int index) : Controller(SDL_GameControllerOpen(index))
+    {
+        this->index = index;
+    }
 
     Controller(SDL_GameController* controller) : controller(controller)
     {
@@ -26,6 +31,24 @@ public:
 
         joystick = SDL_GameControllerGetJoystick(controller);
         id = SDL_JoystickInstanceID(joystick);
+    }
+
+    SDL_GameControllerType GetControllerType() const
+    {
+        return SDL_GameControllerTypeForIndex(index);
+    }
+
+    hid::detail::EInputDevice GetInputDevice() const
+    {
+        switch (GetControllerType())
+        {
+            case SDL_CONTROLLER_TYPE_PS3:
+            case SDL_CONTROLLER_TYPE_PS4:
+            case SDL_CONTROLLER_TYPE_PS5:
+                return hid::detail::EInputDevice::PlayStation;
+        }
+
+        return hid::detail::EInputDevice::Xbox;
     }
 
     void Close()
@@ -167,7 +190,7 @@ int HID_OnSDLEvent(void*, SDL_Event* event)
                     controller->Poll();
                 }
 
-                hid::detail::g_inputDevice = hid::detail::EInputDevice::Controller;
+                hid::detail::g_inputDevice = controller->GetInputDevice();
             }
         }
     }

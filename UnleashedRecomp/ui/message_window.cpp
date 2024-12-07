@@ -273,7 +273,7 @@ void MessageWindow::Draw()
     auto textMarginX = Scale(37);
     auto textMarginY = Scale(45);
 
-    bool isController = g_isAppInit ? true : hid::detail::g_inputDevice == hid::detail::EInputDevice::Controller;
+    bool isController = g_isAppInit ? true : hid::detail::IsInputDeviceController();
     bool isKeyboard = g_isAppInit ? false : hid::detail::g_inputDevice == hid::detail::EInputDevice::Keyboard;
 
     if (DrawContainer(g_appearTime, centre, { textSize.x / 2 + textMarginX, textSize.y / 2 + textMarginY }, !g_isControlsVisible))

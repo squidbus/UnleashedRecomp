@@ -23,3 +23,9 @@ uint32_t hid::GetCapabilities(uint32_t dwUserIndex, XAMINPUT_CAPABILITIES* pCaps
 {
     return detail::GetCapabilities(dwUserIndex, pCaps);
 }
+
+bool hid::detail::IsInputDeviceController()
+{
+    return hid::detail::g_inputDevice != hid::detail::EInputDevice::Keyboard &&
+        hid::detail::g_inputDevice != hid::detail::EInputDevice::Mouse;
+}
