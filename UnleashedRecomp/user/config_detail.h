@@ -281,9 +281,16 @@ public:
             }
             else if constexpr (std::is_enum_v<T>)
             {
-                auto it = EnumTemplate->begin();
-
-                Value = EnumTemplate->at(section[Name].value_or<std::string>(static_cast<std::string>(it->first)));
+                std::string value = section[Name].value_or(std::string());
+                auto it = EnumTemplate->find(value);
+                if (it != EnumTemplate->end())
+                {
+                    Value = it->second;
+                }
+                else
+                {
+                    Value = DefaultValue;
+                }
             }
             else
             {
