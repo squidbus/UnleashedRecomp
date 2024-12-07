@@ -23,7 +23,6 @@ PPC_FUNC(sub_824EB490)
 PPC_FUNC_IMPL(__imp__sub_822C1130);
 PPC_FUNC(sub_822C1130)
 {
-    g_isGameLoaded = true;
     g_deltaTime = ctx.f1.f64;
 
     SDL_PumpEvents();
