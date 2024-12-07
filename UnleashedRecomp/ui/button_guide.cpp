@@ -68,7 +68,7 @@ std::tuple<std::tuple<ImVec2, ImVec2>, GuestTexture*> GetButtonIcon(EButtonIcon 
         : hid::detail::g_inputDevice == hid::detail::EInputDevice::PlayStation;
 
     auto yOffsetCmn = isPlayStation ? 42 : 0;
-    auto yOffsetStartBack = isPlayStation ? 47 : 0;
+    auto yOffsetStartBack = isPlayStation ? 46 : 0;
 
     switch (icon)
     {
@@ -113,12 +113,12 @@ std::tuple<std::tuple<ImVec2, ImVec2>, GuestTexture*> GetButtonIcon(EButtonIcon 
             break;
 
         case EButtonIcon::Start:
-            btn = PIXELS_TO_UV_COORDS(512, 128, 455, yOffsetStartBack, 47, 47);
+            btn = PIXELS_TO_UV_COORDS(512, 128, 455, yOffsetStartBack, 46, 46);
             texture = g_upControllerIcons.get();
             break;
 
         case EButtonIcon::Back:
-            btn = PIXELS_TO_UV_COORDS(512, 128, 407, yOffsetStartBack, 47, 47);
+            btn = PIXELS_TO_UV_COORDS(512, 128, 408, yOffsetStartBack, 46, 46);
             texture = g_upControllerIcons.get();
             break;
 
