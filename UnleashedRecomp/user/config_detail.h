@@ -67,6 +67,18 @@ CONFIG_DEFINE_ENUM_TEMPLATE(ETimeOfDayTransition)
     { "PlayStation", ETimeOfDayTransition::PlayStation }
 };
 
+enum class EControllerIcons : uint32_t
+{
+    Xbox,
+    PlayStation
+};
+
+CONFIG_DEFINE_ENUM_TEMPLATE(EControllerIcons)
+{
+    { "Xbox", EControllerIcons::Xbox },
+    { "PlayStation", EControllerIcons::PlayStation }
+};
+
 enum class EVoiceLanguage : uint32_t
 {
     English,

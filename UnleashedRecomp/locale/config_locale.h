@@ -131,6 +131,22 @@ CONFIG_DEFINE_ENUM_LOCALE(ETimeOfDayTransition)
     }
 };
 
+CONFIG_DEFINE_LOCALE(ControllerIcons)
+{
+    { ELanguage::English, { "Controller Icons", "[PLACEHOLDER]" } }
+};
+
+CONFIG_DEFINE_ENUM_LOCALE(EControllerIcons)
+{
+    {
+        ELanguage::English,
+        {
+            { EControllerIcons::Xbox,        { "XBOX", "[PLACEHOLDER]" } },
+            { EControllerIcons::PlayStation, { "PLAYSTATION", "[PLACEHOLDER]" } }
+        }
+    }
+};
+
 CONFIG_DEFINE_LOCALE(SkipIntroLogos)
 {
     { ELanguage::English, { "Skip Intro Logos", "Skip the logos during the game's boot sequence.\n\n[TO BE REMOVED]" } }
