@@ -20,24 +20,62 @@ static GlobalSystemMediaTransportControlsSessionManager GetSessionManager()
     if (g_sessionManager)
         return g_sessionManager;
 
-    init_apartment();
-
-    return g_sessionManager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync().get();
+    try
+    {
+        init_apartment();
+        return g_sessionManager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync().get();
+    }
+    catch (...)
+    {
+        printf("[*] Failed to retrieve GSMTC session manager: 0x%08X\n", to_hresult().value);
+        return nullptr;
+    }
 }
 
 static GlobalSystemMediaTransportControlsSession GetCurrentSession()
 {
-    return GetSessionManager().GetCurrentSession();
+    auto sessionManager = GetSessionManager();
+
+    if (!sessionManager)
+        return nullptr;
+
+    try
+    {
+        return sessionManager.GetCurrentSession();
+    }
+    catch (...)
+    {
+        printf("[*] Failed to retrieve current GSMTC session: 0x%08X\n", to_hresult().value);
+        return nullptr;
+    }
 }
 
-static bool IsExternalAudioPlaying()
+static GlobalSystemMediaTransportControlsSessionPlaybackInfo GetPlaybackInfo()
 {
     auto session = GetCurrentSession();
 
     if (!session)
+        return nullptr;
+
+    try
+    {
+        return session.GetPlaybackInfo();
+    }
+    catch (...)
+    {
+        printf("[*] Failed to retrieve GSMTC playback info: 0x%08X\n", to_hresult().value);
+        return nullptr;
+    }
+}
+
+static bool IsExternalAudioPlaying()
+{
+    auto playbackInfo = GetPlaybackInfo();
+
+    if (!playbackInfo)
         return false;
 
-    return session.GetPlaybackInfo().PlaybackStatus() == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
+    return playbackInfo.PlaybackStatus() == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
 }
 
 int AudioPatches::m_isAttenuationSupported = -1;
