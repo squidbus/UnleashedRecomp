@@ -626,6 +626,8 @@ static void DrawDescriptionContainer()
     DrawContainer(descriptionMin, descriptionMax, true);
 
     char descriptionText[512];
+    char requiredSpaceText[128];
+    char availableSpaceText[128];
     strncpy(descriptionText, GetWizardText(g_currentPage).c_str(), sizeof(descriptionText) - 1);
 
     if (g_currentPage == WizardPage::CheckSpace)
@@ -633,17 +635,9 @@ static void DrawDescriptionContainer()
         constexpr double DivisorGiB = (1024.0 * 1024.0 * 1024.0);
         double requiredGiB = double(g_installerSources.totalSize) / DivisorGiB;
         double availableGiB = double(g_installerAvailableSize) / DivisorGiB;
-
-        // TODO: the format for where the numbers are (%2.2f GiB) should be moved to the localised string.
-        snprintf
-        (
-            descriptionText,
-            sizeof(descriptionText),
-            "%s%s %2.2f GiB\n%s %2.2f GiB",
-            GetWizardText(g_currentPage).c_str(),
-            Localise("Installer_Step_RequiredSpace").c_str(), requiredGiB,
-            Localise("Installer_Step_AvailableSpace").c_str(), availableGiB
-        );
+        snprintf(requiredSpaceText, sizeof(requiredSpaceText), Localise("Installer_Step_RequiredSpace").c_str(), requiredGiB);
+        snprintf(availableSpaceText, sizeof(availableSpaceText), (g_installerAvailableSize > 0) ? Localise("Installer_Step_AvailableSpace").c_str() : "", availableGiB);
+        snprintf(descriptionText, sizeof(descriptionText), "%s%s\n%s", GetWizardText(g_currentPage).c_str(), requiredSpaceText, availableSpaceText);
     }
     else if (g_currentPage == WizardPage::InstallSucceeded)
     {
@@ -1109,8 +1103,12 @@ static void InstallerStart()
 
 static bool InstallerParseSources()
 {
-    std::filesystem::space_info spaceInfo = std::filesystem::space(g_installPath);
-    g_installerAvailableSize = spaceInfo.available;
+    std::error_code spaceErrorCode;
+    std::filesystem::space_info spaceInfo = std::filesystem::space(g_installPath, spaceErrorCode);
+    if (!spaceErrorCode)
+    {
+        g_installerAvailableSize = spaceInfo.available;
+    }
 
     Installer::Input installerInput;
     installerInput.gameSource = g_gameSourcePath;

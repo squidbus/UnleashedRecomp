@@ -167,13 +167,13 @@ inline static std::unordered_map<std::string, std::unordered_map<ELanguage, std:
     {
         "Installer_Step_RequiredSpace",
         {
-            { ELanguage::English, "Required space:" }
+            { ELanguage::English, "Required space: %2.2f GiB" }
         }
     },
     {
         "Installer_Step_AvailableSpace",
         {
-            { ELanguage::English, "Available space:" }
+            { ELanguage::English, "Available space: %2.2f GiB" }
         }
     },
     {
