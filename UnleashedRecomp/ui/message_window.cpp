@@ -53,7 +53,7 @@ class SDLEventListenerForMessageWindow : public SDLEventListener
 public:
     void OnSDLEvent(SDL_Event* event) override
     {
-        if (!MessageWindow::s_isVisible)
+        if (App::s_isInit || !MessageWindow::s_isVisible)
             return;
 
         constexpr float axisValueRange = 32767.0f;
@@ -65,9 +65,6 @@ public:
         {
             case SDL_KEYDOWN:
             {
-                if (App::s_isInit)
-                    break;
-
                 switch (event->key.keysym.scancode)
                 {
                     case SDL_SCANCODE_UP:
@@ -92,14 +89,8 @@ public:
             }
 
             case SDL_MOUSEBUTTONDOWN:
-            {
-                if (App::s_isInit)
-                    break;
-
                 g_isAccepted = true;
-
                 break;
-            }
 
             case SDL_CONTROLLERBUTTONDOWN:
             {
@@ -244,6 +235,10 @@ void DrawNextButtonGuide(bool isController, bool isKeyboard)
             ? EButtonIcon::Enter
             : EButtonIcon::LMB;
 
+    // Always show controller prompt in-game.
+    if (App::s_isInit)
+        icon = EButtonIcon::A;
+
     ButtonGuide::Open(Button(Localise("Common_Next"), icon));
 }
 
@@ -265,8 +260,11 @@ void MessageWindow::Init()
 
     g_fntSeurat = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf", 24.0f * FONT_SCALE);
 
-    g_upSelectionCursor = LoadTexture(decompressZstd(g_select_fade, g_select_fade_uncompressed_size).get(), g_select_fade_uncompressed_size);
-    g_upWindow = LoadTexture(decompressZstd(g_general_window, g_general_window_uncompressed_size).get(), g_general_window_uncompressed_size);
+    g_upSelectionCursor = LoadTexture(decompressZstd(g_select_fade,
+        g_select_fade_uncompressed_size).get(), g_select_fade_uncompressed_size);
+
+    g_upWindow = LoadTexture(decompressZstd(g_general_window,
+        g_general_window_uncompressed_size).get(), g_general_window_uncompressed_size);
 }
 
 void MessageWindow::Draw()
@@ -284,8 +282,31 @@ void MessageWindow::Draw()
     auto textMarginX = Scale(37);
     auto textMarginY = Scale(45);
 
-    bool isController = App::s_isInit ? true : hid::detail::IsInputDeviceController();
-    bool isKeyboard = App::s_isInit ? false : hid::detail::g_inputDevice == hid::detail::EInputDevice::Keyboard;
+    bool isController = hid::detail::IsInputDeviceController();
+    bool isKeyboard = hid::detail::g_inputDevice == hid::detail::EInputDevice::Keyboard;
+
+    // Handle controller input when the game is booted.
+    if (App::s_isInit)
+    {
+        if (auto pInputState = SWA::CInputState::GetInstance())
+        {
+            auto& rPadState = pInputState->GetPadState();
+
+            g_joypadAxis.y = rPadState.LeftStickVertical;
+
+            if (rPadState.IsTapped(SWA::eKeyState_DpadUp))
+                g_joypadAxis.y = -1.0f;
+
+            if (rPadState.IsTapped(SWA::eKeyState_DpadDown))
+                g_joypadAxis.y = 1.0f;
+
+            g_isAccepted = rPadState.IsTapped(SWA::eKeyState_A);
+            g_isDeclined = rPadState.IsTapped(SWA::eKeyState_B);
+
+            if (isKeyboard)
+                g_isAccepted = g_isAccepted || rPadState.IsTapped(SWA::eKeyState_Start);
+        }
+    }
 
     if (DrawContainer(g_appearTime, centre, { textSize.x / 2 + textMarginX, textSize.y / 2 + textMarginY }, !g_isControlsVisible))
     {
@@ -358,7 +379,7 @@ void MessageWindow::Draw()
 
                         ButtonGuide::Open(buttons);
                     }
-                    else
+                    else if (!App::s_isInit) // Only display keyboard prompt during installer.
                     {
                         ButtonGuide::Open(Button(Localise("Common_Select"), EButtonIcon::Enter));
                     }
@@ -371,7 +392,7 @@ void MessageWindow::Draw()
                         MessageWindow::Close();
                     }
                 }
-                else
+                else if (!App::s_isInit) // Only accept mouse input during installer.
                 {
                     auto clipRectMin = drawList->GetClipRectMin();
                     auto clipRectMax = drawList->GetClipRectMax();
