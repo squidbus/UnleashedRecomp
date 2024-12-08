@@ -2,8 +2,12 @@
 #include <kernel/function.h>
 #include <api/SWA.h>
 #include <ui/achievement_menu.h>
+#include <ui/button_guide.h>
 #include <ui/options_menu.h>
+#include <locale/locale.h>
 #include <app.h>
+
+bool g_isClosed;
 
 float g_achievementMenuIntroTime = 0.0f;
 constexpr float g_achievementMenuIntroThreshold = 3.0f;
@@ -155,6 +159,17 @@ PPC_FUNC(sub_824B0930)
     else
     {
         g_achievementMenuIntroTime = 0;
+
+        if (pHudPause->m_IsShown && pHudPause->m_Transition == SWA::eTransitionType_Undefined)
+        {
+            ButtonGuide::Open(Button(Localise("Achievements_Name"), EButtonIcon::Back, EButtonAlignment::Left, EFontQuality::Low));
+            g_isClosed = false;
+        }
+        else if (!g_isClosed)
+        {
+            ButtonGuide::Close();
+            g_isClosed = true;
+        }
 
         __imp__sub_824B0930(ctx, base);
     }
