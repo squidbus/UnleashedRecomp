@@ -34,6 +34,8 @@
 #include "../../thirdparty/ShaderRecomp/ShaderRecomp/shader_common.h"
 #include "shader/copy_vs.hlsl.dxil.h"
 #include "shader/copy_vs.hlsl.spirv.h"
+#include "shader/csd_filter_ps.hlsl.dxil.h"
+#include "shader/csd_filter_ps.hlsl.spirv.h"
 #include "shader/gaussian_blur_3x3.hlsl.dxil.h"
 #include "shader/gaussian_blur_3x3.hlsl.spirv.h"
 #include "shader/gaussian_blur_5x5.hlsl.dxil.h"
@@ -587,6 +589,15 @@ static void LoadEmbeddedResources()
     g_buttonBcDiff = decompressZstd(g_button_bc_diff, g_button_bc_diff_uncompressed_size);
 }
 
+enum class CsdFilterState
+{
+    Unknown,
+    On,
+    Off
+};
+
+static CsdFilterState g_csdFilterState;
+
 enum class RenderCommandType
 {
     SetRenderState,
@@ -742,6 +753,7 @@ struct RenderCommand
             uint32_t primitiveCount; 
             UploadAllocation vertexStreamZeroData; 
             uint32_t vertexStreamZeroStride;
+            CsdFilterState csdFilterState;
         } drawPrimitiveUP;
 
         struct 
@@ -1043,6 +1055,9 @@ enum
 };
 
 static std::unique_ptr<GuestShader> g_gaussianBlurShaders[GAUSSIAN_BLUR_COUNT];
+
+static std::unique_ptr<GuestShader> g_csdFilterShader;
+static GuestShader* g_csdShader;
 
 #define CREATE_SHADER(NAME) \
     g_device->createShader( \
@@ -1442,6 +1457,9 @@ void Video::CreateHostDevice()
     g_gaussianBlurShaders[GAUSSIAN_BLUR_5X5]->shader = CREATE_SHADER(gaussian_blur_5x5);
     g_gaussianBlurShaders[GAUSSIAN_BLUR_7X7]->shader = CREATE_SHADER(gaussian_blur_7x7);
     g_gaussianBlurShaders[GAUSSIAN_BLUR_9X9]->shader = CREATE_SHADER(gaussian_blur_9x9);
+
+    g_csdFilterShader = std::make_unique<GuestShader>(ResourceType::PixelShader);
+    g_csdFilterShader->shader = CREATE_SHADER(csd_filter_ps);
 
     CreateImGuiBackend();
 
@@ -3415,6 +3433,7 @@ static void DrawPrimitiveUP(GuestDevice* device, uint32_t primitiveType, uint32_
     cmd.drawPrimitiveUP.primitiveCount = primitiveCount;
     cmd.drawPrimitiveUP.vertexStreamZeroData = g_uploadAllocators[g_frame].allocate<true>(reinterpret_cast<uint32_t*>(vertexStreamZeroData), primitiveCount * vertexStreamZeroStride, 0x4);
     cmd.drawPrimitiveUP.vertexStreamZeroStride = vertexStreamZeroStride;
+    cmd.drawPrimitiveUP.csdFilterState = g_csdFilterState;
     
     queue.submit();
 }
@@ -3439,6 +3458,13 @@ static void ProcDrawPrimitiveUP(const RenderCommand& cmd)
         indexCount = g_quadIndexData.prepare(args.primitiveCount);
     else if (!g_triangleFanSupported && args.primitiveType == D3DPT_TRIANGLEFAN)
         indexCount = g_triangleFanIndexData.prepare(args.primitiveCount);
+
+    if (args.csdFilterState != CsdFilterState::Unknown &&
+        (g_pipelineState.pixelShader == g_csdShader || g_pipelineState.pixelShader == g_csdFilterShader.get()))
+    {
+        SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.pixelShader,
+            args.csdFilterState == CsdFilterState::On ? g_csdFilterShader.get() : g_csdShader);
+    }
 
     FlushRenderStateForRenderThread();
 
@@ -3787,6 +3813,9 @@ static GuestShader* CreateShader(const be<uint32_t>* function, ResourceType reso
         shader = g_userHeap.AllocPhysical<GuestShader>(resourceType);
     else
         shader->AddRef();
+
+    if (hash == 0x31173204A896098A)
+        g_csdShader = shader;
 
     return shader;
 }
@@ -5481,6 +5510,14 @@ static void ModelConsumerThread()
                     SanitizePipelineState(pipelineState);
                     EnqueueGraphicsPipelineCompilation(pipelineState, emptyHolderPair, "Precompiled Pipeline");
                 }
+
+                // Compile the CSD filter shader that we pass to the game when point filtering is used.
+                if (pipelineState.pixelShader == g_csdShader)
+                {
+                    pipelineState.pixelShader = g_csdFilterShader.get();
+                    SanitizePipelineState(pipelineState);
+                    EnqueueGraphicsPipelineCompilation(pipelineState, emptyHolderPair, "Precompiled CSD Filter Pipeline");
+                }
             }
 
             g_pendingPipelineStateCache = false;
@@ -5725,6 +5762,23 @@ void VideoConfigValueChangedCallback(IConfigDef* config)
         config == &Config::ResolutionScale ||
         config == &Config::AntiAliasing ||
         config == &Config::ShadowResolution;
+}
+
+// SWA::CCsdTexListMirage::SetFilter
+PPC_FUNC_IMPL(__imp__sub_825E4300);
+PPC_FUNC(sub_825E4300)
+{
+    g_csdFilterState = ctx.r5.u32 == 0 ? CsdFilterState::On : CsdFilterState::Off;
+    ctx.r5.u32 = 1;
+    __imp__sub_825E4300(ctx, base);
+}
+
+// SWA::CCsdPlatformMirage::EndScene
+PPC_FUNC_IMPL(__imp__sub_825E2F78);
+PPC_FUNC(sub_825E2F78)
+{
+    g_csdFilterState = CsdFilterState::Unknown;
+    __imp__sub_825E2F78(ctx, base);
 }
 
 GUEST_FUNCTION_HOOK(sub_82BD99B0, CreateDevice);

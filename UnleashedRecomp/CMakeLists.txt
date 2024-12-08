@@ -291,6 +291,7 @@ function(compile_pixel_shader FILE_PATH)
 endfunction()
 
 compile_vertex_shader(copy_vs)
+compile_pixel_shader(csd_filter_ps)
 compile_pixel_shader(gaussian_blur_3x3)
 compile_pixel_shader(gaussian_blur_5x5)
 compile_pixel_shader(gaussian_blur_7x7)
