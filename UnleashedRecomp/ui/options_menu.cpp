@@ -1,4 +1,5 @@
 #include "options_menu.h"
+#include "options_menu_thumbnails.h"
 #include "imgui_utils.h"
 #include "window.h"
 #include "exports.h"
@@ -939,12 +940,11 @@ static void DrawInfoPanel()
 
     ImVec2 thumbnailMax = { clipRectMin.x + ScaleX(343.0f), clipRectMin.y + ScaleY(198.0f) };
 
-    // Thumbnail box
-    drawList->AddRectFilled(clipRectMin, thumbnailMax, IM_COL32(0, 0, 0, 255));
-
     if (g_selectedItem)
     {
         auto desc = g_selectedItem->GetDescription();
+
+        drawList->AddImage(GetThumbnail(g_selectedItem->GetName()), clipRectMin, thumbnailMax);
 
         if (g_inaccessibleReason)
         {
@@ -995,6 +995,8 @@ void OptionsMenu::Init()
     g_seuratFont = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf", 24.0f * FONT_SCALE);
     g_dfsogeistdFont = ImFontAtlasSnapshot::GetFont("DFSoGeiStd-W7.otf", 48.0f * FONT_SCALE);
     g_newRodinFont = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf", 20.0f * FONT_SCALE);
+
+    LoadThumbnails();
 }
 
 void OptionsMenu::Draw()

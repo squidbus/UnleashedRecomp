@@ -627,9 +627,9 @@ void AchievementMenu::Init()
     g_fntNewRodinDB = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf", 20.0f * FONT_SCALE);
     g_fntNewRodinUB = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-UB.otf", 20.0f * FONT_SCALE);
 
-    g_upTrophyIcon = LoadTexture(decompressZstd(g_trophy, g_trophy_uncompressed_size).get(), g_trophy_uncompressed_size);
-    g_upSelectionCursor = LoadTexture(decompressZstd(g_select_fill, g_select_fill_uncompressed_size).get(), g_select_fill_uncompressed_size);
-    g_upWindow = LoadTexture(decompressZstd(g_general_window, g_general_window_uncompressed_size).get(), g_general_window_uncompressed_size);
+    g_upTrophyIcon = LOAD_ZSTD_TEXTURE(g_trophy);
+    g_upSelectionCursor = LOAD_ZSTD_TEXTURE(g_select_fill);
+    g_upWindow = LOAD_ZSTD_TEXTURE(g_general_window);
 }
 
 void AchievementMenu::Draw()

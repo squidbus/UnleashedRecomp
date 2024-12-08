@@ -260,11 +260,8 @@ void MessageWindow::Init()
 
     g_fntSeurat = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf", 24.0f * FONT_SCALE);
 
-    g_upSelectionCursor = LoadTexture(decompressZstd(g_select_fade,
-        g_select_fade_uncompressed_size).get(), g_select_fade_uncompressed_size);
-
-    g_upWindow = LoadTexture(decompressZstd(g_general_window,
-        g_general_window_uncompressed_size).get(), g_general_window_uncompressed_size);
+    g_upSelectionCursor = LOAD_ZSTD_TEXTURE(g_select_fade);
+    g_upWindow = LOAD_ZSTD_TEXTURE(g_general_window);
 }
 
 void MessageWindow::Draw()

@@ -218,13 +218,8 @@ void ButtonGuide::Init()
     g_fntNewRodin = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf", 24.0f * FONT_SCALE);
     g_fntNewRodinLQ = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf", 19.0f);
 
-    g_upControllerIcons = LoadTexture(
-        decompressZstd(g_controller, g_controller_uncompressed_size).get(),
-        g_controller_uncompressed_size);
-
-    g_upKBMIcons = LoadTexture(
-        decompressZstd(g_kbm, g_kbm_uncompressed_size).get(),
-        g_kbm_uncompressed_size);
+    g_upControllerIcons = LOAD_ZSTD_TEXTURE(g_controller);
+    g_upKBMIcons = LOAD_ZSTD_TEXTURE(g_kbm);
 }
 
 void ButtonGuide::Draw()

@@ -67,7 +67,7 @@ public:
     CONFIG_DEFINE_ENUM_LOCALISED("Video", EMotionBlur, MotionBlur, EMotionBlur::Original);
     CONFIG_DEFINE_LOCALISED("Video", bool, XboxColourCorrection, false);
     CONFIG_DEFINE_ENUM_LOCALISED("Video", EMovieScaleMode, MovieScaleMode, EMovieScaleMode::Fit);
-    CONFIG_DEFINE_ENUM_LOCALISED("Video", EUIScaleMode, UIScaleMode, EUIScaleMode::Centre);
+    CONFIG_DEFINE_ENUM_LOCALISED("Video", EUIScaleMode, UIScaleMode, EUIScaleMode::Edge);
 
     static std::filesystem::path GetConfigPath()
     {

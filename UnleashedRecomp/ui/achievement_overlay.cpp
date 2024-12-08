@@ -80,7 +80,7 @@ void AchievementOverlay::Init()
 
     g_fntSeurat = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf", 24.0f * FONT_SCALE);
 
-    g_upWindow = LoadTexture(decompressZstd(g_general_window, g_general_window_uncompressed_size).get(), g_general_window_uncompressed_size);
+    g_upWindow = LOAD_ZSTD_TEXTURE(g_general_window);
 }
 
 void AchievementOverlay::Draw()

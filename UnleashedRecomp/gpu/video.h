@@ -8,6 +8,8 @@
 #define D3DCLEAR_TARGET  0x1
 #define D3DCLEAR_ZBUFFER 0x10
 
+#define LOAD_ZSTD_TEXTURE(name) LoadTexture(decompressZstd(name, name##_uncompressed_size).get(), name##_uncompressed_size)
+
 using namespace plume;
 
 struct Video

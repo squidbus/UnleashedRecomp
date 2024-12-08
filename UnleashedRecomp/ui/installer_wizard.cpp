@@ -1338,17 +1338,17 @@ void InstallerWizard::Init()
     g_seuratFont = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf", 24.0f * FONT_SCALE);
     g_dfsogeistdFont = ImFontAtlasSnapshot::GetFont("DFSoGeiStd-W7.otf", 48.0f * FONT_SCALE);
     g_newRodinFont = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf", 20.0f * FONT_SCALE);
-    g_installTextures[0] = LoadTexture(decompressZstd(g_install_001, g_install_001_uncompressed_size).get(), g_install_001_uncompressed_size);
-    g_installTextures[1] = LoadTexture(decompressZstd(g_install_002, g_install_002_uncompressed_size).get(), g_install_002_uncompressed_size);
-    g_installTextures[2] = LoadTexture(decompressZstd(g_install_003, g_install_003_uncompressed_size).get(), g_install_003_uncompressed_size);
-    g_installTextures[3] = LoadTexture(decompressZstd(g_install_004, g_install_004_uncompressed_size).get(), g_install_004_uncompressed_size);
-    g_installTextures[4] = LoadTexture(decompressZstd(g_install_005, g_install_005_uncompressed_size).get(), g_install_005_uncompressed_size);
-    g_installTextures[5] = LoadTexture(decompressZstd(g_install_006, g_install_006_uncompressed_size).get(), g_install_006_uncompressed_size);
-    g_installTextures[6] = LoadTexture(decompressZstd(g_install_007, g_install_007_uncompressed_size).get(), g_install_007_uncompressed_size);
-    g_installTextures[7] = LoadTexture(decompressZstd(g_install_008, g_install_008_uncompressed_size).get(), g_install_008_uncompressed_size);
-    g_milesElectricIcon = LoadTexture(decompressZstd(g_miles_electric_icon, g_miles_electric_icon_uncompressed_size).get(), g_miles_electric_icon_uncompressed_size);
-    g_arrowCircle = LoadTexture(decompressZstd(g_arrow_circle, g_arrow_circle_uncompressed_size).get(), g_arrow_circle_uncompressed_size);
-    g_pulseInstall = LoadTexture(decompressZstd(g_pulse_install, g_pulse_install_uncompressed_size).get(), g_pulse_install_uncompressed_size);
+    g_installTextures[0] = LOAD_ZSTD_TEXTURE(g_install_001);
+    g_installTextures[1] = LOAD_ZSTD_TEXTURE(g_install_002);
+    g_installTextures[2] = LOAD_ZSTD_TEXTURE(g_install_003);
+    g_installTextures[3] = LOAD_ZSTD_TEXTURE(g_install_004);
+    g_installTextures[4] = LOAD_ZSTD_TEXTURE(g_install_005);
+    g_installTextures[5] = LOAD_ZSTD_TEXTURE(g_install_006);
+    g_installTextures[6] = LOAD_ZSTD_TEXTURE(g_install_007);
+    g_installTextures[7] = LOAD_ZSTD_TEXTURE(g_install_008);
+    g_milesElectricIcon = LOAD_ZSTD_TEXTURE(g_miles_electric_icon);
+    g_arrowCircle = LOAD_ZSTD_TEXTURE(g_arrow_circle);
+    g_pulseInstall = LOAD_ZSTD_TEXTURE(g_pulse_install);
 }
 
 void InstallerWizard::Draw()
