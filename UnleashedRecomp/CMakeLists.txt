@@ -97,6 +97,7 @@ set(SWA_HID_CXX_SOURCES
 
 set(SWA_PATCHES_CXX_SOURCES
     "patches/ui/CHudPause_patches.cpp"
+    "patches/ui/CTitleStateIntro_patches.cpp"
     "patches/ui/CTitleStateMenu_patches.cpp"
     "patches/ui/frontend_listener.cpp"
     "patches/audio_patches.cpp"

@@ -8,8 +8,8 @@
 #include <app.h>
 #include <exports.h>
 
-static bool g_installMessageFaderBegun = false;
 static bool g_installMessageOpen = false;
+static bool g_installMessageFaderBegun = false;
 static int g_installMessageResult = -1;
 
 static bool ProcessInstallMessage()

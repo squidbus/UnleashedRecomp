@@ -239,6 +239,12 @@ inline static std::unordered_map<std::string, std::unordered_map<ELanguage, std:
         }
     },
     {
+        "Title_Message_Quit",
+        {
+            { ELanguage::English, "Are you sure you want to quit?" }
+        }
+    },
+    {
         "Common_Yes",
         {
             { ELanguage::English, "Yes" }
