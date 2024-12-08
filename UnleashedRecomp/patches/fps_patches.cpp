@@ -41,12 +41,12 @@ static double ComputeLerpFactor(double t, double deltaTime)
 // delta time, as it might be time scaled and not match with 30 FPS behavior.
 void CameraLerpFixMidAsmHook(PPCRegister& t)
 {
-    t.f64 = ComputeLerpFactor(t.f64, g_deltaTime);
+    t.f64 = ComputeLerpFactor(t.f64, App::s_deltaTime);
 }
 
 void CameraTargetSideOffsetLerpFixMidAsmHook(PPCVRegister& v13, PPCVRegister& v62)
 {
-    float factor = float(ComputeLerpFactor(double(v13.f32[0] * v62.f32[0]), g_deltaTime));
+    float factor = float(ComputeLerpFactor(double(v13.f32[0] * v62.f32[0]), App::s_deltaTime));
 
     for (size_t i = 0; i < 4; i++)
     {

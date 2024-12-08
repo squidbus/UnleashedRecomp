@@ -222,7 +222,7 @@ void ImFontAtlasSnapshot::GenerateGlyphRanges()
         }
     }
 
-    if (g_isAppInit)
+    if (App::s_isInit)
     {
         for (size_t i = XDBF_LANGUAGE_ENGLISH; i <= XDBF_LANGUAGE_ITALIAN; i++)
         {

@@ -2,6 +2,7 @@
 #include "sdl_listener.h"
 #include <user/config.h>
 #include <SDL_syswm.h>
+#include <app.h>
 
 bool m_isFullscreenKeyReleased = true;
 bool m_isResizing = false;
@@ -18,7 +19,7 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
     {
         case SDL_QUIT:
             Config::Save();
-            ExitProcess(0);
+            App::Exit();
             break;
 
         case SDL_KEYDOWN:

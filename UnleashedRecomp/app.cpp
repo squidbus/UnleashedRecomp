@@ -3,18 +3,24 @@
 #include <kernel/function.h>
 #include <ui/window.h>
 #include <patches/audio_patches.h>
+#include <os/process.h>
 
-bool g_isAppInit = false;
-bool g_isMissingDLC = false;
+void App::Exit(std::vector<std::string> restartArgs)
+{
+    if (restartArgs.size())
+        os::process::StartProcess(os::process::GetExecutablePath(), restartArgs, os::process::GetWorkingDirectory());
 
-double g_deltaTime;
+#if _WIN32
+    ExitProcess(0);
+#endif
+}
 
 // CApplication::Ctor
 PPC_FUNC_IMPL(__imp__sub_824EB490);
 PPC_FUNC(sub_824EB490)
 {
-    g_isAppInit = true;
-    g_isMissingDLC = !Installer::checkAllDLC(GetGamePath());
+    App::s_isInit = true;
+    App::s_isMissingDLC = !Installer::checkAllDLC(GetGamePath());
 
     __imp__sub_824EB490(ctx, base);
 }
@@ -23,13 +29,13 @@ PPC_FUNC(sub_824EB490)
 PPC_FUNC_IMPL(__imp__sub_822C1130);
 PPC_FUNC(sub_822C1130)
 {
-    g_deltaTime = ctx.f1.f64;
+    App::s_deltaTime = ctx.f1.f64;
 
     SDL_PumpEvents();
     SDL_FlushEvents(SDL_FIRSTEVENT, SDL_LASTEVENT);
 
     Window::Update();
-    AudioPatches::Update(g_deltaTime);
+    AudioPatches::Update(App::s_deltaTime);
 
     __imp__sub_822C1130(ctx, base);
 }

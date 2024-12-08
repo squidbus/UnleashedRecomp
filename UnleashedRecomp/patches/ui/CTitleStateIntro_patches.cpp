@@ -3,6 +3,7 @@
 #include <locale/locale.h>
 #include <ui/fader.h>
 #include <ui/message_window.h>
+#include <app.h>
 
 static bool g_quitMessageOpen = false;
 static bool g_quitMessageFaderBegun = false;
@@ -23,7 +24,7 @@ static bool ProcessQuitMessage()
         switch (g_quitMessageResult)
         {
             case 0:
-                Fader::FadeOut(1, []() { ExitProcess(0); });
+                Fader::FadeOut(1, []() { App::Exit(); });
                 g_quitMessageFaderBegun = true;
                 break;
 

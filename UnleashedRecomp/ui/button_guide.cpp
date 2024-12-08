@@ -63,7 +63,7 @@ std::tuple<std::tuple<ImVec2, ImVec2>, GuestTexture*> GetButtonIcon(EButtonIcon 
     std::tuple<ImVec2, ImVec2> btn;
     GuestTexture* texture;
 
-    auto isPlayStation = g_isAppInit
+    auto isPlayStation = App::s_isInit
         ? Config::ControllerIcons == EControllerIcons::PlayStation
         : hid::detail::g_inputDevice == hid::detail::EInputDevice::PlayStation;
 

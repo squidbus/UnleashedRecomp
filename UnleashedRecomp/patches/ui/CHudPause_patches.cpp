@@ -117,11 +117,11 @@ PPC_FUNC(sub_824B0930)
     auto pHudPause = (SWA::CHudPause*)g_memory.Translate(ctx.r3.u32);
     auto pInputState = SWA::CInputState::GetInstance();
 
-    g_achievementMenuIntroTime += g_deltaTime;
+    g_achievementMenuIntroTime += App::s_deltaTime;
 
     if (g_isAchievementMenuOutro)
     {
-        g_achievementMenuOutroTime += g_deltaTime;
+        g_achievementMenuOutroTime += App::s_deltaTime;
 
         // Re-open pause menu after achievement menu closes with delay.
         if (g_achievementMenuOutroTime >= g_achievementMenuOutroThreshold)

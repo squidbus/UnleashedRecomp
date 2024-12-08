@@ -20,7 +20,7 @@ static bool ProcessInstallMessage()
     if (g_installMessageFaderBegun)
         return true;
 
-    auto& str = g_isMissingDLC
+    auto& str = App::s_isMissingDLC
         ? Localise("Installer_Message_TitleMissingDLC")
         : Localise("Installer_Message_Title");
 
@@ -31,8 +31,7 @@ static bool ProcessInstallMessage()
         switch (g_installMessageResult)
         {
             case 0:
-                // TODO: replace ExitProcess with restart method using --install-dlc argument.
-                Fader::FadeOut(1, []() { ExitProcess(0); });
+                Fader::FadeOut(1, []() { App::Exit({ "--install-dlc" }); });
                 g_installMessageFaderBegun = true;
                 break;
 

@@ -1,6 +1,12 @@
 #pragma once
 
-extern bool g_isAppInit;
-extern bool g_isMissingDLC;
+class App
+{
+public:
+    inline static bool s_isInit;
+    inline static bool s_isMissingDLC;
 
-extern double g_deltaTime;
+    inline static double s_deltaTime;
+
+    static void Exit(std::vector<std::string> restartArgs = {});
+};
