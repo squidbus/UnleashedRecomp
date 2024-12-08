@@ -1,85 +1,12 @@
 #include <cpu/guest_code.h>
 #include <user/config.h>
 #include <kernel/function.h>
+#include <os/media.h>
 #include <os/version.h>
 #include <patches/audio_patches.h>
 #include <api/SWA.h>
 
-#if _WIN32
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Media.Control.h>
-
-using namespace winrt;
-using namespace winrt::Windows::Foundation;
-using namespace winrt::Windows::Media::Control;
-
-static GlobalSystemMediaTransportControlsSessionManager g_sessionManager = nullptr;
-
-static GlobalSystemMediaTransportControlsSessionManager GetSessionManager()
-{
-    if (g_sessionManager)
-        return g_sessionManager;
-
-    try
-    {
-        init_apartment();
-        return g_sessionManager = GlobalSystemMediaTransportControlsSessionManager::RequestAsync().get();
-    }
-    catch (...)
-    {
-        printf("[*] Failed to retrieve GSMTC session manager: 0x%08X\n", to_hresult().value);
-        return nullptr;
-    }
-}
-
-static GlobalSystemMediaTransportControlsSession GetCurrentSession()
-{
-    auto sessionManager = GetSessionManager();
-
-    if (!sessionManager)
-        return nullptr;
-
-    try
-    {
-        return sessionManager.GetCurrentSession();
-    }
-    catch (...)
-    {
-        printf("[*] Failed to retrieve current GSMTC session: 0x%08X\n", to_hresult().value);
-        return nullptr;
-    }
-}
-
-static GlobalSystemMediaTransportControlsSessionPlaybackInfo GetPlaybackInfo()
-{
-    auto session = GetCurrentSession();
-
-    if (!session)
-        return nullptr;
-
-    try
-    {
-        return session.GetPlaybackInfo();
-    }
-    catch (...)
-    {
-        printf("[*] Failed to retrieve GSMTC playback info: 0x%08X\n", to_hresult().value);
-        return nullptr;
-    }
-}
-
-static bool IsExternalAudioPlaying()
-{
-    auto playbackInfo = GetPlaybackInfo();
-
-    if (!playbackInfo)
-        return false;
-
-    return playbackInfo.PlaybackStatus() == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
-}
-
 int AudioPatches::m_isAttenuationSupported = -1;
-#endif
 
 static be<float>* GetVolume(bool isMusic = true)
 {
@@ -116,12 +43,11 @@ void AudioPatches::Update(float deltaTime)
     if (!pMusicVolume || !pEffectsVolume)
         return;
 
-#if _WIN32
     if (Config::MusicAttenuation && CanAttenuate())
     {
         auto time = 1.0f - expf(2.5f * -deltaTime);
 
-        if (IsExternalAudioPlaying())
+        if (os::media::IsExternalMediaPlaying())
         {
             *pMusicVolume = std::lerp(*pMusicVolume, 0.0f, time);
         }
@@ -131,7 +57,6 @@ void AudioPatches::Update(float deltaTime)
         }
     }
     else
-#endif
     {
         *pMusicVolume = Config::MusicVolume;
     }
