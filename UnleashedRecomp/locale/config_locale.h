@@ -319,10 +319,10 @@ CONFIG_DEFINE_ENUM_LOCALE(EDepthOfFieldQuality)
     {
         ELanguage::English,
         {
-            { EDepthOfFieldQuality::Auto, { "AUTO", "" } },
-            { EDepthOfFieldQuality::Low,  { "LOW", "" } },
-            { EDepthOfFieldQuality::Medium,  { "MEDIUM", "" } },
-            { EDepthOfFieldQuality::High,  { "HIGH", "" } },
+            { EDepthOfFieldQuality::Auto,   { "AUTO", "" } },
+            { EDepthOfFieldQuality::Low,    { "LOW", "" } },
+            { EDepthOfFieldQuality::Medium, { "MEDIUM", "" } },
+            { EDepthOfFieldQuality::High,   { "HIGH", "" } },
             { EDepthOfFieldQuality::Ultra,  { "ULTRA", "" } },
         }
     }
@@ -331,6 +331,18 @@ CONFIG_DEFINE_ENUM_LOCALE(EDepthOfFieldQuality)
 CONFIG_DEFINE_LOCALE(MotionBlur)
 {
     { ELanguage::English, { "Motion Blur", "Use per-object motion blur and radial blur." } }
+};
+
+CONFIG_DEFINE_ENUM_LOCALE(EMotionBlur)
+{
+    {
+        ELanguage::English,
+        {
+            { EMotionBlur::Off,      { "OFF", "" } },
+            { EMotionBlur::Original, { "ORIGINAL", "" } },
+            { EMotionBlur::Enhanced, { "ENHANCED", "" } }
+        }
+    }
 };
 
 CONFIG_DEFINE_LOCALE(XboxColourCorrection)

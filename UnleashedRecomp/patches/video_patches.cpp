@@ -26,5 +26,5 @@ void CSDAspectRatioMidAsmHook(PPCRegister& f1, PPCRegister& f2)
 
 bool MotionBlurMidAsmHook()
 {
-    return Config::MotionBlur;
+    return Config::MotionBlur != EMotionBlur::Off;
 }

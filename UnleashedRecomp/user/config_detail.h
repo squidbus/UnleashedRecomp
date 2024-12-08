@@ -203,11 +203,25 @@ enum class EDepthOfFieldQuality : uint32_t
 
 CONFIG_DEFINE_ENUM_TEMPLATE(EDepthOfFieldQuality)
 {
-    { "Auto", EDepthOfFieldQuality::Auto },
-    { "Low",  EDepthOfFieldQuality::Low },
-    { "Medium",  EDepthOfFieldQuality::Medium },
-    { "High",  EDepthOfFieldQuality::High },
+    { "Auto",   EDepthOfFieldQuality::Auto },
+    { "Low",    EDepthOfFieldQuality::Low },
+    { "Medium", EDepthOfFieldQuality::Medium },
+    { "High",   EDepthOfFieldQuality::High },
     { "Ultra",  EDepthOfFieldQuality::Ultra }
+};
+
+enum class EMotionBlur : uint32_t
+{
+    Off,
+    Original,
+    Enhanced
+};
+
+CONFIG_DEFINE_ENUM_TEMPLATE(EMotionBlur)
+{
+    { "Off",      EMotionBlur::Off },
+    { "Original", EMotionBlur::Original },
+    { "Enhanced", EMotionBlur::Enhanced }
 };
 
 enum class EMovieScaleMode : uint32_t

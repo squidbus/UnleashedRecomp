@@ -63,7 +63,7 @@ float4 main(in float4 iPosition : SV_Position, in float4 iTexCoord0 : TEXCOORD0)
         float2 offset = lerp(offsets[int(scaled)], offsets[min(int(scaled) + 1, 2)], frac(scaled));
         float offsetScale = 1.0 / 0.75;
         float weight = ComputeWeight(lerp(-offsetScale, offsetScale, step));
-        color += texture.Sample(samplerState, iTexCoord0.xy + offset) * weight;
+        color += texture.SampleLevel(samplerState, iTexCoord0.xy + offset, 0) * weight;
         weightSum += weight;
     }
     

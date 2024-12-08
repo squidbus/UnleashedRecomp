@@ -36,6 +36,8 @@
 #include "shader/copy_vs.hlsl.spirv.h"
 #include "shader/csd_filter_ps.hlsl.dxil.h"
 #include "shader/csd_filter_ps.hlsl.spirv.h"
+#include "shader/enhanced_motion_blur_ps.hlsl.dxil.h"
+#include "shader/enhanced_motion_blur_ps.hlsl.spirv.h"
 #include "shader/gaussian_blur_3x3.hlsl.dxil.h"
 #include "shader/gaussian_blur_3x3.hlsl.spirv.h"
 #include "shader/gaussian_blur_5x5.hlsl.dxil.h"
@@ -1059,6 +1061,8 @@ static std::unique_ptr<GuestShader> g_gaussianBlurShaders[GAUSSIAN_BLUR_COUNT];
 static std::unique_ptr<GuestShader> g_csdFilterShader;
 static GuestShader* g_csdShader;
 
+static std::unique_ptr<GuestShader> g_enhancedMotionBlurShader;
+
 #define CREATE_SHADER(NAME) \
     g_device->createShader( \
         g_vulkan ? g_##NAME##_spirv : g_##NAME##_dxil, \
@@ -1460,6 +1464,9 @@ void Video::CreateHostDevice()
 
     g_csdFilterShader = std::make_unique<GuestShader>(ResourceType::PixelShader);
     g_csdFilterShader->shader = CREATE_SHADER(csd_filter_ps);
+
+    g_enhancedMotionBlurShader = std::make_unique<GuestShader>(ResourceType::PixelShader);
+    g_enhancedMotionBlurShader->shader = CREATE_SHADER(enhanced_motion_blur_ps);
 
     CreateImGuiBackend();
 
@@ -3902,48 +3909,54 @@ static void ProcSetPixelShader(const RenderCommand& cmd)
 {
     GuestShader* shader = cmd.setPixelShader.shader;
     if (shader != nullptr && 
-        shader->shaderCacheEntry != nullptr &&
-        shader->shaderCacheEntry->hash == 0x4294510C775F4EE8)
+        shader->shaderCacheEntry != nullptr)
     {
-        size_t shaderIndex = GAUSSIAN_BLUR_3X3;
-        
-        switch (Config::DepthOfFieldQuality)
+        if (shader->shaderCacheEntry->hash == 0x4294510C775F4EE8)
         {
-        case EDepthOfFieldQuality::Low:
-            shaderIndex = GAUSSIAN_BLUR_3X3;
-            break;    
+            size_t shaderIndex = GAUSSIAN_BLUR_3X3;
 
-        case EDepthOfFieldQuality::Medium:
-            shaderIndex = GAUSSIAN_BLUR_5X5;
-            break;  
-
-        case EDepthOfFieldQuality::High:
-            shaderIndex = GAUSSIAN_BLUR_7X7;
-            break;   
-        
-        case EDepthOfFieldQuality::Ultra:
-            shaderIndex = GAUSSIAN_BLUR_9X9;
-            break;
-
-        default:
-        {
-            size_t height = round(g_swapChain->getHeight() * Config::ResolutionScale);
-
-            // Use the middle point between resolutions to have the transition less noticable.
-            if (height >= ((2160 + 1440) / 2))
-                shaderIndex = GAUSSIAN_BLUR_9X9;   
-            else if (height >= ((1440 + 1080) / 2))
-                shaderIndex = GAUSSIAN_BLUR_7X7;
-            else if (height >= ((1080 + 720) / 2))
-                shaderIndex = GAUSSIAN_BLUR_5X5;
-            else
+            switch (Config::DepthOfFieldQuality)
+            {
+            case EDepthOfFieldQuality::Low:
                 shaderIndex = GAUSSIAN_BLUR_3X3;
+                break;
 
-            break;
-        }
-        }
+            case EDepthOfFieldQuality::Medium:
+                shaderIndex = GAUSSIAN_BLUR_5X5;
+                break;
 
-        shader = g_gaussianBlurShaders[shaderIndex].get();
+            case EDepthOfFieldQuality::High:
+                shaderIndex = GAUSSIAN_BLUR_7X7;
+                break;
+
+            case EDepthOfFieldQuality::Ultra:
+                shaderIndex = GAUSSIAN_BLUR_9X9;
+                break;
+
+            default:
+            {
+                size_t height = round(g_swapChain->getHeight() * Config::ResolutionScale);
+
+                // Use the middle point between resolutions to have the transition less noticable.
+                if (height >= ((2160 + 1440) / 2))
+                    shaderIndex = GAUSSIAN_BLUR_9X9;
+                else if (height >= ((1440 + 1080) / 2))
+                    shaderIndex = GAUSSIAN_BLUR_7X7;
+                else if (height >= ((1080 + 720) / 2))
+                    shaderIndex = GAUSSIAN_BLUR_5X5;
+                else
+                    shaderIndex = GAUSSIAN_BLUR_3X3;
+
+                break;
+            }
+            }
+
+            shader = g_gaussianBlurShaders[shaderIndex].get();
+        }
+        else if (shader->shaderCacheEntry->hash == 0x6B9732B4CD7E7740 && Config::MotionBlur == EMotionBlur::Enhanced)
+        {
+            shader = g_enhancedMotionBlurShader.get();
+        }
     }
 
     SetDirtyValue(g_dirtyStates.pipelineState, g_pipelineState.pixelShader, shader);
@@ -5474,6 +5487,12 @@ static void ModelConsumerThread()
                 if (Config::GITextureFiltering == EGITextureFiltering::Bicubic)
                     pipelineState.specConstants |= SPEC_CONSTANT_BICUBIC_GI_FILTER;
 
+                auto createGraphicsPipeline = [&](PipelineState& pipelineStateToCreate, const char* name)
+                    {
+                        SanitizePipelineState(pipelineStateToCreate);
+                        EnqueueGraphicsPipelineCompilation(pipelineStateToCreate, emptyHolderPair, name);
+                    };
+
                 // Compile both MSAA and non MSAA variants to work with reflection maps. The render formats are an assumption but it should hold true.
                 if (Config::AntiAliasing != EAntiAliasing::None &&
                     pipelineState.renderTargetFormat == RenderFormat::R16G16B16A16_FLOAT && 
@@ -5489,34 +5508,40 @@ static void ModelConsumerThread()
                         msaaPipelineState.specConstants |= SPEC_CONSTANT_ALPHA_TO_COVERAGE;
                     }
 
-                    SanitizePipelineState(msaaPipelineState);
-                    EnqueueGraphicsPipelineCompilation(msaaPipelineState, emptyHolderPair, "Precompiled Pipeline MSAA");
+                    createGraphicsPipeline(msaaPipelineState, "Precompiled Pipeline MSAA");
                 }
 
-                // Compile the custom gaussian blur shaders that we pass to the game.
                 if (pipelineState.pixelShader != nullptr &&
-                    pipelineState.pixelShader->shaderCacheEntry != nullptr &&
-                    pipelineState.pixelShader->shaderCacheEntry->hash == 0x4294510C775F4EE8)
+                    pipelineState.pixelShader->shaderCacheEntry != nullptr)
                 {
-                    for (auto& shader : g_gaussianBlurShaders)
+                    XXH64_hash_t hash = pipelineState.pixelShader->shaderCacheEntry->hash;
+
+                    // Compile the custom gaussian blur shaders that we pass to the game.
+                    if (hash == 0x4294510C775F4EE8)
                     {
-                        pipelineState.pixelShader = shader.get();
-                        SanitizePipelineState(pipelineState);
-                        EnqueueGraphicsPipelineCompilation(pipelineState, emptyHolderPair, "Precompiled Gaussian Blur Pipeline");
+                        for (auto& shader : g_gaussianBlurShaders)
+                        {
+                            auto newPipelineState = pipelineState;
+                            newPipelineState.pixelShader = shader.get();
+                            createGraphicsPipeline(newPipelineState, "Precompiled Gaussian Blur Pipeline");
+                        }
+                    }
+                    // Compile enhanced motion blur shader.
+                    else if (hash == 0x6B9732B4CD7E7740)
+                    {
+                        auto newPipelineState = pipelineState;
+                        newPipelineState.pixelShader = g_enhancedMotionBlurShader.get();
+                        createGraphicsPipeline(newPipelineState, "Precompiled Enhanced Motion Blur Pipeline");
                     }
                 }
-                else
-                {
-                    SanitizePipelineState(pipelineState);
-                    EnqueueGraphicsPipelineCompilation(pipelineState, emptyHolderPair, "Precompiled Pipeline");
-                }
+                
+                createGraphicsPipeline(pipelineState, "Precompiled Pipeline");
 
                 // Compile the CSD filter shader that we pass to the game when point filtering is used.
                 if (pipelineState.pixelShader == g_csdShader)
                 {
                     pipelineState.pixelShader = g_csdFilterShader.get();
-                    SanitizePipelineState(pipelineState);
-                    EnqueueGraphicsPipelineCompilation(pipelineState, emptyHolderPair, "Precompiled CSD Filter Pipeline");
+                    createGraphicsPipeline(pipelineState, "Precompiled CSD Filter Pipeline");
                 }
             }
 
