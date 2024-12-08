@@ -11,6 +11,7 @@
 #include <kernel/memory.h>
 #include <locale/locale.h>
 #include <ui/button_guide.h>
+#include <app.h>
 
 #include <patches/audio_patches.h>
 
@@ -66,6 +67,7 @@ static std::string* g_inaccessibleReason;
 
 static bool g_isEnterKeyBuffered = false;
 static bool g_canReset = false;
+static bool g_isLanguageOptionChanged = false;
 
 static double g_appearTime = 0.0;
 
@@ -475,6 +477,7 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                         {
                             g_leftWasHeld = false;
                             g_rightWasHeld = false;
+
                             // remember value
                             s_oldValue = config->Value;
 
@@ -493,6 +496,7 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                     {
                         // released lock, restore old value
                         config->Value = s_oldValue;
+
                         g_lockedOnOption = false;
 
                         Game_PlaySound("sys_worldmap_cansel");
@@ -1012,6 +1016,8 @@ void OptionsMenu::Draw()
     DrawScanlineBars();
     DrawSettingsPanel();
     DrawInfoPanel();
+
+    s_isRestartRequired = Config::Language != App::s_language;
 }
 
 void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)

@@ -5,11 +5,14 @@
 #include <patches/audio_patches.h>
 #include <os/process.h>
 
-void App::Exit(std::vector<std::string> restartArgs)
+void App::Restart(std::vector<std::string> restartArgs)
 {
-    if (restartArgs.size())
-        os::process::StartProcess(os::process::GetExecutablePath(), restartArgs, os::process::GetWorkingDirectory());
+    os::process::StartProcess(os::process::GetExecutablePath(), restartArgs, os::process::GetWorkingDirectory());
+    Exit();
+}
 
+void App::Exit()
+{
 #if _WIN32
     ExitProcess(0);
 #endif
@@ -21,6 +24,7 @@ PPC_FUNC(sub_824EB490)
 {
     App::s_isInit = true;
     App::s_isMissingDLC = !Installer::checkAllDLC(GetGamePath());
+    App::s_language = Config::Language;
 
     __imp__sub_824EB490(ctx, base);
 }

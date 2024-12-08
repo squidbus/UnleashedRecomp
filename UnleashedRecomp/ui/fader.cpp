@@ -2,6 +2,7 @@
 #include "imgui_utils.h"
 #include <user/config.h>
 
+static bool g_isFading;
 static bool g_isFadeIn;
 
 static float g_startTime;
@@ -21,8 +22,13 @@ void Fader::Draw()
 
     if (time >= g_duration)
     {
-        if (g_endCallback && time >= g_duration + g_endCallbackDelay)
-            g_endCallback();
+        if (time >= g_duration + g_endCallbackDelay)
+        {
+            if (g_endCallback)
+                g_endCallback();
+
+            g_isFading = false;
+        }
     }
     else
     {
@@ -36,9 +42,14 @@ void Fader::Draw()
     ImGui::GetForegroundDrawList()->AddRectFilled({ 0, 0 }, ImGui::GetIO().DisplaySize, colour);
 }
 
-static void DoFade(float duration, std::function<void()> endCallback, float endCallbackDelay)
+static void DoFade(bool isFadeIn, float duration, std::function<void()> endCallback, float endCallbackDelay)
 {
+    if (g_isFading)
+        return;
+
     Fader::s_isVisible = true;
+    g_isFading = true;
+    g_isFadeIn = isFadeIn;
     g_startTime = ImGui::GetTime();
     g_duration = duration;
     g_endCallback = endCallback;
@@ -52,12 +63,10 @@ void Fader::SetFadeColour(ImU32 colour)
 
 void Fader::FadeIn(float duration, std::function<void()> endCallback, float endCallbackDelay)
 {
-    g_isFadeIn = true;
-    DoFade(duration, endCallback, endCallbackDelay);
+    DoFade(true, duration, endCallback, endCallbackDelay);
 }
 
 void Fader::FadeOut(float duration, std::function<void()> endCallback, float endCallbackDelay)
 {
-    g_isFadeIn = false;
-    DoFade(duration, endCallback, endCallbackDelay);
+    DoFade(false, duration, endCallback, endCallbackDelay);
 }

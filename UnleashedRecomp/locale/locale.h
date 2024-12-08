@@ -67,6 +67,12 @@ inline static std::unordered_map<std::string, std::unordered_map<ELanguage, std:
         }
     },
     {
+        "Options_Message_Restart",
+        {
+            { ELanguage::English, "The game will now restart." }
+        }
+    },
+    {
         "Achievements_Name",
         {
             { ELanguage::English, "Achievements" }

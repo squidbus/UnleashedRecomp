@@ -1,6 +1,7 @@
 #include <cpu/guest_code.h>
 #include <api/SWA.h>
 #include <locale/locale.h>
+#include <ui/button_guide.h>
 #include <ui/fader.h>
 #include <ui/message_window.h>
 #include <ui/options_menu.h>
@@ -31,7 +32,7 @@ static bool ProcessInstallMessage()
         switch (g_installMessageResult)
         {
             case 0:
-                Fader::FadeOut(1, []() { App::Exit({ "--install-dlc" }); });
+                Fader::FadeOut(1, []() { App::Restart({ "--install-dlc" }); });
                 g_installMessageFaderBegun = true;
                 break;
 
@@ -58,7 +59,14 @@ PPC_FUNC(sub_825882B8)
 
     if (!OptionsMenu::s_isVisible && isOptionsIndex)
     {
-        if (isAccepted)
+        if (OptionsMenu::s_isRestartRequired)
+        {
+            static int result = -1;
+
+            if (MessageWindow::Open(Localise("Options_Message_Restart"), &result) == MSG_CLOSED)
+                Fader::FadeOut(1, []() { App::Restart(); });
+        }
+        else if (isAccepted)
         {
             Game_PlaySound("sys_worldmap_window");
             Game_PlaySound("sys_worldmap_decide");
@@ -71,7 +79,7 @@ PPC_FUNC(sub_825882B8)
         g_installMessageOpen = true;
     }
 
-    if (!OptionsMenu::s_isVisible && !ProcessInstallMessage())
+    if (!OptionsMenu::s_isVisible && !OptionsMenu::s_isRestartRequired && !ProcessInstallMessage())
         __imp__sub_825882B8(ctx, base);
 
     if (isOptionsIndex)

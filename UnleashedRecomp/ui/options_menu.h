@@ -7,6 +7,7 @@ class OptionsMenu
 public:
     inline static bool s_isVisible = false;
     inline static bool s_isPause = false;
+    inline static bool s_isRestartRequired = false;
 
     inline static SWA::EMenuType s_pauseMenuType;
 
