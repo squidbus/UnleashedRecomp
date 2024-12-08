@@ -373,9 +373,32 @@ static void DrawAchievementTotal(ImVec2 min, ImVec2 max)
     auto uv0 = ImVec2(columnIndex * spriteSize / textureWidth, rowIndex * spriteSize / textureHeight);
     auto uv1 = ImVec2((columnIndex + 1) * spriteSize / textureWidth, (rowIndex + 1) * spriteSize / textureHeight);
 
-    drawList->AddImage(g_upTrophyIcon.get(), imageMin, imageMax, uv0, uv1, IM_COL32(255, 255, 255, 255 * alpha));
+    auto records = AchievementData::GetTotalRecords();
+    auto colour = IM_COL32(255, 255, 255, 255 * alpha);
 
-    auto str = std::format("{} / {}", AchievementData::GetTotalRecords(), ACH_RECORDS);
+    if (records <= 24)
+    {
+        // Bronze
+        colour = IM_COL32(198, 105, 15, 255 * alpha);
+    }
+    else if (records > 24 && records <= 49)
+    {
+        // Silver
+        colour = IM_COL32(220, 220, 220, 255 * alpha);
+    }
+    else if (records > 49 && records <= 50)
+    {
+        // Gold
+        colour = IM_COL32(255, 195, 56, 255 * alpha);
+    }
+
+    drawList->AddImage(g_upTrophyIcon.get(), imageMin, imageMax, uv0, uv1, colour);
+
+    // Add extra luminance to the trophy for bronze and gold.
+    if (records <= 24 || records <= 50)
+        drawList->AddImage(g_upTrophyIcon.get(), imageMin, imageMax, uv0, uv1, IM_COL32(255, 255, 255, 12));
+
+    auto str = std::format("{} / {}", records, ACH_RECORDS);
     auto fontSize = Scale(20);
     auto textSize = g_fntNewRodinDB->CalcTextSizeA(fontSize, FLT_MAX, 0, str.c_str());
 
