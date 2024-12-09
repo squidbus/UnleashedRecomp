@@ -231,7 +231,7 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
             desc,
             g_rowSelectionTime,
             0.9,
-            250.0,
+            Scale(250.0),
             shadowOffset,
             0.4f,
             colTextShadow
