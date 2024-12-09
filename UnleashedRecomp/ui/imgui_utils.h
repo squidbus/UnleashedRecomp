@@ -207,7 +207,7 @@ static void DrawTextWithOutline(const ImFont* font, float fontSize, const ImVec2
         {
             for (int32_t j = -outlineSize + 1; j < outlineSize; j++)
             {
-                if (i != 0 && j != 0)
+                if (i != 0 || j != 0)
                     drawList->AddText(font, fontSize, { pos.x + i, pos.y + j }, outlineColor, text);
             }
         }
