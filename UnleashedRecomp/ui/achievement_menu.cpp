@@ -141,14 +141,14 @@ static void DrawHeaderContainer(const char* text)
     SetTextSkew((min.y + max.y) / 2.0f, Scale(3.0f));
 
     // TODO: Apply bevel.
-    DrawTextWithOutline<int>
+    DrawTextWithOutline<float>
     (
         g_fntNewRodinUB,
         fontSize,
         { /* X */ min.x + textMarginX, /* Y */ CENTRE_TEXT_VERT(min, max, textSize) - Scale(5) },
         IM_COL32(255, 255, 255, 255 * alpha),
         text,
-        3,
+        1.65f,
         IM_COL32(0, 0, 0, 255 * alpha)
     );
 

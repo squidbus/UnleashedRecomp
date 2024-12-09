@@ -188,10 +188,12 @@ static void DrawTextWithOutline(const ImFont* font, float fontSize, const ImVec2
 
     if constexpr (std::is_same_v<float, T> || std::is_same_v<double, T>)
     {
+        auto step = outlineSize / 2.0f;
+
         // TODO: This is still very inefficient!
-        for (float i = -outlineSize; i <= outlineSize; i += 0.5f)
+        for (float i = -outlineSize; i <= outlineSize; i += step)
         {
-            for (float j = -outlineSize; j <= outlineSize; j += 0.5f)
+            for (float j = -outlineSize; j <= outlineSize; j += step)
             {
                 if (i == 0.0f && j == 0.0f)
                     continue;
