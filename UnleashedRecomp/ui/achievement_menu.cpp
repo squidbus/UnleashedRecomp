@@ -138,7 +138,9 @@ static void DrawHeaderContainer(const char* text)
 
     DrawPauseHeaderContainer(g_upWindow.get(), min, max, alpha);
 
-    // TODO: skew this text and apply bevel.
+    SetTextSkew((min.y + max.y) / 2.0f, Scale(3.0f));
+
+    // TODO: Apply bevel.
     DrawTextWithOutline<int>
     (
         g_fntNewRodinUB,
@@ -149,6 +151,8 @@ static void DrawHeaderContainer(const char* text)
         3,
         IM_COL32(0, 0, 0, 255 * alpha)
     );
+
+    ResetTextSkew();
 }
 
 static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievement, bool isUnlocked)
@@ -182,8 +186,10 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
     auto titleTextY = Scale(20);
     auto descTextY = Scale(52);
 
+    if (!isUnlocked)
+        SetShaderModifier(IMGUI_SHADER_MODIFIER_GRAYSCALE);
+
     // Draw achievement icon.
-    // TODO: make icon greyscale if locked?
     drawList->AddImage
     (
         icon,
@@ -193,6 +199,9 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
         { /* U */ 1, /* V */ 1 },
         IM_COL32(255, 255, 255, 255 * (isUnlocked ? 1 : 0.5f))
     );
+
+    if (!isUnlocked)
+        SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
 
     drawList->PushClipRect(min, max, true);
 
@@ -219,13 +228,16 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
 
     if (isSelected && textX + textSize.x >= max.x - Scale(10))
     {
+        ImVec2 marqueeMin = { textMarqueeX, min.y };
+        SetMarqueeFade(marqueeMin, max, Scale(32.0f));
+
         // Draw achievement description with marquee.
         DrawTextWithMarqueeShadow
         (
             g_fntSeurat,
             fontSize,
             { textX, min.y + descTextY },
-            { textMarqueeX, min.y },
+            marqueeMin,
             max,
             isUnlocked ? IM_COL32(255, 255, 255, 255) : colLockedText,
             desc,
@@ -236,6 +248,8 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
             0.4f,
             colTextShadow
         );
+
+        ResetMarqueeFade();
     }
     else
     {

@@ -1101,8 +1101,8 @@ static constexpr uint32_t PLACEMENT_ALIGNMENT = 0x200;
 
 struct ImGuiPushConstants
 {
-    ImVec2 gradientMin{};
-    ImVec2 gradientMax{};
+    ImVec2 boundsMin{};
+    ImVec2 boundsMax{};
     ImU32 gradientTop{};
     ImU32 gradientBottom{};
     uint32_t shaderModifier{};
@@ -1921,7 +1921,7 @@ static void ProcDrawImGui(const RenderCommand& cmd)
                 switch (static_cast<ImGuiCallback>(reinterpret_cast<size_t>(drawCmd.UserCallback)))
                 {
                 case ImGuiCallback::SetGradient:
-                    commandList->setGraphicsPushConstants(0, &callbackData->setGradient, offsetof(ImGuiPushConstants, gradientMin), sizeof(callbackData->setGradient));
+                    commandList->setGraphicsPushConstants(0, &callbackData->setGradient, offsetof(ImGuiPushConstants, boundsMin), sizeof(callbackData->setGradient));
                     break;       
                 case ImGuiCallback::SetShaderModifier:
                     commandList->setGraphicsPushConstants(0, &callbackData->setShaderModifier, offsetof(ImGuiPushConstants, shaderModifier), sizeof(callbackData->setShaderModifier));
@@ -1931,6 +1931,9 @@ static void ProcDrawImGui(const RenderCommand& cmd)
                     break;
                 case ImGuiCallback::SetScale:
                     commandList->setGraphicsPushConstants(0, &callbackData->setScale, offsetof(ImGuiPushConstants, scale), sizeof(callbackData->setScale));
+                    break;       
+                case ImGuiCallback::SetMarqueeFade:
+                    commandList->setGraphicsPushConstants(0, &callbackData->setScale, offsetof(ImGuiPushConstants, boundsMin), sizeof(callbackData->setMarqueeFade));
                     break;
                 }
             }

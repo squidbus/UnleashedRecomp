@@ -16,10 +16,10 @@
 static void SetGradient(const ImVec2& min, const ImVec2& max, ImU32 top, ImU32 bottom)
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetGradient);
-    callbackData->setGradient.gradientMin[0] = min.x;
-    callbackData->setGradient.gradientMin[1] = min.y;
-    callbackData->setGradient.gradientMax[0] = max.x;
-    callbackData->setGradient.gradientMax[1] = max.y;
+    callbackData->setGradient.boundsMin[0] = min.x;
+    callbackData->setGradient.boundsMin[1] = min.y;
+    callbackData->setGradient.boundsMax[0] = max.x;
+    callbackData->setGradient.boundsMax[1] = max.y;
     callbackData->setGradient.gradientTop = top;
     callbackData->setGradient.gradientBottom = bottom;
 }
@@ -48,6 +48,39 @@ static void SetScale(ImVec2 scale)
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetScale);
     callbackData->setScale.scale[0] = scale.x;
     callbackData->setScale.scale[1] = scale.y;
+}
+
+static void SetTextSkew(float yCenter, float skewScale)
+{
+    SetShaderModifier(IMGUI_SHADER_MODIFIER_TEXT_SKEW);
+    SetOrigin({ 0.0f, yCenter });
+    SetScale({ skewScale, 1.0f });
+}
+
+static void ResetTextSkew()
+{
+    SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
+    SetOrigin({ 0.0f, 0.0f });
+    SetScale({ 1.0f, 1.0f });
+}
+
+static void SetMarqueeFade(ImVec2 min, ImVec2 max, float fadeScale)
+{
+    auto callbackData = AddImGuiCallback(ImGuiCallback::SetMarqueeFade);
+    callbackData->setMarqueeFade.boundsMin[0] = min.x;
+    callbackData->setMarqueeFade.boundsMin[1] = min.y;
+    callbackData->setMarqueeFade.boundsMax[0] = max.x;
+    callbackData->setMarqueeFade.boundsMax[1] = max.y;
+
+    SetShaderModifier(IMGUI_SHADER_MODIFIER_MARQUEE_FADE);
+    SetScale({ fadeScale, 1.0f });
+}
+
+static void ResetMarqueeFade()
+{
+    ResetGradient();
+    SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
+    SetScale({ 1.0f, 1.0f });
 }
 
 // Aspect ratio aware.
@@ -173,7 +206,10 @@ static void DrawTextWithOutline(const ImFont* font, float fontSize, const ImVec2
         for (int32_t i = -outlineSize + 1; i < outlineSize; i++)
         {
             for (int32_t j = -outlineSize + 1; j < outlineSize; j++)
-                drawList->AddText(font, fontSize, { pos.x + i, pos.y + j }, outlineColor, text);
+            {
+                if (i != 0 && j != 0)
+                    drawList->AddText(font, fontSize, { pos.x + i, pos.y + j }, outlineColor, text);
+            }
         }
     }
 

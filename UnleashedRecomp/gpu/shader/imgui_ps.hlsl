@@ -1,5 +1,4 @@
 #include "imgui_common.hlsli"
-#include "../imgui_common.h"
 
 float4 DecodeColor(uint color)
 {
@@ -82,11 +81,22 @@ float4 main(in Interpolators interpolators) : SV_Target
     if (g_PushConstants.Texture2DDescriptorIndex != 0)
         color *= g_Texture2DDescriptorHeap[g_PushConstants.Texture2DDescriptorIndex].Sample(g_SamplerDescriptorHeap[0], interpolators.UV);
     
-    if (any(g_PushConstants.GradientMin != g_PushConstants.GradientMax))
+    if (g_PushConstants.ShaderModifier == IMGUI_SHADER_MODIFIER_MARQUEE_FADE)
     {
-        float2 factor = saturate((interpolators.Position.xy - g_PushConstants.GradientMin) / (g_PushConstants.GradientMax - g_PushConstants.GradientMin));
-        color *= lerp(DecodeColor(g_PushConstants.GradientTop), DecodeColor(g_PushConstants.GradientBottom), factor.y);
+        float minAlpha = saturate((interpolators.Position.x - g_PushConstants.BoundsMin.x) / g_PushConstants.Scale.x);
+        float maxAlpha = saturate((g_PushConstants.BoundsMax.x - interpolators.Position.x) / g_PushConstants.Scale.x);
+        
+        color.a *= minAlpha;
+        color.a *= maxAlpha;
+    }
+    else if (any(g_PushConstants.BoundsMin != g_PushConstants.BoundsMax))
+    {
+        float2 factor = saturate((interpolators.Position.xy - g_PushConstants.BoundsMin) / (g_PushConstants.BoundsMax - g_PushConstants.BoundsMin));
+        color *= lerp(DecodeColor(g_PushConstants.GradientTop), DecodeColor(g_PushConstants.GradientBottom), smoothstep(0.0, 1.0, factor.y));
     }
         
+    if (g_PushConstants.ShaderModifier == IMGUI_SHADER_MODIFIER_GRAYSCALE)
+        color.rgb = dot(color.rgb, float3(0.2126, 0.7152, 0.0722));
+    
     return color;
 }

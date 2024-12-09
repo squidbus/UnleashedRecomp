@@ -1,9 +1,11 @@
 #pragma once
 
+#include "../imgui_common.h"
+
 struct PushConstants
 {
-    float2 GradientMin;
-    float2 GradientMax;
+    float2 BoundsMin;
+    float2 BoundsMax;
     uint GradientTop;
     uint GradientBottom;
     uint ShaderModifier;
