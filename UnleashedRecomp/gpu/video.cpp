@@ -11,6 +11,7 @@
 #include <decompressor.h>
 #include <kernel/function.h>
 #include <kernel/heap.h>
+#include <hid/hid_detail.h>
 #include <kernel/memory.h>
 #include <kernel/xdbf.h>
 #include <res/bc_diff/button_bc_diff.bin.h>
@@ -2710,7 +2711,12 @@ static void ProcSetViewport(const RenderCommand& cmd)
 
 static void SetTexture(GuestDevice* device, uint32_t index, GuestTexture* texture) 
 {
-    if (Config::ControllerIcons == EControllerIcons::PlayStation && texture != nullptr && texture->patchedTexture != nullptr)
+    auto isPlayStation = Config::ControllerIcons == EControllerIcons::PlayStation;
+
+    if (Config::ControllerIcons == EControllerIcons::Auto)
+        isPlayStation = hid::detail::g_inputDeviceController == hid::detail::EInputDevice::PlayStation;
+
+    if (isPlayStation && texture != nullptr && texture->patchedTexture != nullptr)
         texture = texture->patchedTexture.get();
 
     RenderCommand cmd;

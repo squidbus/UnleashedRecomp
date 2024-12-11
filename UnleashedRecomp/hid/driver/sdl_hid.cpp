@@ -126,6 +126,7 @@ public:
 };
 
 std::array<Controller, 4> g_controllers;
+Controller* g_activeController;
 
 inline Controller* EnsureController(DWORD dwUserIndex)
 {
@@ -157,6 +158,13 @@ inline Controller* FindController(int which)
     return nullptr;
 }
 
+static void SetControllerInputDevice(Controller* controller)
+{
+    g_activeController = controller;
+    hid::detail::g_inputDevice = controller->GetInputDevice();
+    hid::detail::g_inputDeviceController = hid::detail::g_inputDevice;
+}
+
 int HID_OnSDLEvent(void*, SDL_Event* event)
 {
     if (event->type >= SDL_CONTROLLERAXISMOTION && event->type < SDL_FINGERDOWN)
@@ -183,14 +191,17 @@ int HID_OnSDLEvent(void*, SDL_Event* event)
             {
                 if (event->type == SDL_CONTROLLERAXISMOTION)
                 {
+                    if (abs(event->caxis.value) > 8000)
+                        SetControllerInputDevice(controller);
+
                     controller->PollAxis();
                 }
                 else
                 {
+                    SetControllerInputDevice(controller);
+
                     controller->Poll();
                 }
-
-                hid::detail::g_inputDevice = controller->GetInputDevice();
             }
         }
     }
@@ -234,12 +245,10 @@ uint32_t hid::detail::GetState(uint32_t dwUserIndex, XAMINPUT_STATE* pState)
 
     pState->dwPacketNumber = packet++;
 
-    SDL_JoystickUpdate();
-
-    if (!EnsureController(dwUserIndex))
+    if (!g_activeController)
         return ERROR_DEVICE_NOT_CONNECTED;
 
-    pState->Gamepad = g_controllers[dwUserIndex].state;
+    pState->Gamepad = g_activeController->state;
 
     return ERROR_SUCCESS;
 }
@@ -249,14 +258,10 @@ uint32_t hid::detail::SetState(uint32_t dwUserIndex, XAMINPUT_VIBRATION* pVibrat
     if (!pVibration)
         return ERROR_BAD_ARGUMENTS;
 
-    SDL_JoystickUpdate();
-
-    auto* controller = EnsureController(dwUserIndex);
-
-    if (!controller)
+    if (!g_activeController)
         return ERROR_DEVICE_NOT_CONNECTED;
 
-    controller->SetVibration(*pVibration);
+    g_activeController->SetVibration(*pVibration);
 
     return ERROR_SUCCESS;
 }
@@ -266,11 +271,7 @@ uint32_t hid::detail::GetCapabilities(uint32_t dwUserIndex, XAMINPUT_CAPABILITIE
     if (!pCaps)
         return ERROR_BAD_ARGUMENTS;
 
-    SDL_JoystickUpdate();
-
-    auto* controller = EnsureController(dwUserIndex);
-
-    if (!controller)
+    if (!g_activeController)
         return ERROR_DEVICE_NOT_CONNECTED;
 
     memset(pCaps, 0, sizeof(*pCaps));
@@ -278,8 +279,8 @@ uint32_t hid::detail::GetCapabilities(uint32_t dwUserIndex, XAMINPUT_CAPABILITIE
     pCaps->Type = XAMINPUT_DEVTYPE_GAMEPAD;
     pCaps->SubType = XAMINPUT_DEVSUBTYPE_GAMEPAD; // TODO: other types?
     pCaps->Flags = 0;
-    pCaps->Gamepad = controller->state;
-    pCaps->Vibration = controller->vibration;
+    pCaps->Gamepad = g_activeController->state;
+    pCaps->Vibration = g_activeController->vibration;
 
     return ERROR_SUCCESS;
 }

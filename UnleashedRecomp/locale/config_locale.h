@@ -141,6 +141,7 @@ CONFIG_DEFINE_ENUM_LOCALE(EControllerIcons)
     {
         ELanguage::English,
         {
+            { EControllerIcons::Auto,        { "AUTO", "Auto: the game will determine which icons\nto use based on the current input device." } },
             { EControllerIcons::Xbox,        { "XBOX", "" } },
             { EControllerIcons::PlayStation, { "PLAYSTATION", "" } }
         }
