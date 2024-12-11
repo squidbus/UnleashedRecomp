@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../imgui_common.h"
+#include "../imgui/imgui_common.h"
 
 struct PushConstants
 {
@@ -13,6 +13,7 @@ struct PushConstants
     float2 InverseDisplaySize;
     float2 Origin;
     float2 Scale;
+    float Outline;
 };
 
 Texture2D<float4> g_Texture2DDescriptorHeap[] : register(t0, space0);

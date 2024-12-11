@@ -5,9 +5,9 @@
 #include "exports.h"
 
 #include <api/SWA/System/InputState.h>
-#include <gpu/imgui_common.h>
+#include <gpu/imgui/imgui_common.h>
 #include <gpu/video.h>
-#include <gpu/imgui_snapshot.h>
+#include <gpu/imgui/imgui_snapshot.h>
 #include <kernel/heap.h>
 #include <kernel/memory.h>
 #include <locale/locale.h>
@@ -138,7 +138,15 @@ static void DrawScanlineBars()
 
     // Options text
     // TODO: localise this.
-    DrawTextWithOutline<int>(g_dfsogeistdFont, Scale(48.0f), { Scale(122.0f), Scale(56.0f) }, IM_COL32(255, 195, 0, 255), "OPTIONS", 4, IM_COL32_BLACK);
+    DrawTextWithOutline(
+        g_dfsogeistdFont,
+        Scale(48.0f),
+        { Scale(122.0f), Scale(56.0f) },
+        IM_COL32(255, 190, 33, 255),
+        "OPTIONS",
+        4,
+        IM_COL32_BLACK,
+        IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
 
     // Top bar line
     drawList->AddLine
@@ -389,15 +397,16 @@ static bool DrawCategories()
             IM_COL32(255, 192, 0, alpha)
         );
 
-        DrawTextWithOutline<int>
+        DrawTextWithOutline
         (
             g_dfsogeistdFont,
             size,
             min,
             IM_COL32_WHITE,
             GetCategory(i).c_str(),
-            3,
-            IM_COL32_BLACK
+            4,
+            IM_COL32_BLACK,
+            IMGUI_SHADER_MODIFIER_CATEGORY_BEVEL
         );
 
         ResetGradient();
@@ -755,14 +764,14 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
         IM_COL32(128, 170, 0, 255)
     );
 
-    DrawTextWithOutline<int>
+    DrawTextWithOutline
     (
         g_newRodinFont,
         size,
         min,
         IM_COL32(255, 255, 255, 255 * alpha),
         valueText.data(),
-        2,
+        4,
         IM_COL32(0, 0, 0, 255 * alpha)
     );
 
@@ -990,11 +999,9 @@ void OptionsMenu::Init()
 {
     auto& io = ImGui::GetIO();
 
-    constexpr float FONT_SCALE = 2.0f;
-
-    g_seuratFont = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf", 24.0f * FONT_SCALE);
-    g_dfsogeistdFont = ImFontAtlasSnapshot::GetFont("DFSoGeiStd-W7.otf", 48.0f * FONT_SCALE);
-    g_newRodinFont = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf", 20.0f * FONT_SCALE);
+    g_seuratFont = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf");
+    g_dfsogeistdFont = ImFontAtlasSnapshot::GetFont("DFSoGeiStd-W7.otf");
+    g_newRodinFont = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf");
 
     LoadThumbnails();
 }

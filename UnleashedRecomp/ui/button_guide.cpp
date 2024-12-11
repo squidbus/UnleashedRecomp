@@ -1,6 +1,6 @@
 #include "button_guide.h"
 #include "imgui_utils.h"
-#include <gpu/imgui_snapshot.h>
+#include <gpu/imgui/imgui_snapshot.h>
 #include <gpu/video.h>
 #include <hid/hid_detail.h>
 #include <user/config.h>
@@ -188,7 +188,7 @@ static void DrawGuide(float* offset, ImVec2 regionMin, ImVec2 regionMax, EButton
 
     ImVec2 textPosition = { textMarginX, textMarginY };
 
-    DrawTextWithOutline<int>(font, fontSize, textPosition, IM_COL32_WHITE, text, 2, IM_COL32_BLACK);
+    DrawTextWithOutline(font, fontSize, textPosition, IM_COL32_WHITE, text, 4, IM_COL32_BLACK);
 
     // Add extra luminance to low quality text.
     if (fontQuality == EFontQuality::Low)
@@ -214,10 +214,8 @@ void ButtonGuide::Init()
 {
     auto& io = ImGui::GetIO();
 
-    constexpr float FONT_SCALE = 2.0f;
-
-    g_fntNewRodin = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf", 24.0f * FONT_SCALE);
-    g_fntNewRodinLQ = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf", 19.0f);
+    g_fntNewRodin = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf");
+    g_fntNewRodinLQ = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-M.otf");
 
     g_upControllerIcons = LOAD_ZSTD_TEXTURE(g_controller);
     g_upKBMIcons = LOAD_ZSTD_TEXTURE(g_kbm);

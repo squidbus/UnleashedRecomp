@@ -13,7 +13,7 @@
 #include <res/images/achievements_menu/trophy.dds.h>
 #include <res/images/common/general_window.dds.h>
 #include <res/images/common/select_fill.dds.h>
-#include <gpu/imgui_snapshot.h>
+#include <gpu/imgui/imgui_snapshot.h>
 
 constexpr double HEADER_CONTAINER_INTRO_MOTION_START = 0;
 constexpr double HEADER_CONTAINER_INTRO_MOTION_END = 15;
@@ -141,14 +141,14 @@ static void DrawHeaderContainer(const char* text)
     SetTextSkew((min.y + max.y) / 2.0f, Scale(3.0f));
 
     // TODO: Apply bevel.
-    DrawTextWithOutline<float>
+    DrawTextWithOutline
     (
         g_fntNewRodinUB,
         fontSize,
         { /* X */ min.x + textMarginX, /* Y */ CENTRE_TEXT_VERT(min, max, textSize) - Scale(5) },
         IM_COL32(255, 255, 255, 255 * alpha),
         text,
-        1.65f,
+        4,
         IM_COL32(0, 0, 0, 255 * alpha)
     );
 
@@ -222,7 +222,7 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
         isUnlocked ? IM_COL32(252, 243, 5, 255) : colLockedText,
         achievement.Name.c_str(),
         shadowOffset,
-        0.4f,
+        1.0f,
         colTextShadow
     );
 
@@ -261,7 +261,7 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
             isUnlocked ? IM_COL32_WHITE : colLockedText,
             desc,
             shadowOffset,
-            0.4f,
+            1.0f,
             colTextShadow
         );
     }
@@ -349,14 +349,14 @@ static void DrawAchievement(int rowIndex, float yOffset, Achievement& achievemen
     );
 
     // Draw timestamp text.
-    DrawTextWithOutline<int>
+    DrawTextWithOutline
     (
         g_fntNewRodinDB,
         fontSize,
         { /* X */ CENTRE_TEXT_HORZ(timestampMin, timestampMax, textSize), /* Y */ CENTRE_TEXT_VERT(timestampMin, timestampMax, textSize) },
         IM_COL32(255, 255, 255, 255),
         buffer,
-        2,
+        4,
         IM_COL32(8, 8, 8, 255)
     );
 
@@ -523,14 +523,14 @@ static void DrawAchievementTotal(ImVec2 min, ImVec2 max)
     auto fontSize = Scale(20);
     auto textSize = g_fntNewRodinDB->CalcTextSizeA(fontSize, FLT_MAX, 0, str.c_str());
 
-    DrawTextWithOutline<int>
+    DrawTextWithOutline
     (
         g_fntNewRodinDB,
         fontSize,
         { /* X */ imageMin.x - textSize.x - Scale(6), /* Y */ CENTRE_TEXT_VERT(imageMin, imageMax, textSize) },
         IM_COL32(255, 255, 255, 255 * alpha),
         str.c_str(),
-        2,
+        4,
         IM_COL32(0, 0, 0, 255 * alpha)
     );
 }
@@ -765,11 +765,9 @@ void AchievementMenu::Init()
 {
     auto& io = ImGui::GetIO();
 
-    constexpr float FONT_SCALE = 2.0f;
-
-    g_fntSeurat = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf", 24.0f * FONT_SCALE);
-    g_fntNewRodinDB = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf", 20.0f * FONT_SCALE);
-    g_fntNewRodinUB = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-UB.otf", 20.0f * FONT_SCALE);
+    g_fntSeurat = ImFontAtlasSnapshot::GetFont("FOT-SeuratPro-M.otf");
+    g_fntNewRodinDB = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-DB.otf");
+    g_fntNewRodinUB = ImFontAtlasSnapshot::GetFont("FOT-NewRodinPro-UB.otf");
 
     g_upTrophyIcon = LOAD_ZSTD_TEXTURE(g_trophy);
     g_upSelectionCursor = LOAD_ZSTD_TEXTURE(g_select_fill);
