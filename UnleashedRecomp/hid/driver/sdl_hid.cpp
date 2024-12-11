@@ -167,51 +167,74 @@ static void SetControllerInputDevice(Controller* controller)
 
 int HID_OnSDLEvent(void*, SDL_Event* event)
 {
-    if (event->type >= SDL_CONTROLLERAXISMOTION && event->type < SDL_FINGERDOWN)
+    switch (event->type)
     {
-        if (event->type == SDL_CONTROLLERDEVICEADDED)
-        {
-            const auto freeIndex = FindFreeController();
+        case SDL_KEYDOWN:
+        case SDL_KEYUP:
+            hid::detail::g_inputDevice = hid::detail::EInputDevice::Keyboard;
+            break;
 
-            if (freeIndex != -1)
-                g_controllers[freeIndex] = Controller(event->cdevice.which);
-        }
-        if (event->type == SDL_CONTROLLERDEVICEREMOVED)
-        {
-            auto* controller = FindController(event->cdevice.which);
+        case SDL_MOUSEMOTION:
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+            hid::detail::g_inputDevice = hid::detail::EInputDevice::Mouse;
+            break;
 
-            if (controller)
-                controller->Close();
-        }
-        else if (event->type == SDL_CONTROLLERBUTTONDOWN || event->type == SDL_CONTROLLERBUTTONUP || event->type == SDL_CONTROLLERAXISMOTION)
+        case SDL_WINDOWEVENT:
         {
-            auto* controller = FindController(event->cdevice.which);
-
-            if (controller)
+            if (event->window.event == SDL_WINDOWEVENT_FOCUS_LOST)
             {
-                if (event->type == SDL_CONTROLLERAXISMOTION)
-                {
-                    if (abs(event->caxis.value) > 8000)
-                        SetControllerInputDevice(controller);
+                // Stop vibrating controllers on focus lost.
+                for (auto& controller : g_controllers)
+                    controller.SetVibration({ 0, 0 });
+            }
 
-                    controller->PollAxis();
+            break;
+        }
+
+        default:
+        {
+            if (event->type >= SDL_CONTROLLERAXISMOTION && event->type < SDL_FINGERDOWN)
+            {
+                if (event->type == SDL_CONTROLLERDEVICEADDED)
+                {
+                    const auto freeIndex = FindFreeController();
+
+                    if (freeIndex != -1)
+                        g_controllers[freeIndex] = Controller(event->cdevice.which);
                 }
-                else
+                if (event->type == SDL_CONTROLLERDEVICEREMOVED)
                 {
-                    SetControllerInputDevice(controller);
+                    auto* controller = FindController(event->cdevice.which);
 
-                    controller->Poll();
+                    if (controller)
+                        controller->Close();
+                }
+                else if (event->type == SDL_CONTROLLERBUTTONDOWN || event->type == SDL_CONTROLLERBUTTONUP || event->type == SDL_CONTROLLERAXISMOTION)
+                {
+                    auto* controller = FindController(event->cdevice.which);
+
+                    if (controller)
+                    {
+                        if (event->type == SDL_CONTROLLERAXISMOTION)
+                        {
+                            if (abs(event->caxis.value) > 8000)
+                                SetControllerInputDevice(controller);
+
+                            controller->PollAxis();
+                        }
+                        else
+                        {
+                            SetControllerInputDevice(controller);
+
+                            controller->Poll();
+                        }
+                    }
                 }
             }
+
+            break;
         }
-    }
-    else if (event->type == SDL_KEYDOWN || event->type == SDL_KEYUP)
-    {
-        hid::detail::g_inputDevice = hid::detail::EInputDevice::Keyboard;
-    }
-    else if (event->type == SDL_MOUSEMOTION || event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP)
-    {
-        hid::detail::g_inputDevice = hid::detail::EInputDevice::Mouse;
     }
 
     return 0;
@@ -228,7 +251,6 @@ void hid::detail::Init()
     SDL_SetHint(SDL_HINT_XINPUT_ENABLED, "1");
 
     SDL_InitSubSystem(SDL_INIT_EVENTS);
-
     SDL_AddEventWatch(HID_OnSDLEvent, nullptr);
 
     SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
