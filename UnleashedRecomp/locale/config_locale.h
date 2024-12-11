@@ -91,7 +91,7 @@ CONFIG_DEFINE_LOCALE(ControlTutorial)
 
 CONFIG_DEFINE_LOCALE(AchievementNotifications)
 {
-    { ELanguage::English, { "Achievement Notifications", "Show notifications for unlocking achievements.\n\nAchievements will still be rewarded with notifications disabled." } }
+    { ELanguage::English, { "Achievement Notifications", "Show notifications for unlocking achievements.\n\nAchievements will still\nbe rewarded with notifications disabled." } }
 };
 
 CONFIG_DEFINE_LOCALE(SaveScoreAtCheckpoints)
@@ -246,7 +246,7 @@ CONFIG_DEFINE_LOCALE(Fullscreen)
 
 CONFIG_DEFINE_LOCALE(VSync)
 {
-    { ELanguage::English, { "V-Sync", "Synchronize the game to the refresh rate of the display to prevent screen tearing." } }
+    { ELanguage::English, { "V-Sync", "Synchronize the game\nto the refresh rate of\nthe display to prevent screen tearing." } }
 };
 
 CONFIG_DEFINE_LOCALE(FPS)
@@ -281,7 +281,7 @@ CONFIG_DEFINE_LOCALE(TransparencyAntiAliasing)
 
 CONFIG_DEFINE_LOCALE(ShadowResolution)
 {
-    { ELanguage::English, { "Shadow Resolution", "Set the quality level of real-time shadows." } }
+    { ELanguage::English, { "Shadow Resolution", "Set the resolution of real-time shadows." } }
 };
 
 CONFIG_DEFINE_ENUM_LOCALE(EShadowResolution)
@@ -312,28 +312,9 @@ CONFIG_DEFINE_ENUM_LOCALE(EGITextureFiltering)
     }
 };
 
-CONFIG_DEFINE_LOCALE(DepthOfFieldQuality)
-{
-    { ELanguage::English, { "Depth of Field Quality", "[PLACEHOLDER]" } }
-};
-
-CONFIG_DEFINE_ENUM_LOCALE(EDepthOfFieldQuality)
-{
-    {
-        ELanguage::English,
-        {
-            { EDepthOfFieldQuality::Auto,   { "AUTO", "" } },
-            { EDepthOfFieldQuality::Low,    { "LOW", "" } },
-            { EDepthOfFieldQuality::Medium, { "MEDIUM", "" } },
-            { EDepthOfFieldQuality::High,   { "HIGH", "" } },
-            { EDepthOfFieldQuality::Ultra,  { "ULTRA", "" } },
-        }
-    }
-};
-
 CONFIG_DEFINE_LOCALE(MotionBlur)
 {
-    { ELanguage::English, { "Motion Blur", "Use per-object motion blur and radial blur." } }
+    { ELanguage::English, { "Motion Blur", "Change the quality of the motion blur." } }
 };
 
 CONFIG_DEFINE_ENUM_LOCALE(EMotionBlur)
@@ -343,7 +324,7 @@ CONFIG_DEFINE_ENUM_LOCALE(EMotionBlur)
         {
             { EMotionBlur::Off,      { "OFF", "" } },
             { EMotionBlur::Original, { "ORIGINAL", "" } },
-            { EMotionBlur::Enhanced, { "ENHANCED", "" } }
+            { EMotionBlur::Enhanced, { "ENHANCED", "Enhanced: uses more samples for smoother motion blur at the cost\nof performance." } }
         }
     }
 };
