@@ -51,5 +51,6 @@
 
 namespace os::logger
 {
-    void Log(const std::string& str, detail::ELogType type = detail::ELogType::None, const char* func = nullptr);
+    void Init();
+    void Log(const std::string_view str, detail::ELogType type = detail::ELogType::None, const char* func = nullptr);
 }

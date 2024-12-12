@@ -1,15 +1,18 @@
 #include <os/logger_detail.h>
+#include <print>
 
 #define FOREGROUND_WHITE  (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 #define FOREGROUND_YELLOW (FOREGROUND_RED | FOREGROUND_GREEN)
 
-HANDLE g_hStandardOutput = nullptr;
+HANDLE g_hStandardOutput;
 
-void os::logger::detail::Log(const std::string& str, detail::ELogType type, const char* func)
+void os::logger::detail::Init()
 {
-    if (!g_hStandardOutput)
-        g_hStandardOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    g_hStandardOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+}
 
+void os::logger::detail::Log(const std::string_view str, detail::ELogType type, const char* func)
+{
     switch (type)
     {
         case ELogType::Utility:
@@ -31,11 +34,11 @@ void os::logger::detail::Log(const std::string& str, detail::ELogType type, cons
 
     if (func)
     {
-        printf("[%s] %s\n", func, str.c_str());
+        std::println("[{}] {}", func, str);
     }
     else
     {
-        printf("%s\n", str.c_str());
+        std::println("{}", str);
     }
 
     SetConsoleTextAttribute(g_hStandardOutput, FOREGROUND_WHITE);

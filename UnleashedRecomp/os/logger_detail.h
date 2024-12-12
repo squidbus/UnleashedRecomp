@@ -12,5 +12,6 @@ namespace os::logger::detail
         Error
     };
 
-    void Log(const std::string& str, ELogType type = ELogType::None, const char* func = nullptr);
+    void Init();
+    void Log(const std::string_view str, ELogType type = ELogType::None, const char* func = nullptr);
 }
