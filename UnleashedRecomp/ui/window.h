@@ -2,6 +2,7 @@
 
 #include <res/images/game_icon.bmp.h>
 #include <res/images/game_icon_night.bmp.h>
+#include <os/logger.h>
 #include <os/version.h>
 #include <ui/window_events.h>
 #include <user/config.h>
@@ -35,7 +36,7 @@ public:
         auto surface = SDL_LoadBMP_RW(rw, 1);
 
         if (!surface)
-            printf("Failed to load icon: %s\n", SDL_GetError());
+            LOGF_ERROR("Failed to load icon: {}", SDL_GetError());
 
         return surface;
     }
@@ -190,7 +191,7 @@ public:
 
         if (displayCount <= 0)
         {
-            printf("Failed to validate window position: %s\n", SDL_GetError());
+            LOGF_ERROR("Failed to validate window position: {}", SDL_GetError());
             return false;
         }
 

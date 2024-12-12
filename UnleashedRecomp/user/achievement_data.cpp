@@ -1,6 +1,7 @@
 #include "achievement_data.h"
 #include <ui/achievement_overlay.h>
 #include <user/config.h>
+#include <os/logger.h>
 
 #define NUM_RECORDS sizeof(Data.Records) / sizeof(Record)
 
@@ -112,7 +113,7 @@ void AchievementData::Load()
 
     if (!file)
     {
-        printf("[*] ERROR: failed to read achievement data.\n");
+        LOGN_ERROR("Failed to read achievement data.");
         return;
     }
 
@@ -120,7 +121,7 @@ void AchievementData::Load()
 
     if (!VerifySignature())
     {
-        printf("[*] ERROR: invalid achievement data signature.\n");
+        LOGN_ERROR("Invalid achievement data signature.");
 
         char sig[4] = ACH_SIGNATURE;
 
@@ -138,7 +139,7 @@ void AchievementData::Load()
 
     if (!VerifyVersion())
     {
-        printf("[*] ERROR: unsupported achievement data version.\n");
+        LOGN_ERROR("Unsupported achievement data version.");
         Data.Version = ACH_VERSION;
         file.close();
         return;
@@ -150,7 +151,7 @@ void AchievementData::Load()
     // TODO: display error message to user before wiping data?
     if (!VerifyChecksum())
     {
-        printf("[*] ERROR: achievement data checksum mismatch.\n");
+        LOGN_ERROR("Achievement data checksum mismatch.");
         memset(&Data.Records, 0, sizeof(Data.Records));
     }
 
@@ -163,7 +164,7 @@ void AchievementData::Save()
 
     if (!file)
     {
-        printf("[*] ERROR: failed to write achievement data.\n");
+        LOGN_ERROR("Failed to write achievement data.");
         return;
     }
 

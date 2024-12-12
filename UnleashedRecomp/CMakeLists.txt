@@ -67,6 +67,7 @@ set(SWA_KERNEL_CXX_SOURCES
 )
 
 set(SWA_OS_CXX_SOURCES
+    "os/logger.cpp"
     "os/media.cpp"
     "os/process.cpp"
     "os/version.cpp"
@@ -74,6 +75,7 @@ set(SWA_OS_CXX_SOURCES
 
 if (WIN32)
     list(APPEND SWA_OS_CXX_SOURCES
+        "os/win32/logger_win32.cpp"
         "os/win32/media_win32.cpp"
         "os/win32/process_win32.cpp"
         "os/win32/version_win32.cpp"

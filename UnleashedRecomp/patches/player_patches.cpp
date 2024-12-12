@@ -3,6 +3,7 @@
 #include <ui/window.h>
 #include <ui/window_events.h>
 #include <user/config.h>
+#include <os/logger.h>
 
 uint32_t m_lastCheckpointScore = 0;
 float m_lastDarkGaiaEnergy = 0.0f;
@@ -25,7 +26,7 @@ PPC_FUNC(sub_82624308)
 
     m_lastCheckpointScore = pGameDocument->m_pMember->m_Score;
 
-    printf("[*] Score: %d\n", m_lastCheckpointScore);
+    LOGFN("Score: {}", m_lastCheckpointScore);
 }
 
 /* Hook function that resets the score
@@ -43,7 +44,7 @@ PPC_FUNC(sub_8245F048)
     if (!pGameDocument)
         return;
 
-    printf("[*] Score: %d\n", m_lastCheckpointScore);
+    LOGFN("Score: {}", m_lastCheckpointScore);
 
     pGameDocument->m_pMember->m_Score = m_lastCheckpointScore;
 }

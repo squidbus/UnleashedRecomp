@@ -1,4 +1,5 @@
 #include "config.h"
+#include <os/logger.h>
 
 void Config::Load()
 {
@@ -18,13 +19,13 @@ void Config::Load()
         {
             def->ReadValue(toml);
 #if _DEBUG
-            printf("%s (0x%p)\n", def->GetDefinition().c_str(), def->GetValue());
+            LOGFN_UTILITY("{} (0x{:X})", def->GetDefinition().c_str(), (intptr_t)def->GetValue());
 #endif
         }
     }
     catch (toml::parse_error& err)
     {
-        printf("[*] Failed to parse configuration: %s\n", err.what());
+        LOGFN_ERROR("Failed to parse configuration: {}", err.what());
     }
 }
 
@@ -62,6 +63,6 @@ void Config::Save()
     }
     else
     {
-        printf("[*] Failed to write configuration.\n");
+        LOGN_ERROR("Failed to write configuration.");
     }
 }
