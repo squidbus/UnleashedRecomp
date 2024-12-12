@@ -2,6 +2,7 @@
 #include <user/achievement_data.h>
 #include <user/config.h>
 #include <api/SWA.h>
+#include <os/logger.h>
 
 const char* m_pStageID;
 
@@ -57,7 +58,7 @@ PPC_FUNC(sub_824E5170)
     {
         if (!m_isSavedAchievementData)
         {
-            printf("[*] Saving achievements...\n");
+            LOGN("Saving achievements...");
 
             AchievementData::Save();
 

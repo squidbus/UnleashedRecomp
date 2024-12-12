@@ -1,6 +1,6 @@
 #include <stdafx.h>
 #include "xdm.h"
-#include "FreeList.h"
+#include "freelist.h"
 
 FreeList<std::tuple<std::unique_ptr<char>, TypeDestructor_t>> gKernelObjects;
 Mutex gKernelLock;
@@ -10,9 +10,7 @@ void* ObQueryObject(size_t handle)
     std::lock_guard guard{ gKernelLock };
 
     if (handle >= gKernelObjects.items.size())
-    {
         return nullptr;
-    }
 
     return std::get<0>(gKernelObjects[handle]).get();
 }
@@ -36,6 +34,7 @@ void ObCloseHandle(uint32_t handle)
     std::lock_guard guard{ gKernelLock };
 
     auto& obj = gKernelObjects[handle];
+
     if (std::get<1>(obj)(std::get<0>(obj).get()))
     {
         std::get<0>(obj).reset();

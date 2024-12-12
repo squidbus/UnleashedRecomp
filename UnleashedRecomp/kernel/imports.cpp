@@ -12,6 +12,7 @@
 #include "xdm.h"
 #include <timeapi.h>
 #include <user/config.h>
+#include <os/logger.h>
 
 #include <ntstatus.h>
 
@@ -32,52 +33,51 @@ DWORD GuestTimeoutToMilliseconds(XLPQWORD timeout)
 
 void VdHSIOCalibrationLock()
 {
-    printf("!!! STUB !!! VdHSIOCalibrationLock\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeCertMonitorData()
 {
-    printf("!!! STUB !!! KeCertMonitorData\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XexExecutableModuleHandle()
 {
-    printf("!!! STUB !!! XexExecutableModuleHandle\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ExLoadedCommandLine()
 {
-    printf("!!! STUB !!! ExLoadedCommandLine\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeDebugMonitorData()
 {
-    printf("!!! STUB !!! KeDebugMonitorData\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ExThreadObjectType()
 {
-    printf("!!! STUB !!! ExThreadObjectType\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeTimeStampBundle()
 {
-    printf("!!! STUB !!! KeTimeStampBundle\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XboxHardwareInfo()
 {
-    printf("!!! STUB !!! XboxHardwareInfo\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XGetVideoMode()
 {
-    printf("!!! STUB !!! XGetVideoMode\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t XGetGameRegion()
 {
-    // printf("!!! STUB !!! XGetGameRegion\n");
     if (Config::Language == ELanguage::Japanese)
         return 0x0101;
 
@@ -86,56 +86,43 @@ uint32_t XGetGameRegion()
 
 uint32_t XMsgStartIORequest(DWORD App, DWORD Message, XXOVERLAPPED* lpOverlapped, void* Buffer, DWORD szBuffer)
 {
-    // printf("!!! STUB !!! XMsgStartIORequest\n");
     return STATUS_SUCCESS;
 }
 
 uint32_t XamUserGetSigninState(uint32_t userIndex)
 {
-    // printf("!!! STUB !!! XamUserGetSigninState\n");
     return true;
 }
 
 uint32_t XamGetSystemVersion()
 {
-    // printf("!!! STUB !!! XamGetSystemVersion\n");
     return 0;
 }
 
-
-
 void XamContentDelete()
 {
-    printf("!!! STUB !!! XamContentDelete\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 
 uint32_t XamContentGetCreator(DWORD userIndex, const XCONTENT_DATA* contentData, PBOOL isCreator, XLPQWORD xuid, XXOVERLAPPED* overlapped)
 {
-    // printf("!!! STUB !!! XamContentGetCreator\n");
-
     if (isCreator)
-    {
         *isCreator = true;
-    }
 
     if (xuid)
-    {
         *xuid = 0xB13EBABEBABEBABE;
-    }
 
     return 0;
 }
 
 uint32_t XamContentGetDeviceState()
 {
-    // printf("!!! STUB !!! XamContentGetDeviceState\n");
     return 0;
 }
 
 uint32_t XamUserGetSigninInfo(uint32_t userIndex, uint32_t flags, XUSER_SIGNIN_INFO* info)
 {
-    // printf("!!! STUB !!! XamUserGetSigninInfo\n");
     if (userIndex == 0)
     {
         memset(info, 0, sizeof(*info));
@@ -148,20 +135,21 @@ uint32_t XamUserGetSigninInfo(uint32_t userIndex, uint32_t flags, XUSER_SIGNIN_I
     return 0x00000525; // ERROR_NO_SUCH_USER
 }
 
-void XamShowSigninUI(uint32_t userIndex, uint32_t usersNeeded, uint32_t flags)
+void XamShowSigninUI()
 {
-    printf("!!! STUB !!! XamShowSigninUI %d %d 0x%X\n", userIndex, usersNeeded, flags);
+    LOG_UTILITY("!!! STUB !!!");
 }
 
-uint32_t XamShowDeviceSelectorUI(
+uint32_t XamShowDeviceSelectorUI
+(
     uint32_t userIndex,
     uint32_t contentType,
     uint32_t contentFlags,
     uint64_t totalRequested,
     XDWORD* deviceId,
-    XXOVERLAPPED* overlapped)
+    XXOVERLAPPED* overlapped
+)
 {
-    // printf("!!! STUB !!! XamShowDeviceSelectorUI\n");
     XamNotifyEnqueueEvent(9, true);
     *deviceId = 1;
     XamNotifyEnqueueEvent(9, false);
@@ -170,66 +158,64 @@ uint32_t XamShowDeviceSelectorUI(
 
 void XamShowDirtyDiscErrorUI()
 {
-    printf("!!! STUB !!! XamShowDirtyDiscErrorUI\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XamEnableInactivityProcessing()
 {
-    printf("!!! STUB !!! XamEnableInactivityProcessing\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XamResetInactivity()
 {
-    printf("!!! STUB !!! XamResetInactivity\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XamShowMessageBoxUIEx()
 {
-    printf("!!! STUB !!! XamShowMessageBoxUIEx\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t XGetLanguage()
 {
-    // printf("!!! STUB !!! XGetLanguage\n");
     return (uint32_t)Config::Language.Value;
 }
 
 uint32_t XGetAVPack()
 {
-    // printf("!!! STUB !!! XGetAVPack\n");
     return 0;
 }
 
 void XamLoaderTerminateTitle()
 {
-    printf("!!! STUB !!! XamLoaderTerminateTitle(void)\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XamGetExecutionId()
 {
-    printf("!!! STUB !!! XamGetExecutionId\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XamLoaderLaunchTitle()
 {
-    printf("!!! STUB !!! XamLoaderLaunchTitle(char\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtOpenFile()
 {
-    printf("!!! STUB !!! NtOpenFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlInitAnsiString(XANSI_STRING* destination, char* source)
 {
-    printf("!!! STUB !!! RtlInitAnsiString %s\n", source);
     const uint16_t length = source ? (uint16_t)strlen(source) : 0;
     destination->Length = length;
     destination->MaximumLength = length + 1;
     destination->Buffer = source;
 }
 
-DWORD NtCreateFile(
+DWORD NtCreateFile
+(
     XLPDWORD FileHandle,
     DWORD DesiredAccess,
     XOBJECT_ATTRIBUTES* Attributes,
@@ -238,7 +224,8 @@ DWORD NtCreateFile(
     uint32_t FileAttributes,
     uint32_t ShareAccess,
     uint32_t CreateDisposition,
-    uint32_t CreateOptions)
+    uint32_t CreateOptions
+)
 {
     return 0;
 }
@@ -246,9 +233,7 @@ DWORD NtCreateFile(
 uint32_t NtClose(uint32_t handle)
 {
     if (handle == (uint32_t)INVALID_HANDLE_VALUE)
-    {
         return 0xFFFFFFFF;
-    }
 
     if (CHECK_GUEST_HANDLE(handle))
     {
@@ -256,24 +241,21 @@ uint32_t NtClose(uint32_t handle)
         return 0;
     }
 
-    // printf("!!! STUB !!! NtClose\n");
     return CloseHandle((HANDLE)handle) ? 0 : 0xFFFFFFFF;
 }
 
 void NtSetInformationFile()
 {
-    printf("!!! STUB !!! NtSetInformationFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t FscSetCacheElementCount()
 {
-    // printf("!!! STUB !!! FscSetCacheElementCount\n");
     return 0;
 }
 
 DWORD NtWaitForSingleObjectEx(DWORD Handle, DWORD WaitMode, DWORD Alertable, XLPQWORD Timeout)
 {
-    // printf("!!! STUB !!! NtWaitForSingleObjectEx\n");
     const auto status = WaitForSingleObjectEx((HANDLE)Handle, GuestTimeoutToMilliseconds(Timeout), Alertable);
 
     if (status == WAIT_IO_COMPLETION)
@@ -290,74 +272,73 @@ DWORD NtWaitForSingleObjectEx(DWORD Handle, DWORD WaitMode, DWORD Alertable, XLP
 
 void NtWriteFile()
 {
-    printf("!!! STUB !!! NtWriteFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void vsprintf_x()
 {
-    printf("!!! STUB !!! vsprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t ExGetXConfigSetting(uint16_t Category, uint16_t Setting, void* Buffer, uint16_t SizeOfBuffer, XLPDWORD RequiredSize)
 {
-    // printf("Invoking method ExGetXConfigSetting\n");
     uint32_t data[4]{};
 
     switch (Category)
     {
         // XCONFIG_SECURED_CATEGORY
-    case 0x0002:
-    {
-        switch (Setting)
-        {
-            // XCONFIG_SECURED_AV_REGION
         case 0x0002:
-            data[0] = std::byteswap(0x00001000); // USA/Canada
-            break;
-
-        default:
-            return 1;
-        }
-    }
-
-    case 0x0003:
-    {
-        switch (Setting)
         {
-        case 0x0001: // XCONFIG_USER_TIME_ZONE_BIAS
-        case 0x0002: // XCONFIG_USER_TIME_ZONE_STD_NAME
-        case 0x0003: // XCONFIG_USER_TIME_ZONE_DLT_NAME
-        case 0x0004: // XCONFIG_USER_TIME_ZONE_STD_DATE
-        case 0x0005: // XCONFIG_USER_TIME_ZONE_DLT_DATE
-        case 0x0006: // XCONFIG_USER_TIME_ZONE_STD_BIAS
-        case 0x0007: // XCONFIG_USER_TIME_ZONE_DLT_BIAS
-            data[0] = 0;
-            break;
+            switch (Setting)
+            {
+                // XCONFIG_SECURED_AV_REGION
+                case 0x0002:
+                    data[0] = std::byteswap(0x00001000); // USA/Canada
+                    break;
 
-            // XCONFIG_USER_LANGUAGE
-        case 0x0009:
-            data[0] = std::byteswap((uint32_t)Config::Language.Value);
-            break;
-
-            // XCONFIG_USER_VIDEO_FLAGS
-        case 0x000A:
-            data[0] = std::byteswap(0x00040000);
-            break;
-
-            // XCONFIG_USER_RETAIL_FLAGS
-        case 0x000C:
-            data[0] = std::byteswap(1);
-            break;
-
-            // XCONFIG_USER_COUNTRY
-        case 0x000E:
-            data[0] = std::byteswap(103);
-            break;
-
-        default:
-            return 1;
+                default:
+                    return 1;
+            }
         }
-    }
+
+        case 0x0003:
+        {
+            switch (Setting)
+            {
+                case 0x0001: // XCONFIG_USER_TIME_ZONE_BIAS
+                case 0x0002: // XCONFIG_USER_TIME_ZONE_STD_NAME
+                case 0x0003: // XCONFIG_USER_TIME_ZONE_DLT_NAME
+                case 0x0004: // XCONFIG_USER_TIME_ZONE_STD_DATE
+                case 0x0005: // XCONFIG_USER_TIME_ZONE_DLT_DATE
+                case 0x0006: // XCONFIG_USER_TIME_ZONE_STD_BIAS
+                case 0x0007: // XCONFIG_USER_TIME_ZONE_DLT_BIAS
+                    data[0] = 0;
+                    break;
+
+                // XCONFIG_USER_LANGUAGE
+                case 0x0009:
+                    data[0] = std::byteswap((uint32_t)Config::Language.Value);
+                    break;
+
+                // XCONFIG_USER_VIDEO_FLAGS
+                case 0x000A:
+                    data[0] = std::byteswap(0x00040000);
+                    break;
+
+                // XCONFIG_USER_RETAIL_FLAGS
+                case 0x000C:
+                    data[0] = std::byteswap(1);
+                    break;
+
+                // XCONFIG_USER_COUNTRY
+                case 0x000E:
+                    data[0] = std::byteswap(103);
+                    break;
+
+                default:
+                    return 1;
+            }
+        }
     }
 
     *RequiredSize = 4;
@@ -368,68 +349,64 @@ uint32_t ExGetXConfigSetting(uint16_t Category, uint16_t Setting, void* Buffer, 
 
 void NtQueryVirtualMemory()
 {
-    printf("!!! STUB !!! NtQueryVirtualMemory\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void MmQueryStatistics()
 {
-    printf("!!! STUB !!! MmQueryStatistics\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t NtCreateEvent(uint32_t* handle, void* objAttributes, uint32_t eventType, uint32_t initialState)
 {
-    //printf("!!! STUB !!! NtCreateEvent\n");
     *handle = std::byteswap((uint32_t)CreateEventA(nullptr, !eventType, !!initialState, nullptr));
     return 0;
 }
 
 uint32_t XexCheckExecutablePrivilege()
 {
-    //printf("!!! STUB !!! XexCheckExecutablePrivilege\n");
     return 0;
 }
 
 void DbgPrint()
 {
-    printf("!!! STUB !!! DbgPrint\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void __C_specific_handler_x()
 {
-    printf("!!! STUB !!! __C_specific_handler\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlNtStatusToDosError()
 {
-    printf("!!! STUB !!! RtlNtStatusToDosError\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XexGetProcedureAddress()
 {
-    printf("!!! STUB !!! XexGetProcedureAddress\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XexGetModuleSection()
 {
-    printf("!!! STUB !!! XexGetModuleSection\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 NTSTATUS RtlUnicodeToMultiByteN(PCHAR MultiByteString, DWORD MaxBytesInMultiByteString, XLPDWORD BytesInMultiByteString, PCWCH UnicodeString, ULONG BytesInUnicodeString)
 {
     const auto reqSize = BytesInUnicodeString / sizeof(wchar_t);
+
     if (BytesInMultiByteString)
-    {
         *BytesInMultiByteString = reqSize;
-    }
 
     if (reqSize > MaxBytesInMultiByteString)
-    {
         return STATUS_FAIL_CHECK;
-    }
 
     for (size_t i = 0; i < reqSize; i++)
     {
         const auto c = std::byteswap(UnicodeString[i]);
+
         MultiByteString[i] = c < 256 ? c : '?';
     }
 
@@ -438,10 +415,9 @@ NTSTATUS RtlUnicodeToMultiByteN(PCHAR MultiByteString, DWORD MaxBytesInMultiByte
 
 DWORD KeDelayExecutionThread(DWORD WaitMode, bool Alertable, XLPQWORD Timeout)
 {
-    if (Alertable) // We don't do async file reads
+    // We don't do async file reads.
+    if (Alertable)
         return STATUS_USER_APC;
-
-    // printf("!!! STUB !!! KeDelayExecutionThread\n");
 
     timeBeginPeriod(1);
     const auto status = SleepEx(GuestTimeoutToMilliseconds(Timeout), Alertable);
@@ -461,81 +437,83 @@ DWORD KeDelayExecutionThread(DWORD WaitMode, bool Alertable, XLPQWORD Timeout)
 
 void ExFreePool()
 {
-    printf("!!! STUB !!! ExFreePool\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtQueryInformationFile()
 {
-    printf("!!! STUB !!! NtQueryInformationFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtQueryVolumeInformationFile()
 {
-    printf("!!! STUB !!! NtQueryVolumeInformationFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtQueryDirectoryFile()
 {
-    printf("!!! STUB !!! NtQueryDirectoryFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtReadFileScatter()
 {
-    printf("!!! STUB !!! NtReadFileScatter\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtReadFile()
 {
-    printf("!!! STUB !!! NtReadFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtDuplicateObject()
 {
-    printf("!!! STUB !!! NtDuplicateObject\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtAllocateVirtualMemory()
 {
-    printf("!!! STUB !!! NtAllocateVirtualMemory\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtFreeVirtualMemory()
 {
-    printf("!!! STUB !!! NtFreeVirtualMemory\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ObDereferenceObject()
 {
-    //printf("!!! STUB !!! ObDereferenceObject\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeSetBasePriorityThread(uint32_t thread, int priority)
 {
-    //printf("!!! STUB !!! KeSetBasePriorityThread\n");
     if (priority == 16)
+    {
         priority = 15;
+    }
     else if (priority == -16)
+    {
         priority = -15;
+    }
 
     SetThreadPriority((HANDLE)thread, priority);
 }
 
 uint32_t ObReferenceObjectByHandle(uint32_t handle, uint32_t objectType, XLPDWORD object)
 {
-    //printf("Invoking method ObReferenceObjectByHandle\n");
     *object = handle;
     return 0;
 }
 
 void KeQueryBasePriorityThread()
 {
-    printf("!!! STUB !!! KeQueryBasePriorityThread\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t NtSuspendThread(uint32_t hThread, uint32_t* suspendCount)
 {
-    //printf("NtSuspendThread(): %x %x\n", hThread, suspendCount);
     DWORD count = SuspendThread((HANDLE)hThread);
+
     if (count == (DWORD)-1)
         return E_FAIL;
 
@@ -547,11 +525,9 @@ uint32_t NtSuspendThread(uint32_t hThread, uint32_t* suspendCount)
 
 uint32_t KeSetAffinityThread(DWORD Thread, DWORD Affinity, XLPDWORD lpPreviousAffinity)
 {
-    // printf("Invoking method KeSetAffinityThread\n");
     if (lpPreviousAffinity)
-    {
         *lpPreviousAffinity = 2;
-    }
+
     return 0;
 }
 
@@ -590,9 +566,9 @@ struct Semaphore : HostObject<XKSEMAPHORE>
 void RtlLeaveCriticalSection(XRTL_CRITICAL_SECTION* cs)
 {
     cs->RecursionCount--;
-    if (cs->RecursionCount != 0) {
+
+    if (cs->RecursionCount != 0)
         return;
-    }
 
     InterlockedExchange(&cs->OwningThread, 0);
     WakeByAddressSingle(&cs->OwningThread);
@@ -601,10 +577,13 @@ void RtlLeaveCriticalSection(XRTL_CRITICAL_SECTION* cs)
 void RtlEnterCriticalSection(XRTL_CRITICAL_SECTION* cs)
 {
     DWORD thisThread = GetCurrentThreadId();
+
     while (true) 
     {
         DWORD previousOwner = InterlockedCompareExchangeAcquire(&cs->OwningThread, thisThread, 0);
-        if (previousOwner == 0 || previousOwner == thisThread) {
+
+        if (previousOwner == 0 || previousOwner == thisThread)
+        {
             cs->RecursionCount++;
             return;
         }
@@ -615,17 +594,17 @@ void RtlEnterCriticalSection(XRTL_CRITICAL_SECTION* cs)
 
 void RtlImageXexHeaderField()
 {
-    printf("!!! STUB !!! RtlImageXexHeaderField\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void HalReturnToFirmware()
 {
-    printf("!!! STUB !!! HalReturnToFirmware\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlFillMemoryUlong()
 {
-    printf("!!! STUB !!! RtlFillMemoryUlong\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeBugCheckEx()
@@ -635,18 +614,16 @@ void KeBugCheckEx()
 
 uint32_t KeGetCurrentProcessType()
 {
-    //printf("!!! STUB !!! KeGetCurrentProcessType\n");
     return 1;
 }
 
 void RtlCompareMemoryUlong()
 {
-    printf("!!! STUB !!! RtlCompareMemoryUlong\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t RtlInitializeCriticalSection(XRTL_CRITICAL_SECTION* cs)
 {
-    //printf("!!! STUB !!! RtlInitializeCriticalSection\n");
     cs->Header.Absolute = 0;
     cs->LockCount = -1;
     cs->RecursionCount = 0;
@@ -657,123 +634,110 @@ uint32_t RtlInitializeCriticalSection(XRTL_CRITICAL_SECTION* cs)
 
 void RtlRaiseException_x()
 {
-    printf("!!! STUB !!! RtlRaiseException\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KfReleaseSpinLock(uint32_t* spinLock)
 {
-    //printf("!!! STUB !!! KfReleaseSpinLock\n");
     InterlockedExchange((volatile long*)spinLock, 0);
 }
 
 void KfAcquireSpinLock(uint32_t* spinLock)
 {
     const auto ctx = GetPPCContext();
-    //printf("!!! STUB !!! KfAcquireSpinLock\n");
 
     while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
-    {
         Sleep(0);
-    }
 }
 
 uint64_t KeQueryPerformanceFrequency()
 {
-    //printf("!!! STUB !!! KeQueryPerformanceFrequency\n");
     return 49875000;
 }
 
 void MmFreePhysicalMemory(uint32_t type, uint32_t guestAddress)
 {
-    //printf("!!! STUB !!! MmFreePhysicalMemory\n");
     if (guestAddress != NULL)
         g_userHeap.Free(g_memory.Translate(guestAddress));
 }
 
 bool VdPersistDisplay(uint32_t a1, uint32_t* a2)
 {
-    //printf("!!! STUB !!! VdPersistDisplay\n");
     *a2 = NULL;
     return false;
 }
 
 void VdSwap()
 {
-    printf("!!! STUB !!! VdSwap\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdGetSystemCommandBuffer()
 {
-    printf("!!! STUB !!! VdGetSystemCommandBuffer\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeReleaseSpinLockFromRaisedIrql(uint32_t* spinLock)
 {
-    //printf("!!! STUB !!! KeReleaseSpinLockFromRaisedIrql\n");
     InterlockedExchange((volatile long*)spinLock, 0);
 }
 
 void KeAcquireSpinLockAtRaisedIrql(uint32_t* spinLock)
 {
     const auto ctx = GetPPCContext();
-    //printf("!!! STUB !!! KeAcquireSpinLockAtRaisedIrql\n");
 
     while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
-    {
         Sleep(0);
-    }
 }
 
 uint32_t KiApcNormalRoutineNop()
 {
-    //printf("Invoking method KiApcNormalRoutineNop\n");
     return 0;
 }
 
 void VdEnableRingBufferRPtrWriteBack()
 {
-    printf("!!! STUB !!! VdEnableRingBufferRPtrWriteBack\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdInitializeRingBuffer()
 {
-    printf("!!! STUB !!! VdInitializeRingBuffer\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t MmGetPhysicalAddress(uint32_t address)
 {
-    printf("MmGetPhysicalAddress(): %x\n", address);
+    LOGF_UTILITY("0x{:x}", address);
     return address;
 }
 
 void VdSetSystemCommandBufferGpuIdentifierAddress()
 {
-    printf("!!! STUB !!! VdSetSystemCommandBufferGpuIdentifierAddress\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void _vsnprintf_x()
 {
-    printf("!!! STUB !!! _vsnprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void sprintf_x()
 {
-    printf("!!! STUB !!! sprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ExRegisterTitleTerminateNotification()
 {
-    printf("!!! STUB !!! ExRegisterTitleTerminateNotification\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdShutdownEngines()
 {
-    printf("!!! STUB !!! VdShutdownEngines\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdQueryVideoMode(XVIDEO_MODE* vm)
 {
-    //printf("!!! STUB !!! VdQueryVideoMode\n");
     memset(vm, 0, sizeof(XVIDEO_MODE));
     vm->DisplayWidth = 1280;
     vm->DisplayHeight = 720;
@@ -788,90 +752,91 @@ void VdQueryVideoMode(XVIDEO_MODE* vm)
 
 void VdGetCurrentDisplayInformation()
 {
-    printf("!!! STUB !!! VdGetCurrentDisplayInformation\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdSetDisplayMode()
 {
-    printf("!!! STUB !!! VdSetDisplayMode\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdSetGraphicsInterruptCallback()
 {
-    printf("!!! STUB !!! VdSetGraphicsInterruptCallback\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdInitializeEngines()
 {
-    printf("!!! STUB !!! VdInitializeEngines\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdIsHSIOTrainingSucceeded()
 {
-    printf("!!! STUB !!! VdIsHSIOTrainingSucceeded\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdGetCurrentDisplayGamma()
 {
-    printf("!!! STUB !!! VdGetCurrentDisplayGamma\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdQueryVideoFlags()
 {
-    printf("!!! STUB !!! VdQueryVideoFlags\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdCallGraphicsNotificationRoutines()
 {
-    printf("!!! STUB !!! VdCallGraphicsNotificationRoutines\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void VdInitializeScalerCommandBuffer()
 {
-    printf("!!! STUB !!! VdInitializeScalerCommandBuffer\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeLeaveCriticalRegion()
 {
-    printf("!!! STUB !!! KeLeaveCriticalRegion\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t VdRetrainEDRAM()
 {
-    //printf("!!! STUB !!! VdRetrainEDRAM\n");
     return 0;
 }
 
 void VdRetrainEDRAMWorker()
 {
-    printf("!!! STUB !!! VdRetrainEDRAMWorker\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeEnterCriticalRegion()
 {
-    printf("!!! STUB !!! KeEnterCriticalRegion\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
-uint32_t MmAllocatePhysicalMemoryEx(
+uint32_t MmAllocatePhysicalMemoryEx
+(
     uint32_t flags,
     uint32_t size,
     uint32_t protect,
     uint32_t minAddress,
     uint32_t maxAddress,
-    uint32_t alignment)
+    uint32_t alignment
+)
 {
-    printf("MmAllocatePhysicalMemoryEx(): %x %x %x %x %x %x\n", flags, size, protect, minAddress, maxAddress, alignment);
+    LOGF_UTILITY("0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}", flags, size, protect, minAddress, maxAddress, alignment);
     return g_memory.MapVirtual(g_userHeap.AllocPhysical(size, alignment));
 }
 
 void ObDeleteSymbolicLink()
 {
-    printf("!!! STUB !!! ObDeleteSymbolicLink\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ObCreateSymbolicLink()
 {
-    printf("!!! STUB !!! ObCreateSymbolicLink\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t MmQueryAddressProtect(uint32_t guestAddress)
@@ -881,7 +846,7 @@ uint32_t MmQueryAddressProtect(uint32_t guestAddress)
 
 void VdEnableDisableClockGating()
 {
-    printf("!!! STUB !!! VdEnableDisableClockGating\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeBugCheck()
@@ -891,47 +856,44 @@ void KeBugCheck()
 
 void KeLockL2()
 {
-    printf("!!! STUB !!! KeLockL2\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeUnlockL2()
 {
-    printf("!!! STUB !!! KeUnlockL2\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 bool KeSetEvent(XKEVENT* pEvent, DWORD Increment, bool Wait)
 {
-    // printf("!!! STUB !!! KeSetEvent\n");
     return ObQueryObject<Event>(*pEvent)->Set();
 }
 
 bool KeResetEvent(XKEVENT* pEvent)
 {
-    // printf("!!! STUB !!! KeResetEvent %X\n", GetCurrentThreadId());
     return ObQueryObject<Event>(*pEvent)->Reset();
 }
 
 DWORD KeWaitForSingleObject(XDISPATCHER_HEADER* Object, DWORD WaitReason, DWORD WaitMode, bool Alertable, XLPQWORD Timeout)
 {
-    // printf("!!! STUB !!! KeWaitForSingleObject %X\n", GetCurrentThreadId());
     const uint64_t timeout = GuestTimeoutToMilliseconds(Timeout);
 
     HANDLE handle = nullptr;
 
     switch (Object->Type)
     {
-    case 0:
-    case 1:
-        handle = ObQueryObject<Event>(*Object)->handle;
-        break;
+        case 0:
+        case 1:
+            handle = ObQueryObject<Event>(*Object)->handle;
+            break;
 
-    case 5:
-        handle = ObQueryObject<Semaphore>(*Object)->handle;
-        break;
+        case 5:
+            handle = ObQueryObject<Semaphore>(*Object)->handle;
+            break;
 
-    default:
-        assert(false);
-        break;
+        default:
+            assert(false);
+            break;
     }
 
     return WaitForSingleObjectEx(handle, timeout, Alertable);
@@ -939,32 +901,26 @@ DWORD KeWaitForSingleObject(XDISPATCHER_HEADER* Object, DWORD WaitReason, DWORD 
 
 uint32_t KeTlsGetValue(DWORD dwTlsIndex)
 {
-    //printf("!!! STUB !!! KeTlsGetValue\n");
     return (uint32_t)TlsGetValue(dwTlsIndex);
 }
 
 BOOL KeTlsSetValue(DWORD dwTlsIndex, DWORD lpTlsValue)
 {
-    //printf("!!! STUB !!! KeTlsSetValue\n");
     return TlsSetValue(dwTlsIndex, (LPVOID)lpTlsValue);
 }
 
 DWORD KeTlsAlloc()
 {
-    //printf("!!! STUB !!! KeTlsAlloc\n");
     return TlsAlloc();
 }
 
 BOOL KeTlsFree(DWORD dwTlsIndex)
 {
-    //printf("!!! STUB !!! KeTlsFree\n");
     return TlsFree(dwTlsIndex);
 }
 
 DWORD XMsgInProcessCall(uint32_t app, uint32_t message, XDWORD* param1, XDWORD* param2)
 {
-    //printf("!!! STUB !!! XMsgInProcessCall\n");
-
     if (message == 0x7001B)
     {
         uint32_t* ptr = (uint32_t*)g_memory.Translate(param1[1]);
@@ -975,7 +931,8 @@ DWORD XMsgInProcessCall(uint32_t app, uint32_t message, XDWORD* param1, XDWORD* 
     return 0;
 }
 
-void XamUserReadProfileSettings(
+void XamUserReadProfileSettings
+(
     uint32_t titleId,
     uint32_t userIndex,
     uint32_t xuidCount,
@@ -984,9 +941,9 @@ void XamUserReadProfileSettings(
     uint32_t* settingIds,
     XDWORD* bufferSize,
     void* buffer,
-    void* overlapped)
+    void* overlapped
+)
 {
-    //printf("!!! STUB !!! XamUserReadProfileSettings\n");
     if (buffer != nullptr)
     {
         memset(buffer, 0, *bufferSize);
@@ -999,82 +956,82 @@ void XamUserReadProfileSettings(
 
 void NetDll_WSAStartup()
 {
-    printf("!!! STUB !!! NetDll_WSAStartup\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_WSACleanup()
 {
-    printf("!!! STUB !!! NetDll_WSACleanup\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_socket()
 {
-    printf("!!! STUB !!! NetDll_socket\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_closesocket()
 {
-    printf("!!! STUB !!! NetDll_closesocket\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_setsockopt()
 {
-    printf("!!! STUB !!! NetDll_setsockopt\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_bind()
 {
-    printf("!!! STUB !!! NetDll_bind\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_connect()
 {
-    printf("!!! STUB !!! NetDll_connect\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_listen()
 {
-    printf("!!! STUB !!! NetDll_listen\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_accept()
 {
-    printf("!!! STUB !!! NetDll_accept\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_select()
 {
-    printf("!!! STUB !!! NetDll_select\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_recv()
 {
-    printf("!!! STUB !!! NetDll_recv\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_send()
 {
-    printf("!!! STUB !!! NetDll_send\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_inet_addr()
 {
-    printf("!!! STUB !!! NetDll_inet_addr\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll___WSAFDIsSet()
 {
-    printf("!!! STUB !!! NetDll___WSAFDIsSet\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XMsgStartIORequestEx()
 {
-    printf("!!! STUB !!! XMsgStartIORequestEx\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XexGetModuleHandle()
 {
-    printf("!!! STUB !!! XexGetModuleHandle\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 bool RtlTryEnterCriticalSection(XRTL_CRITICAL_SECTION* cs)
@@ -1082,7 +1039,8 @@ bool RtlTryEnterCriticalSection(XRTL_CRITICAL_SECTION* cs)
     DWORD thisThread = GetCurrentThreadId();
     DWORD previousOwner = InterlockedCompareExchangeAcquire(&cs->OwningThread, thisThread, 0);
 
-    if (previousOwner == 0 || previousOwner == thisThread) {
+    if (previousOwner == 0 || previousOwner == thisThread)
+    {
         cs->RecursionCount++;
         return true;
     }
@@ -1092,7 +1050,6 @@ bool RtlTryEnterCriticalSection(XRTL_CRITICAL_SECTION* cs)
 
 void RtlInitializeCriticalSectionAndSpinCount(XRTL_CRITICAL_SECTION* cs, uint32_t spinCount)
 {
-    //printf("!!! STUB !!! RtlInitializeCriticalSectionAndSpinCount\n");
     cs->Header.Absolute = (spinCount + 255) >> 8;
     cs->LockCount = -1;
     cs->RecursionCount = 0;
@@ -1101,79 +1058,76 @@ void RtlInitializeCriticalSectionAndSpinCount(XRTL_CRITICAL_SECTION* cs, uint32_
 
 void _vswprintf_x()
 {
-    printf("!!! STUB !!! _vswprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void _vscwprintf_x()
 {
-    printf("!!! STUB !!! _vscwprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void _swprintf_x()
 {
-    printf("!!! STUB !!! _swprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void _snwprintf_x()
 {
-    printf("!!! STUB !!! _snwprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XeCryptBnQwBeSigVerify()
 {
-    printf("!!! STUB !!! XeCryptBnQwBeSigVerify\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XeKeysGetKey()
 {
-    printf("!!! STUB !!! XeKeysGetKey\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XeCryptRotSumSha()
 {
-    printf("!!! STUB !!! XeCryptRotSumSha\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XeCryptSha()
 {
-    printf("!!! STUB !!! XeCryptSha\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeEnableFpuExceptions()
 {
-    printf("!!! STUB !!! KeEnableFpuExceptions\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlUnwind_x()
 {
-    printf("!!! STUB !!! RtlUnwind\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlCaptureContext_x()
 {
-    printf("!!! STUB !!! RtlCaptureContext\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtQueryFullAttributesFile()
 {
-    printf("!!! STUB !!! NtQueryFullAttributesFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 NTSTATUS RtlMultiByteToUnicodeN(PWCH UnicodeString, ULONG MaxBytesInUnicodeString, XLPDWORD BytesInUnicodeString, const CHAR* MultiByteString, ULONG BytesInMultiByteString)
 {
     // i am lazy
     const auto n = MultiByteToWideChar(CP_UTF8, 0, MultiByteString, BytesInMultiByteString, UnicodeString, MaxBytesInUnicodeString);
+
     if (BytesInUnicodeString)
-    {
         *BytesInUnicodeString = n * sizeof(wchar_t);
-    }
 
     if (n)
     {
         for (size_t i = 0; i < n; i++)
-        {
             UnicodeString[i] = std::byteswap(UnicodeString[i]);
-        }
     }
 
     return STATUS_SUCCESS;
@@ -1181,24 +1135,23 @@ NTSTATUS RtlMultiByteToUnicodeN(PWCH UnicodeString, ULONG MaxBytesInUnicodeStrin
 
 void DbgBreakPoint()
 {
-    printf("!!! STUB !!! DbgBreakPoint\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void MmQueryAllocationSize()
 {
-    printf("!!! STUB !!! MmQueryAllocationSize\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t NtClearEvent(uint32_t handle, uint32_t* previousState)
 {
-    //printf("!!! STUB !!! NtClearEvent\n");
     return ResetEvent((HANDLE)handle) ? 0 : 0xFFFFFFFF;
 }
 
 uint32_t NtResumeThread(uint32_t hThread, uint32_t* suspendCount)
 {
-    //printf("NtResumeThread(): %x %x\n", hThread, suspendCount);
     DWORD count = ResumeThread((HANDLE)hThread);
+
     if (count == (DWORD)-1)
         return E_FAIL;
 
@@ -1210,7 +1163,6 @@ uint32_t NtResumeThread(uint32_t hThread, uint32_t* suspendCount)
 
 uint32_t NtSetEvent(uint32_t handle, uint32_t* previousState)
 {
-    //printf("!!! STUB !!! NtSetEvent\n");
     return SetEvent((HANDLE)handle) ? 0 : 0xFFFFFFFF;
 }
 
@@ -1222,49 +1174,46 @@ NTSTATUS NtCreateSemaphore(XLPDWORD Handle, XOBJECT_ATTRIBUTES* ObjectAttributes
 
 NTSTATUS NtReleaseSemaphore(uint32_t Handle, DWORD ReleaseCount, LONG* PreviousCount)
 {
-    //printf("!!! STUB !!! NtReleaseSemaphore\n");
     ReleaseSemaphore((HANDLE)Handle, ReleaseCount, PreviousCount);
+
     if (PreviousCount)
-    {
         *PreviousCount = std::byteswap(*PreviousCount);
-    }
 
     return STATUS_SUCCESS;
 }
 
 void NtWaitForMultipleObjectsEx()
 {
-    printf("!!! STUB !!! NtWaitForMultipleObjectsEx\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlCompareStringN()
 {
-    printf("!!! STUB !!! RtlCompareStringN\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void _snprintf_x()
 {
-    printf("!!! STUB !!! _snprintf\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void StfsControlDevice()
 {
-    printf("!!! STUB !!! StfsControlDevice\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void StfsCreateDevice()
 {
-    printf("!!! STUB !!! StfsCreateDevice\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NtFlushBuffersFile()
 {
-    printf("!!! STUB !!! NtFlushBuffersFile\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void KeQuerySystemTime(uint64_t* time)
 {
-    //printf("!!! STUB !!! KeQuerySystemTime\n");
     FILETIME t;
     GetSystemTimeAsFileTime(&t);
     *time = std::byteswap((uint64_t(t.dwHighDateTime) << 32) | t.dwLowDateTime);
@@ -1272,35 +1221,38 @@ void KeQuerySystemTime(uint64_t* time)
 
 void RtlTimeToTimeFields()
 {
-    printf("!!! STUB !!! RtlTimeToTimeFields\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlFreeAnsiString()
 {
-    printf("!!! STUB !!! RtlFreeAnsiString\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlUnicodeStringToAnsiString()
 {
-    printf("!!! STUB !!! RtlUnicodeStringToAnsiString\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlInitUnicodeString()
 {
-    printf("!!! STUB !!! RtlInitUnicodeString\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ExTerminateThread()
 {
-    printf("!!! STUB !!! ExTerminateThread\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 uint32_t ExCreateThread(XLPDWORD handle, uint32_t stackSize, XLPDWORD threadId, uint32_t xApiThreadStartup, uint32_t startAddress, uint32_t startContext, uint32_t creationFlags)
 {
-    printf("ExCreateThread(): %p %x %p %x %x %x %x\n", handle, stackSize, threadId, xApiThreadStartup, startAddress, startContext, creationFlags);
+    LOGF_UTILITY("0x{:X}, 0x{:X}, 0x{:X}, 0x{:X}, 0x{:X}, 0x{:X}, 0x{:X}",
+        (intptr_t)handle, stackSize, (intptr_t)threadId, xApiThreadStartup, startAddress, startContext, creationFlags);
+
     DWORD hostThreadId;
 
     *handle = (uint32_t)GuestThread::Start(startAddress, startContext, creationFlags, &hostThreadId);
+
     if (threadId != nullptr)
         *threadId = hostThreadId;
 
@@ -1309,77 +1261,77 @@ uint32_t ExCreateThread(XLPDWORD handle, uint32_t stackSize, XLPDWORD threadId, 
 
 void IoInvalidDeviceRequest()
 {
-    printf("!!! STUB !!! IoInvalidDeviceRequest\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ObReferenceObject()
 {
-    printf("!!! STUB !!! ObReferenceObject\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void IoCreateDevice()
 {
-    printf("!!! STUB !!! IoCreateDevice\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void IoDeleteDevice()
 {
-    printf("!!! STUB !!! IoDeleteDevice\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ExAllocatePoolTypeWithTag()
 {
-    printf("!!! STUB !!! ExAllocatePoolTypeWithTag\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlTimeFieldsToTime()
 {
-    printf("!!! STUB !!! RtlTimeFieldsToTime\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void IoCompleteRequest()
 {
-    printf("!!! STUB !!! IoCompleteRequest\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void RtlUpcaseUnicodeChar()
 {
-    printf("!!! STUB !!! RtlUpcaseUnicodeChar\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void ObIsTitleObject()
 {
-    printf("!!! STUB !!! ObIsTitleObject\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void IoCheckShareAccess()
 {
-    printf("!!! STUB !!! IoCheckShareAccess\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void IoSetShareAccess()
 {
-    printf("!!! STUB !!! IoSetShareAccess\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void IoRemoveShareAccess()
 {
-    printf("!!! STUB !!! IoRemoveShareAccess\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_XNetStartup()
 {
-    printf("!!! STUB !!! NetDll_XNetStartup\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void NetDll_XNetGetTitleXnAddr()
 {
-    printf("!!! STUB !!! NetDll_XNetGetTitleXnAddr\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 DWORD KeWaitForMultipleObjects(DWORD Count, xpointer<XDISPATCHER_HEADER>* Objects, DWORD WaitType, DWORD WaitReason, DWORD WaitMode, DWORD Alertable, XLPQWORD Timeout)
 {
-    // TODO: Create actual objects by type
+    // TODO: create actual objects by type.
     const uint64_t timeout = GuestTimeoutToMilliseconds(Timeout);
 
     thread_local std::vector<HANDLE> events;
@@ -1396,80 +1348,73 @@ DWORD KeWaitForMultipleObjects(DWORD Count, xpointer<XDISPATCHER_HEADER>* Object
 
 uint32_t KeRaiseIrqlToDpcLevel()
 {
-    //printf("!!! STUB !!! KeRaiseIrqlToDpcLevel\n");
     return 0;
 }
 
-void KfLowerIrql()
-{
-    //printf("!!! STUB !!! KfLowerIrql\n");
-}
+void KfLowerIrql() { }
 
 uint32_t KeReleaseSemaphore(XKSEMAPHORE* semaphore, uint32_t increment, uint32_t adjustment, uint32_t wait)
 {
-    //printf("!!! STUB !!! KeReleaseSemaphore\n");
     auto* object = ObQueryObject<Semaphore>(semaphore->Header);
     return ReleaseSemaphore(object->handle, adjustment, nullptr) ? 0 : 0xFFFFFFFF;
 }
 
 void XAudioGetVoiceCategoryVolume()
 {
-    printf("!!! STUB !!! XAudioGetVoiceCategoryVolume\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 DWORD XAudioGetVoiceCategoryVolumeChangeMask(DWORD Driver, XLPDWORD Mask)
 {
-    // printf("Invoking method XAudioGetVoiceCategoryVolumeChangeMask\n");
     *Mask = 0;
-
     return 0;
 }
 
 uint32_t KeResumeThread(uint32_t object)
 {
-    printf("KeResumeThread(): %x\n", object);
+    LOGF_UTILITY("0x{:x}", object);
     return ResumeThread((HANDLE)object);
 }
 
 void KeInitializeSemaphore(XKSEMAPHORE* semaphore, uint32_t count, uint32_t limit)
 {
-    //printf("!!! STUB !!! KeInitializeSemaphore\n");
     semaphore->Header.Type = 5;
     semaphore->Header.SignalState = count;
     semaphore->Limit = limit;
+
     auto* object = ObQueryObject<Semaphore>(semaphore->Header);
 }
 
 void XMAReleaseContext()
 {
-    printf("!!! STUB !!! XMAReleaseContext\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
 void XMACreateContext()
 {
-    printf("!!! STUB !!! XMACreateContext\n");
+    LOG_UTILITY("!!! STUB !!!");
 }
 
-//uint32_t XAudioRegisterRenderDriverClient(XLPDWORD callback, XLPDWORD driver)
-//{
-//    //printf("XAudioRegisterRenderDriverClient(): %x %x\n");
-//
-//    *driver = apu::RegisterClient(callback[0], callback[1]);
-//    return 0;
-//}
-//
-//void XAudioUnregisterRenderDriverClient()
-//{
-//    printf("!!! STUB !!! XAudioUnregisterRenderDriverClient\n");
-//}
-//
-//uint32_t XAudioSubmitRenderDriverFrame(uint32_t driver, void* samples)
-//{
-//    // printf("!!! STUB !!! XAudioSubmitRenderDriverFrame\n");
-//    apu::SubmitFrames(samples);
-//
-//    return 0;
-//}
+// uint32_t XAudioRegisterRenderDriverClient(XLPDWORD callback, XLPDWORD driver)
+// {
+//     //printf("XAudioRegisterRenderDriverClient(): %x %x\n");
+// 
+//     *driver = apu::RegisterClient(callback[0], callback[1]);
+//     return 0;
+// }
+
+// void XAudioUnregisterRenderDriverClient()
+// {
+//     printf("!!! STUB !!! XAudioUnregisterRenderDriverClient\n");
+// }
+
+// uint32_t XAudioSubmitRenderDriverFrame(uint32_t driver, void* samples)
+// {
+//     // printf("!!! STUB !!! XAudioSubmitRenderDriverFrame\n");
+//     apu::SubmitFrames(samples);
+// 
+//     return 0;
+// }
 
 GUEST_FUNCTION_HOOK(__imp__XGetVideoMode, VdQueryVideoMode); // XGetVideoMode
 GUEST_FUNCTION_HOOK(__imp__XNotifyGetNext, XNotifyGetNext);

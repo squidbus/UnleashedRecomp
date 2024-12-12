@@ -1,4 +1,5 @@
 #include <os/media_detail.h>
+#include <os/logger.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Media.Control.h>
 
@@ -20,7 +21,7 @@ static GlobalSystemMediaTransportControlsSessionManager GetSessionManager()
     }
     catch (...)
     {
-        printf("[*] Failed to retrieve GSMTC session manager: 0x%08X\n", to_hresult().value);
+        LOGF_ERROR("Failed to retrieve GSMTC session manager: 0x{:X}", to_hresult().value);
         return nullptr;
     }
 }
@@ -38,7 +39,7 @@ static GlobalSystemMediaTransportControlsSession GetCurrentSession()
     }
     catch (...)
     {
-        printf("[*] Failed to retrieve current GSMTC session: 0x%08X\n", to_hresult().value);
+        LOGF_ERROR("Failed to retrieve current GSMTC session: 0x{:X}", to_hresult().value);
         return nullptr;
     }
 }
@@ -56,7 +57,7 @@ static GlobalSystemMediaTransportControlsSessionPlaybackInfo GetPlaybackInfo()
     }
     catch (...)
     {
-        printf("[*] Failed to retrieve GSMTC playback info: 0x%08X\n", to_hresult().value);
+        LOGF_ERROR("Failed to retrieve GSMTC playback info: 0x{:X}", to_hresult().value);
         return nullptr;
     }
 }
@@ -74,7 +75,7 @@ bool os::media::detail::IsExternalMediaPlaying()
     }
     catch (...)
     {
-        printf("[*] Failed to retrieve GSMTC playback status: 0x%08X\n", to_hresult().value);
+        LOGF_ERROR("Failed to retrieve GSMTC playback status: 0x{:X}", to_hresult().value);
         return false;
     }
 }

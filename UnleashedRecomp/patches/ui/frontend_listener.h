@@ -1,8 +1,9 @@
 #pragma once
 
-#include "kernel/memory.h"
-#include "ui/sdl_listener.h"
-#include "ui/options_menu.h"
+#include <kernel/memory.h>
+#include <ui/sdl_listener.h>
+#include <ui/options_menu.h>
+#include <os/logger.h>
 
 class FrontendListener : public SDLEventListener
 {
@@ -26,7 +27,7 @@ public:
 
                 *ms_IsRenderHud = !*ms_IsRenderHud;
 
-                printf("[*] HUD %s\n", *ms_IsRenderHud ? "On" : "Off");
+                LOGFN("HUD {}", *ms_IsRenderHud ? "ON" : "OFF");
 
                 m_isF8KeyDown = true;
 

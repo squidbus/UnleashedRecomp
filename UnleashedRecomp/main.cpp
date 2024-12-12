@@ -16,6 +16,7 @@
 #include <user/paths.h>
 #include <kernel/xdbf.h>
 #include <install/installer.h>
+#include <os/logger.h>
 #include <ui/installer_wizard.h>
 
 #define GAME_XEX_PATH "game:\\default.xex"
@@ -144,6 +145,8 @@ uint32_t LdrLoadModule(const char* path)
 
 int main(int argc, char *argv[])
 {
+    os::logger::Init();
+
     bool forceInstaller = false;
     bool forceDLCInstaller = false;
     for (uint32_t i = 1; i < argc; i++)
