@@ -94,27 +94,6 @@ CONFIG_DEFINE_LOCALE(AchievementNotifications)
     { ELanguage::English, { "Achievement Notifications", "Show notifications for unlocking achievements.\n\nAchievements will still\nbe rewarded with notifications disabled." } }
 };
 
-CONFIG_DEFINE_LOCALE(SaveScoreAtCheckpoints)
-{
-    { ELanguage::English, { "Save Score at Checkpoints", "Keep your score from the last checkpoint upon respawning.\n\n[TO BE REMOVED]" } }
-};
-
-CONFIG_DEFINE_LOCALE(UnleashGaugeBehaviour)
-{
-    { ELanguage::English, { "Unleash Gauge Behavior", "Change how the Unleash gauge behaves.\n\n[TO BE REMOVED]" } }
-};
-
-CONFIG_DEFINE_ENUM_LOCALE(EUnleashGaugeBehaviour)
-{
-    {
-        ELanguage::English,
-        {
-            { EUnleashGaugeBehaviour::Original, { "ORIGINAL", "Original: the gauge will drain at all times regardless." } },
-            { EUnleashGaugeBehaviour::Revised,  { "REVISED", "Revised: the gauge will only drain when the player can move." } }
-        }
-    }
-};
-
 CONFIG_DEFINE_LOCALE(TimeOfDayTransition)
 {
     { ELanguage::English, { "Time of Day Transition", "Change how the loading screen appears when switching time of day in the hub areas." } }
@@ -148,11 +127,6 @@ CONFIG_DEFINE_ENUM_LOCALE(EControllerIcons)
     }
 };
 
-CONFIG_DEFINE_LOCALE(SkipIntroLogos)
-{
-    { ELanguage::English, { "Skip Intro Logos", "Skip the logos during the game's boot sequence.\n\n[TO BE REMOVED]" } }
-};
-
 CONFIG_DEFINE_LOCALE(InvertCameraX)
 {
     { ELanguage::English, { "Invert Camera X", "Toggle between inverted left and right camera movement." } }
@@ -161,16 +135,6 @@ CONFIG_DEFINE_LOCALE(InvertCameraX)
 CONFIG_DEFINE_LOCALE(InvertCameraY)
 {
     { ELanguage::English, { "Invert Camera Y", "Toggle between inverted up and down camera movement." } }
-};
-
-CONFIG_DEFINE_LOCALE(XButtonHoming)
-{
-    { ELanguage::English, { "Homing Attack on Boost", "Toggle between using the boost button or the jump button for the homing attack.\n\n[TO BE REMOVED]" } }
-};
-
-CONFIG_DEFINE_LOCALE(AllowCancellingUnleash)
-{
-    { ELanguage::English, { "Allow Cancelling Unleash", "Allow Unleash to be cancelled at the cost of some energy by pressing the input again.\n\n[TO BE REMOVED]" } }
 };
 
 CONFIG_DEFINE_LOCALE(AllowBackgroundInput)

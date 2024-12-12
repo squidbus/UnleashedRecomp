@@ -14,15 +14,10 @@ public:
     CONFIG_DEFINE_LOCALISED("System", bool, Hints, true);
     CONFIG_DEFINE_LOCALISED("System", bool, ControlTutorial, true);
     CONFIG_DEFINE_LOCALISED("System", bool, AchievementNotifications, true);
-    CONFIG_DEFINE_LOCALISED("System", bool, SaveScoreAtCheckpoints, false);
-    CONFIG_DEFINE_ENUM_LOCALISED("System", EUnleashGaugeBehaviour, UnleashGaugeBehaviour, EUnleashGaugeBehaviour::Original);
     CONFIG_DEFINE_ENUM_LOCALISED("System", ETimeOfDayTransition, TimeOfDayTransition, ETimeOfDayTransition::Xbox);
-    CONFIG_DEFINE_LOCALISED("System", bool, SkipIntroLogos, false);
 
     CONFIG_DEFINE_LOCALISED("Input", bool, InvertCameraX, false);
     CONFIG_DEFINE_LOCALISED("Input", bool, InvertCameraY, false);
-    CONFIG_DEFINE_LOCALISED("Input", bool, XButtonHoming, true);
-    CONFIG_DEFINE_LOCALISED("Input", bool, AllowCancellingUnleash, false);
     CONFIG_DEFINE_LOCALISED("Input", bool, AllowBackgroundInput, false);
     CONFIG_DEFINE_ENUM_LOCALISED("Input", EControllerIcons, ControllerIcons, EControllerIcons::Auto);
 
@@ -68,6 +63,13 @@ public:
     CONFIG_DEFINE_LOCALISED("Video", bool, XboxColourCorrection, false);
     CONFIG_DEFINE_ENUM_LOCALISED("Video", EMovieScaleMode, MovieScaleMode, EMovieScaleMode::Fit);
     CONFIG_DEFINE_ENUM_LOCALISED("Video", EUIScaleMode, UIScaleMode, EUIScaleMode::Edge);
+
+    // TODO: remove these once the exports are implemented.
+    CONFIG_DEFINE("Exports", bool, AllowCancellingUnleash, false);
+    CONFIG_DEFINE("Exports", bool, FixUnleashOutOfControlDrain, false);
+    CONFIG_DEFINE("Exports", bool, HomingAttackOnBoost, true);
+    CONFIG_DEFINE("Exports", bool, SaveScoreAtCheckpoints, false);
+    CONFIG_DEFINE("Exports", bool, SkipIntroLogos, false);
 
     static std::filesystem::path GetConfigPath()
     {
