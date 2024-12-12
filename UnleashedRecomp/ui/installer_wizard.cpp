@@ -2,6 +2,7 @@
 
 #include <nfd.h>
 
+#include <apu/embedded_player.h>
 #include <install/installer.h>
 #include <gpu/video.h>
 #include <gpu/imgui/imgui_snapshot.h>
@@ -133,7 +134,7 @@ static WizardPage g_currentPage = g_firstPage;
 static std::string g_currentMessagePrompt = "";
 static bool g_currentMessagePromptConfirmation = false;
 static int g_currentMessageResult = -1;
-static bool g_currentMessageUpdateRemaining = false;
+static bool g_filesPickerSkipUpdate = false;
 static ImVec2 g_joypadAxis = {};
 static int g_currentCursorIndex = -1;
 static int g_currentCursorDefault = 0;
@@ -152,6 +153,7 @@ public:
             return;
         }
 
+        int newCursorIndex = -1;
         ImVec2 tapDirection = {};
         switch (event->type)
         {
@@ -168,7 +170,7 @@ public:
                 break;
             case SDL_SCANCODE_RETURN:
             case SDL_SCANCODE_KP_ENTER:
-                g_currentCursorAccepted = true;
+                g_currentCursorAccepted = (g_currentCursorIndex >= 0);
                 break;
             }
 
@@ -189,7 +191,7 @@ public:
                 tapDirection = { 0.0f, 1.0f };
                 break;
             case SDL_CONTROLLER_BUTTON_A:
-                g_currentCursorAccepted = true;
+                g_currentCursorAccepted = (g_currentCursorIndex >= 0);
                 break;
             }
 
@@ -215,14 +217,12 @@ public:
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEMOTION:
         {
-            g_currentCursorIndex = -1;
-
-            for (size_t i = 0; i < g_currentCursorRects.size(); i++)
+            for (size_t i = 0; i < g_currentCursorRects.size() && !g_filesPickerSkipUpdate; i++)
             {
                 auto &currentRect = g_currentCursorRects[i];
                 if (ImGui::IsMouseHoveringRect(currentRect.first, currentRect.second, false))
                 {
-                    g_currentCursorIndex = int(i);
+                    newCursorIndex = int(i);
 
                     if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_LEFT)
                     {
@@ -233,13 +233,17 @@ public:
                 }
             }
 
+            if (newCursorIndex < 0)
+            {
+                g_currentCursorIndex = -1;
+            }
+
             break;
         }
         }
 
         if (tapDirection.x != 0.0f || tapDirection.y != 0.0f)
         {
-            int newCursorIndex = -1;
             if (g_currentCursorIndex >= g_currentCursorRects.size() || g_currentCursorIndex < 0)
             {
                 newCursorIndex = g_currentCursorDefault;
@@ -278,13 +282,16 @@ public:
                     }
                 }
             }
+        }
 
-            if (newCursorIndex >= 0)
+        if (newCursorIndex >= 0)
+        {
+            if (g_currentCursorIndex != newCursorIndex)
             {
-                // TODO: Play sound.
-
-                g_currentCursorIndex = newCursorIndex;
+                Game_PlaySound("sys_worldmap_cursor");
             }
+
+            g_currentCursorIndex = newCursorIndex;
         }
     }
 };
@@ -388,6 +395,7 @@ static bool PushCursorRect(ImVec2 min, ImVec2 max, bool &cursorPressed, bool mak
     {
         if (g_currentCursorAccepted)
         {
+            Game_PlaySound("sys_worldmap_finaldecide");
             cursorPressed = true;
             g_currentCursorAccepted = false;
         }
@@ -880,7 +888,7 @@ static bool ShowFilesPicker(std::list<std::filesystem::path> &filePaths)
 
     const nfdpathset_t *pathSet;
     nfdresult_t result = NFD_OpenDialogMultipleU8(&pathSet, nullptr, 0, nullptr);
-    g_currentMessageUpdateRemaining = true;
+    g_filesPickerSkipUpdate = true;
 
     if (result == NFD_OKAY)
     {
@@ -900,7 +908,7 @@ static bool ShowFoldersPicker(std::list<std::filesystem::path> &folderPaths)
 
     const nfdpathset_t *pathSet;
     nfdresult_t result = NFD_PickFolderMultipleU8(&pathSet, nullptr);
-    g_currentMessageUpdateRemaining = true;
+    g_filesPickerSkipUpdate = true;
 
     if (result == NFD_OKAY)
     {
@@ -1004,6 +1012,8 @@ static void DrawLanguagePicker()
 
 static void DrawSourcePickers()
 {
+    g_filesPickerSkipUpdate = false;
+
     bool buttonPressed = false;
     std::list<std::filesystem::path> paths;
     if (g_currentPage == WizardPage::SelectGameAndUpdate || g_currentPage == WizardPage::SelectDLC)
@@ -1293,17 +1303,16 @@ static void DrawBorders()
 
 static void DrawMessagePrompt()
 {
-    if (g_currentMessagePrompt.empty())
-    {
-        return;
-    }
-
-    if (g_currentMessageUpdateRemaining)
+    if (g_filesPickerSkipUpdate)
     {
         // If a blocking function like the files picker is called, we must wait one update before actually showing
         // the message box, as a lot of time has passed since the last real update. Otherwise, animations will play
         // too quickly and input glitches might happen.
-        g_currentMessageUpdateRemaining = false;
+        return;
+    }
+
+    if (g_currentMessagePrompt.empty())
+    {
         return;
     }
 
@@ -1410,6 +1419,7 @@ void InstallerWizard::Shutdown()
 
 bool InstallerWizard::Run(bool skipGame)
 {
+    EmbeddedPlayer::Init();
     NFD_Init();
 
     // Guarantee one controller is initialized. We'll rely on SDL's event loop to get the controller events.
@@ -1442,6 +1452,7 @@ bool InstallerWizard::Run(bool skipGame)
     NFD_Quit();
 
     InstallerWizard::Shutdown();
+    EmbeddedPlayer::Shutdown();
 
     return true;
 }
