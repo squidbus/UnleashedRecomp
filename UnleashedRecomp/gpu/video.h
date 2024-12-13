@@ -88,7 +88,7 @@ struct GuestResource
         do
         {
             originalValue = refCount.value;
-            incrementedValue = std::byteswap(std::byteswap(originalValue) + 1);
+            incrementedValue = ByteSwap(ByteSwap(originalValue) + 1);
         } while (InterlockedCompareExchange(reinterpret_cast<LONG*>(&refCount), incrementedValue, originalValue) != originalValue);
     }
 
@@ -98,7 +98,7 @@ struct GuestResource
         do
         {
             originalValue = refCount.value;
-            decrementedValue = std::byteswap(std::byteswap(originalValue) - 1);
+            decrementedValue = ByteSwap(ByteSwap(originalValue) - 1);
         } while (InterlockedCompareExchange(reinterpret_cast<LONG*>(&refCount), decrementedValue, originalValue) != originalValue);
 
         // Normally we are supposed to release here, so only use this

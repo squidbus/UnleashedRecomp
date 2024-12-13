@@ -105,7 +105,7 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                     m_isResizing = true;
                     Window::s_width = event->window.data1;
                     Window::s_height = event->window.data2;
-                    Window::SetTitle(std::format("{} - [{}x{}]", Window::GetTitle(), Window::s_width, Window::s_height).c_str());
+                    Window::SetTitle(fmt::format("{} - [{}x{}]", Window::GetTitle(), Window::s_width, Window::s_height).c_str());
                     break;
 
                 case SDL_WINDOWEVENT_MOVED:

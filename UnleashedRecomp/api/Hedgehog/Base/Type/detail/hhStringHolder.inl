@@ -48,7 +48,7 @@ namespace Hedgehog::Base
         do
         {
             originalValue = RefCountAndLength.value;
-            incrementedValue = std::byteswap(std::byteswap(originalValue) + 1);
+            incrementedValue = ByteSwap(ByteSwap(originalValue) + 1);
         } while (InterlockedCompareExchange(reinterpret_cast<LONG*>(&RefCountAndLength), incrementedValue, originalValue) != originalValue);
     }
 
@@ -58,7 +58,7 @@ namespace Hedgehog::Base
         do
         {
             originalValue = RefCountAndLength.value;
-            decrementedValue = std::byteswap(std::byteswap(originalValue) - 1);
+            decrementedValue = ByteSwap(ByteSwap(originalValue) - 1);
         } while (InterlockedCompareExchange(reinterpret_cast<LONG*>(&RefCountAndLength), decrementedValue, originalValue) != originalValue);
 
         if (RefCountAndLength == 0)

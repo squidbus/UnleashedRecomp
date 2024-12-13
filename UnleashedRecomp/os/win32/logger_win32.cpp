@@ -34,11 +34,11 @@ void os::logger::detail::Log(const std::string_view str, detail::ELogType type, 
 
     if (func)
     {
-        std::println("[{}] {}", func, str);
+        fmt::println("[{}] {}", func, str);
     }
     else
     {
-        std::println("{}", str);
+        fmt::println("{}", str);
     }
 
     SetConsoleTextAttribute(g_hStandardOutput, FOREGROUND_WHITE);

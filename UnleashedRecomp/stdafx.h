@@ -9,7 +9,6 @@
 #include <mutex>
 #include <filesystem>
 #include <fstream>
-#include <format>
 #include <vector>
 #include <string>
 #include <cassert>
@@ -32,10 +31,10 @@
 #include <cstddef>
 #include <wrl/client.h>
 #include <smolv.h>
-#include <print>
 #include <set>
 #include <miniaudio.h>
 #include <extras/miniaudio_libvorbis.h>
+#include <fmt/core.h>
 
 using Microsoft::WRL::ComPtr;
 

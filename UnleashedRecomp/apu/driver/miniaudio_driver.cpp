@@ -48,6 +48,6 @@ void XAudioSubmitFrame(void* samples)
     for (size_t i = 0; i < XAUDIO_NUM_SAMPLES; i++)
     {
         for (size_t j = 0; j < XAUDIO_NUM_CHANNELS; j++)
-            g_audioOutput[i * XAUDIO_NUM_CHANNELS + j] = std::byteswap(((uint32_t*)samples)[j * XAUDIO_NUM_SAMPLES + i]);
+            g_audioOutput[i * XAUDIO_NUM_CHANNELS + j] = ByteSwap(((uint32_t*)samples)[j * XAUDIO_NUM_SAMPLES + i]);
     }
 }

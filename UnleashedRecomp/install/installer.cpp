@@ -72,14 +72,14 @@ static bool copyFile(const FilePair &pair, const uint64_t *fileHashes, VirtualFi
     if (!sourceVfs.exists(filename))
     {
         journal.lastResult = Journal::Result::FileMissing;
-        journal.lastErrorMessage = std::format("File {} does not exist in the file system.", filename);
+        journal.lastErrorMessage = fmt::format("File {} does not exist in the file system.", filename);
         return false;
     }
 
     if (!sourceVfs.load(filename, fileData))
     {
         journal.lastResult = Journal::Result::FileReadFailed;
-        journal.lastErrorMessage = std::format("Failed to read file {} from the file system.", filename);
+        journal.lastErrorMessage = fmt::format("Failed to read file {} from the file system.", filename);
         return false;
     }
 
@@ -95,7 +95,7 @@ static bool copyFile(const FilePair &pair, const uint64_t *fileHashes, VirtualFi
         if (!fileHashFound)
         {
             journal.lastResult = Journal::Result::FileHashFailed;
-            journal.lastErrorMessage = std::format("File {} from the file system did not match any of the known hashes.", filename);
+            journal.lastErrorMessage = fmt::format("File {} from the file system did not match any of the known hashes.", filename);
             return false;
         }
     }
@@ -122,7 +122,7 @@ static bool copyFile(const FilePair &pair, const uint64_t *fileHashes, VirtualFi
     if (!outStream.is_open())
     {
         journal.lastResult = Journal::Result::FileCreationFailed;
-        journal.lastErrorMessage = std::format("Failed to create file at {}.", targetPath.string());
+        journal.lastErrorMessage = fmt::format("Failed to create file at {}.", targetPath.string());
         return false;
     }
 
@@ -132,7 +132,7 @@ static bool copyFile(const FilePair &pair, const uint64_t *fileHashes, VirtualFi
     if (outStream.bad())
     {
         journal.lastResult = Journal::Result::FileWriteFailed;
-        journal.lastErrorMessage = std::format("Failed to create file at {}.", targetPath.string());
+        journal.lastErrorMessage = fmt::format("Failed to create file at {}.", targetPath.string());
         return false;
     }
 
@@ -148,7 +148,7 @@ static DLC detectDLC(const std::filesystem::path &sourcePath, VirtualFileSystem 
     if (!sourceVfs.load(DLCValidationFile, dlcXmlBytes))
     {
         journal.lastResult = Journal::Result::FileMissing;
-        journal.lastErrorMessage = std::format("File {} does not exist in the file system.", DLCValidationFile);
+        journal.lastErrorMessage = fmt::format("File {} does not exist in the file system.", DLCValidationFile);
         return DLC::Unknown;
     }
 
@@ -243,7 +243,7 @@ bool Installer::computeTotalSize(std::span<const FilePair> filePairs, const uint
         if (!sourceVfs.exists(filename))
         {
             journal.lastResult = Journal::Result::FileMissing;
-            journal.lastErrorMessage = std::format("File {} does not exist in the file system.", filename);
+            journal.lastErrorMessage = fmt::format("File {} does not exist in the file system.", filename);
             return false;
         }
 
@@ -296,7 +296,7 @@ bool Installer::copyFiles(std::span<const FilePair> filePairs, const uint64_t *f
     else
     {
         journal.lastResult = Journal::Result::ValidationFileMissing;
-        journal.lastErrorMessage = std::format("Unable to find validation file {} in file system.", validationFile);
+        journal.lastErrorMessage = fmt::format("Unable to find validation file {} in file system.", validationFile);
         return false;
     }
 

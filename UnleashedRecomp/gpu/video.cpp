@@ -367,7 +367,7 @@ struct UploadAllocator
 
             for (size_t i = 0; i < size; i += sizeof(T))
             {
-                *destination = std::byteswap(*memory);
+                *destination = ByteSwap(*memory);
                 ++destination;
                 ++memory;
             }
@@ -1732,7 +1732,7 @@ static void UnlockBuffer(GuestBuffer* buffer, bool useCopyQueue)
 
     for (size_t i = 0; i < buffer->dataSize; i += sizeof(T))
     {
-        *dest = std::byteswap(*src);
+        *dest = ByteSwap(*src);
         ++dest;
         ++src;
     }
@@ -2251,7 +2251,7 @@ static GuestTexture* CreateTexture(uint32_t width, uint32_t height, uint32_t dep
     g_textureDescriptorSet->setTexture(texture->descriptorIndex, texture->texture, RenderTextureLayout::SHADER_READ, texture->textureView.get());
    
 #ifdef _DEBUG 
-    texture->texture->setName(std::format("Texture {:X}", g_memory.MapVirtual(texture)));
+    texture->texture->setName(fmt::format("Texture {:X}", g_memory.MapVirtual(texture)));
 #endif
 
     return texture;
@@ -2263,7 +2263,7 @@ static GuestBuffer* CreateVertexBuffer(uint32_t length)
     buffer->buffer = g_device->createBuffer(RenderBufferDesc::VertexBuffer(length, RenderHeapType::DEFAULT, RenderBufferFlag::INDEX));
     buffer->dataSize = length;
 #ifdef _DEBUG 
-    buffer->buffer->setName(std::format("Vertex Buffer {:X}", g_memory.MapVirtual(buffer)));
+    buffer->buffer->setName(fmt::format("Vertex Buffer {:X}", g_memory.MapVirtual(buffer)));
 #endif
     return buffer;
 }
@@ -2276,7 +2276,7 @@ static GuestBuffer* CreateIndexBuffer(uint32_t length, uint32_t, uint32_t format
     buffer->format = ConvertFormat(format);
     buffer->guestFormat = format;
 #ifdef _DEBUG 
-    buffer->buffer->setName(std::format("Index Buffer {:X}", g_memory.MapVirtual(buffer)));
+    buffer->buffer->setName(fmt::format("Index Buffer {:X}", g_memory.MapVirtual(buffer)));
 #endif
     return buffer;
 }
@@ -2317,7 +2317,7 @@ static GuestSurface* CreateSurface(uint32_t width, uint32_t height, uint32_t for
     }
 
 #ifdef _DEBUG 
-    surface->texture->setName(std::format("{} {:X}", desc.flags & RenderTextureFlag::RENDER_TARGET ? "Render Target" : "Depth Stencil", g_memory.MapVirtual(surface)));
+    surface->texture->setName(fmt::format("{} {:X}", desc.flags & RenderTextureFlag::RENDER_TARGET ? "Render Target" : "Depth Stencil", g_memory.MapVirtual(surface)));
 #endif
 
     return surface;
@@ -3055,13 +3055,13 @@ static RenderPipeline* CreateGraphicsPipelineInRenderThread(PipelineState pipeli
         else
             ++g_pipelinesCreatedInRenderThread;
 
-        pipeline->setName(std::format("{} {} {} {:X}", loading ? "ASYNC" : "",
+        pipeline->setName(fmt::format("{} {} {} {:X}", loading ? "ASYNC" : "",
             pipelineState.vertexShader->name, pipelineState.pixelShader != nullptr ? pipelineState.pixelShader->name : "<none>", hash));
         
         if (!loading)
         {
             std::lock_guard lock(g_debugMutex);
-            g_pipelineDebugText = std::format(
+            g_pipelineDebugText = fmt::format(
                 "PipelineState {:X}:\n"
                 "  vertexShader: {}\n"
                 "  pixelShader: {}\n"
@@ -4912,7 +4912,7 @@ static void EnqueueGraphicsPipelineCompilation(const PipelineState& pipelineStat
         queueItem.pipelineState = pipelineState;
         queueItem.databaseDataHolder = databaseDataHolderPair.counter;
 #ifdef ASYNC_PSO_DEBUG
-        queueItem.pipelineName = std::format("ASYNC {} {:X}", name, hash);
+        queueItem.pipelineName = fmt::format("ASYNC {} {:X}", name, hash);
 #endif
         g_pipelineStateQueue.enqueue(queueItem);
     }
@@ -5743,18 +5743,18 @@ public:
 
             for (auto vertexDeclaration : vertexDeclarations)
             {
-                std::print(f, "static uint8_t g_vertexElements_{:016X}[] = {{", vertexDeclaration->hash);
+                fmt::print(f, "static uint8_t g_vertexElements_{:016X}[] = {{", vertexDeclaration->hash);
 
                 auto bytes = reinterpret_cast<uint8_t*>(vertexDeclaration->vertexElements.get());
                 for (size_t i = 0; i < vertexDeclaration->vertexElementCount * sizeof(GuestVertexElement); i++)
-                    std::print(f, "0x{:X},", bytes[i]);
+                    fmt::print(f, "0x{:X},", bytes[i]);
 
-                std::println(f, "}};");
+                fmt::println(f, "}};");
             }
 
             for (auto& [pipelineHash, pipelineState] : pipelineStatesToCache)
             {
-                std::println(f, "{{ "
+                fmt::println(f, "{{ "
                     "reinterpret_cast<GuestShader*>(0x{:X}),"
                     "reinterpret_cast<GuestShader*>(0x{:X}),"
                     "reinterpret_cast<GuestVertexDeclaration*>(0x{:X}),"

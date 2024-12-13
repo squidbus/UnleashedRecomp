@@ -635,7 +635,7 @@ bool XContentFileSystem::check(const std::filesystem::path &contentPath)
 
     uint32_t packageTypeUint = 0;
     contentStream.read((char *)(&packageTypeUint), sizeof(uint32_t));
-    packageTypeUint = std::byteswap(packageTypeUint);
+    packageTypeUint = ByteSwap(packageTypeUint);
     XContentPackageType packageType = XContentPackageType(packageTypeUint);
     return packageType == XContentPackageType::CON || packageType == XContentPackageType::LIVE || packageType == XContentPackageType::PIRS;
 }

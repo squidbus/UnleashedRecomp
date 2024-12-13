@@ -387,24 +387,24 @@ public:
 
         if constexpr (std::is_same_v<T, std::string>)
         {
-            result = std::format("{}", Value);
+            result = fmt::format("{}", Value);
 
             if (strWithQuotes)
-                result = std::format("\"{}\"", result);
+                result = fmt::format("\"{}\"", result);
         }
         else if constexpr (std::is_enum_v<T>)
         {
             auto it = EnumTemplateReverse.find(Value);
 
             if (it != EnumTemplateReverse.end())
-                result = std::format("{}", it->second);
+                result = fmt::format("{}", it->second);
 
             if (strWithQuotes)
-                result = std::format("\"{}\"", result);
+                result = fmt::format("\"{}\"", result);
         }
         else
         {
-            result = std::format("{}", Value);
+            result = fmt::format("{}", Value);
         }
 
         return result;

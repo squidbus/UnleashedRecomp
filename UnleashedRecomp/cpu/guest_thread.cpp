@@ -22,12 +22,12 @@ GuestThreadContext::GuestThreadContext(uint32_t cpuNumber)
     thread = (uint8_t*)g_userHeap.Alloc(TOTAL_SIZE);
     memset(thread, 0, TOTAL_SIZE);
 
-    *(uint32_t*)thread = std::byteswap(g_memory.MapVirtual(thread + PCR_SIZE)); // tls pointer
-    *(uint32_t*)(thread + 0x100) = std::byteswap(g_memory.MapVirtual(thread + PCR_SIZE + TLS_SIZE)); // teb pointer
+    *(uint32_t*)thread = ByteSwap(g_memory.MapVirtual(thread + PCR_SIZE)); // tls pointer
+    *(uint32_t*)(thread + 0x100) = ByteSwap(g_memory.MapVirtual(thread + PCR_SIZE + TLS_SIZE)); // teb pointer
     *(thread + 0x10C) = cpuNumber;
 
     *(uint32_t*)(thread + PCR_SIZE + 0x10) = 0xFFFFFFFF; // that one TLS entry that felt quirky
-    *(uint32_t*)(thread + PCR_SIZE + TLS_SIZE + 0x14C) = std::byteswap(GetCurrentThreadId()); // thread id
+    *(uint32_t*)(thread + PCR_SIZE + TLS_SIZE + 0x14C) = ByteSwap(GetCurrentThreadId()); // thread id
 
     ppcContext.fn = (uint8_t*)g_codeCache.bucket;
     ppcContext.r1.u64 = g_memory.MapVirtual(thread + PCR_SIZE + TLS_SIZE + TEB_SIZE + STACK_SIZE); // stack pointer
@@ -116,7 +116,7 @@ void GuestThread::SetLastError(DWORD error)
     }
 
     // TEB + 0x160 : Win32LastError
-    *(DWORD*)(thread + TEB_OFFSET + 0x160) = std::byteswap(error);
+    *(DWORD*)(thread + TEB_OFFSET + 0x160) = ByteSwap(error);
 }
 
 PPCContext* GuestThread::Invoke(uint32_t address)
@@ -129,7 +129,7 @@ PPCContext* GuestThread::Invoke(uint32_t address)
 
 void SetThreadNameImpl(uint32_t a1, uint32_t threadId, uint32_t* name)
 {
-    GuestThread::SetThreadName(threadId, (const char*)g_memory.Translate(std::byteswap(*name)));
+    GuestThread::SetThreadName(threadId, (const char*)g_memory.Translate(ByteSwap(*name)));
 }
 
 int GetThreadPriorityImpl(uint32_t hThread)

@@ -521,7 +521,7 @@ static void DrawAchievementTotal(ImVec2 min, ImVec2 max)
     if (records >= recordsHalfTotal || records >= ACH_RECORDS)
         DrawTrophySparkles(imageMin, imageMax, records, frameIndex);
 
-    auto str = std::format("{} / {}", records, ACH_RECORDS);
+    auto str = fmt::format("{} / {}", records, ACH_RECORDS);
     auto fontSize = Scale(20);
     auto textSize = g_fntNewRodinDB->CalcTextSizeA(fontSize, FLT_MAX, 0, str.c_str());
 

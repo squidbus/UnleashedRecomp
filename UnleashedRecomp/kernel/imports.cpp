@@ -293,7 +293,7 @@ uint32_t ExGetXConfigSetting(uint16_t Category, uint16_t Setting, void* Buffer, 
             {
                 // XCONFIG_SECURED_AV_REGION
                 case 0x0002:
-                    data[0] = std::byteswap(0x00001000); // USA/Canada
+                    data[0] = ByteSwap(0x00001000); // USA/Canada
                     break;
 
                 default:
@@ -317,22 +317,22 @@ uint32_t ExGetXConfigSetting(uint16_t Category, uint16_t Setting, void* Buffer, 
 
                 // XCONFIG_USER_LANGUAGE
                 case 0x0009:
-                    data[0] = std::byteswap((uint32_t)Config::Language.Value);
+                    data[0] = ByteSwap((uint32_t)Config::Language.Value);
                     break;
 
                 // XCONFIG_USER_VIDEO_FLAGS
                 case 0x000A:
-                    data[0] = std::byteswap(0x00040000);
+                    data[0] = ByteSwap(0x00040000);
                     break;
 
                 // XCONFIG_USER_RETAIL_FLAGS
                 case 0x000C:
-                    data[0] = std::byteswap(1);
+                    data[0] = ByteSwap(1);
                     break;
 
                 // XCONFIG_USER_COUNTRY
                 case 0x000E:
-                    data[0] = std::byteswap(103);
+                    data[0] = ByteSwap(103);
                     break;
 
                 default:
@@ -359,7 +359,7 @@ void MmQueryStatistics()
 
 uint32_t NtCreateEvent(uint32_t* handle, void* objAttributes, uint32_t eventType, uint32_t initialState)
 {
-    *handle = std::byteswap((uint32_t)CreateEventA(nullptr, !eventType, !!initialState, nullptr));
+    *handle = ByteSwap((uint32_t)CreateEventA(nullptr, !eventType, !!initialState, nullptr));
     return 0;
 }
 
@@ -405,7 +405,7 @@ NTSTATUS RtlUnicodeToMultiByteN(PCHAR MultiByteString, DWORD MaxBytesInMultiByte
 
     for (size_t i = 0; i < reqSize; i++)
     {
-        const auto c = std::byteswap(UnicodeString[i]);
+        const auto c = ByteSwap(UnicodeString[i]);
 
         MultiByteString[i] = c < 256 ? c : '?';
     }
@@ -518,7 +518,7 @@ uint32_t NtSuspendThread(uint32_t hThread, uint32_t* suspendCount)
         return E_FAIL;
 
     if (suspendCount != nullptr)
-        *suspendCount = std::byteswap(count);
+        *suspendCount = ByteSwap(count);
 
     return S_OK;
 }
@@ -646,7 +646,7 @@ void KfAcquireSpinLock(uint32_t* spinLock)
 {
     const auto ctx = GetPPCContext();
 
-    while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
+    while (InterlockedCompareExchange((volatile long*)spinLock, ByteSwap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
         Sleep(0);
 }
 
@@ -686,7 +686,7 @@ void KeAcquireSpinLockAtRaisedIrql(uint32_t* spinLock)
 {
     const auto ctx = GetPPCContext();
 
-    while (InterlockedCompareExchange((volatile long*)spinLock, std::byteswap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
+    while (InterlockedCompareExchange((volatile long*)spinLock, ByteSwap(*(uint32_t*)(g_memory.Translate(ctx->r13.u32 + 0x110))), 0) != 0)
         Sleep(0);
 }
 
@@ -1127,7 +1127,7 @@ NTSTATUS RtlMultiByteToUnicodeN(PWCH UnicodeString, ULONG MaxBytesInUnicodeStrin
     if (n)
     {
         for (size_t i = 0; i < n; i++)
-            UnicodeString[i] = std::byteswap(UnicodeString[i]);
+            UnicodeString[i] = ByteSwap(UnicodeString[i]);
     }
 
     return STATUS_SUCCESS;
@@ -1156,7 +1156,7 @@ uint32_t NtResumeThread(uint32_t hThread, uint32_t* suspendCount)
         return E_FAIL;
 
     if (suspendCount != nullptr)
-        *suspendCount = std::byteswap(count);
+        *suspendCount = ByteSwap(count);
 
     return S_OK;
 }
@@ -1177,7 +1177,7 @@ NTSTATUS NtReleaseSemaphore(uint32_t Handle, DWORD ReleaseCount, LONG* PreviousC
     ReleaseSemaphore((HANDLE)Handle, ReleaseCount, PreviousCount);
 
     if (PreviousCount)
-        *PreviousCount = std::byteswap(*PreviousCount);
+        *PreviousCount = ByteSwap(*PreviousCount);
 
     return STATUS_SUCCESS;
 }
@@ -1216,7 +1216,7 @@ void KeQuerySystemTime(uint64_t* time)
 {
     FILETIME t;
     GetSystemTimeAsFileTime(&t);
-    *time = std::byteswap((uint64_t(t.dwHighDateTime) << 32) | t.dwLowDateTime);
+    *time = ByteSwap((uint64_t(t.dwHighDateTime) << 32) | t.dwLowDateTime);
 }
 
 void RtlTimeToTimeFields()

@@ -226,6 +226,7 @@ find_package(magic_enum CONFIG REQUIRED)
 find_package(unofficial-tiny-aes-c CONFIG REQUIRED)
 find_package(nfd CONFIG REQUIRED)
 find_package(Vorbis CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
 add_custom_command(TARGET UnleashedRecomp POST_BUILD
@@ -266,6 +267,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     nfd::nfd
     msdf-atlas-gen::msdf-atlas-gen
     Vorbis::vorbisfile
+    fmt::fmt
 )
 
 target_include_directories(UnleashedRecomp PRIVATE

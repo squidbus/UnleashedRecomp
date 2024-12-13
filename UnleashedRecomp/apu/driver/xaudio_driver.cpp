@@ -111,7 +111,7 @@ void XAudioSubmitFrame(void* samples)
     for (size_t i = 0; i < XAUDIO_NUM_SAMPLES; i++)
     {
         for (size_t j = 0; j < 6; j++)
-            audioFrame[i * XAUDIO_NUM_CHANNELS + j] = std::byteswap(((uint32_t*)samples)[j * XAUDIO_NUM_SAMPLES + i]);
+            audioFrame[i * XAUDIO_NUM_CHANNELS + j] = ByteSwap(((uint32_t*)samples)[j * XAUDIO_NUM_SAMPLES + i]);
     }
 
     XAUDIO2_BUFFER buffer{};

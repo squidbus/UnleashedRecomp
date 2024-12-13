@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.20)
 include($ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake)
 set(SWA_THIRDPARTY_ROOT ${CMAKE_SOURCE_DIR}/thirdparty)
 set(SWA_TOOLS_ROOT ${CMAKE_SOURCE_DIR}/tools)
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(BUILD_SHARED_LIBS OFF)
 
 # Enable Hot Reload for MSVC compilers if supported.

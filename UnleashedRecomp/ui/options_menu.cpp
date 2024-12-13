@@ -739,11 +739,11 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
     std::string valueText;
     if constexpr (std::is_same_v<T, float>)
     {
-        valueText = std::format("{}%", int32_t(round(config->Value * 100.0f)));
+        valueText = fmt::format("{}%", int32_t(round(config->Value * 100.0f)));
     }
     else if constexpr (std::is_same_v<T, int32_t>)
     {
-        valueText = config->Value >= valueMax ? Localise("Options_Value_Max") : std::format("{}", config->Value);
+        valueText = config->Value >= valueMax ? Localise("Options_Value_Max") : fmt::format("{}", config->Value);
     }
     else
     {

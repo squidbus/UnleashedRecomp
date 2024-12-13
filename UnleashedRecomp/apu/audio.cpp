@@ -38,7 +38,7 @@ uint32_t XAudioSubmitRenderDriverFrame(uint32_t driver, void* samples)
     {
         for (size_t j = 0; j < XAUDIO_NUM_CHANNELS; j++)
         {
-            xaudioSamplesBuffer[i * XAUDIO_NUM_CHANNELS + j] = std::byteswap(((uint32_t *)samples)[j * XAUDIO_NUM_SAMPLES + i]);
+            xaudioSamplesBuffer[i * XAUDIO_NUM_CHANNELS + j] = ByteSwap(((uint32_t *)samples)[j * XAUDIO_NUM_SAMPLES + i]);
         }
     }
 

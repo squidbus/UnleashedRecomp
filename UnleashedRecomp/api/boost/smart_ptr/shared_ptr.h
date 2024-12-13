@@ -69,7 +69,7 @@ namespace boost
 
             uint32_t use_count() const
             {
-                return std::byteswap(static_cast<uint32_t const volatile &>(use_count_.value));
+                return ByteSwap(static_cast<uint32_t const volatile &>(use_count_.value));
             }
 
             bool unique() const

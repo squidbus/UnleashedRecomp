@@ -44,7 +44,7 @@ static DWORD XGetFileSizeA(uint32_t hFile, LPDWORD lpFileSizeHigh)
     DWORD fileSize = GetFileSize((HANDLE)hFile, lpFileSizeHigh);
 
     if (lpFileSizeHigh != nullptr)
-        *lpFileSizeHigh = std::byteswap(*lpFileSizeHigh);
+        *lpFileSizeHigh = ByteSwap(*lpFileSizeHigh);
 
     return fileSize;
 }
@@ -54,7 +54,7 @@ BOOL XGetFileSizeExA(uint32_t hFile, PLARGE_INTEGER lpFileSize)
     BOOL result = GetFileSizeEx((HANDLE)hFile, lpFileSize);
 
     if (result)
-        lpFileSize->QuadPart = std::byteswap(lpFileSize->QuadPart);
+        lpFileSize->QuadPart = ByteSwap(lpFileSize->QuadPart);
 
     return result;
 }
@@ -102,11 +102,11 @@ BOOL XReadFile
 
 DWORD XSetFilePointer(uint32_t hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)
 {
-    LONG distanceToMoveHigh = lpDistanceToMoveHigh ? std::byteswap(*lpDistanceToMoveHigh) : 0;
+    LONG distanceToMoveHigh = lpDistanceToMoveHigh ? ByteSwap(*lpDistanceToMoveHigh) : 0;
     DWORD result = SetFilePointer((HANDLE)hFile, lDistanceToMove, lpDistanceToMoveHigh ? &distanceToMoveHigh : nullptr, dwMoveMethod);
 
     if (lpDistanceToMoveHigh != nullptr)
-        *lpDistanceToMoveHigh = std::byteswap(distanceToMoveHigh);
+        *lpDistanceToMoveHigh = ByteSwap(distanceToMoveHigh);
 
     return result;
 }
@@ -119,7 +119,7 @@ BOOL XSetFilePointerEx(uint32_t hFile, LONG lDistanceToMove, PLARGE_INTEGER lpNe
     DWORD result = SetFilePointerEx((HANDLE)hFile, distanceToMove, lpNewFilePointer, dwMoveMethod);
 
     if (lpNewFilePointer != nullptr)
-        lpNewFilePointer->QuadPart = std::byteswap(lpNewFilePointer->QuadPart);
+        lpNewFilePointer->QuadPart = ByteSwap(lpNewFilePointer->QuadPart);
 
     return result;
 }
