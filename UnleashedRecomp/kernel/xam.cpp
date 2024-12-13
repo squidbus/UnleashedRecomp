@@ -144,7 +144,7 @@ SWA_API uint32_t XamShowMessageBoxUI(DWORD dwUserIndex, XWORD* wszTitle, XWORD* 
     for (auto& text : texts)
     {
         for (size_t i = 0; i < text.size(); i++)
-            ByteSwap(text[i]);
+            ByteSwapInplace(text[i]);
     }
 
     for (size_t i = 0; i < cButtons; i++)
@@ -305,14 +305,14 @@ SWA_API uint32_t XamInputGetCapabilities(uint32_t unk, uint32_t userIndex, uint3
 
     if (result == ERROR_SUCCESS)
     {
-        ByteSwap(caps->Flags);
-        ByteSwap(caps->Gamepad.wButtons);
-        ByteSwap(caps->Gamepad.sThumbLX);
-        ByteSwap(caps->Gamepad.sThumbLY);
-        ByteSwap(caps->Gamepad.sThumbRX);
-        ByteSwap(caps->Gamepad.sThumbRY);
-        ByteSwap(caps->Vibration.wLeftMotorSpeed);
-        ByteSwap(caps->Vibration.wRightMotorSpeed);
+        ByteSwapInplace(caps->Flags);
+        ByteSwapInplace(caps->Gamepad.wButtons);
+        ByteSwapInplace(caps->Gamepad.sThumbLX);
+        ByteSwapInplace(caps->Gamepad.sThumbLY);
+        ByteSwapInplace(caps->Gamepad.sThumbRX);
+        ByteSwapInplace(caps->Gamepad.sThumbRY);
+        ByteSwapInplace(caps->Vibration.wLeftMotorSpeed);
+        ByteSwapInplace(caps->Vibration.wRightMotorSpeed);
     }
 
     return result;
@@ -324,12 +324,12 @@ SWA_API uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_S
 
     if (result == ERROR_SUCCESS)
     {
-        ByteSwap(state->dwPacketNumber);
-        ByteSwap(state->Gamepad.wButtons);
-        ByteSwap(state->Gamepad.sThumbLX);
-        ByteSwap(state->Gamepad.sThumbLY);
-        ByteSwap(state->Gamepad.sThumbRX);
-        ByteSwap(state->Gamepad.sThumbRY);
+        ByteSwapInplace(state->dwPacketNumber);
+        ByteSwapInplace(state->Gamepad.wButtons);
+        ByteSwapInplace(state->Gamepad.sThumbLX);
+        ByteSwapInplace(state->Gamepad.sThumbLY);
+        ByteSwapInplace(state->Gamepad.sThumbRX);
+        ByteSwapInplace(state->Gamepad.sThumbRY);
     }
     else if (userIndex == 0)
     {
@@ -377,11 +377,11 @@ SWA_API uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_S
         if (GetAsyncKeyState(VK_BACK) & 0x8000)
             state->Gamepad.wButtons |= XAMINPUT_GAMEPAD_BACK;
 
-        ByteSwap(state->Gamepad.wButtons);
-        ByteSwap(state->Gamepad.sThumbLX);
-        ByteSwap(state->Gamepad.sThumbLY);
-        ByteSwap(state->Gamepad.sThumbRX);
-        ByteSwap(state->Gamepad.sThumbRY);
+        ByteSwapInplace(state->Gamepad.wButtons);
+        ByteSwapInplace(state->Gamepad.sThumbLX);
+        ByteSwapInplace(state->Gamepad.sThumbLY);
+        ByteSwapInplace(state->Gamepad.sThumbRX);
+        ByteSwapInplace(state->Gamepad.sThumbRY);
 
         result = ERROR_SUCCESS;
     }
@@ -391,8 +391,8 @@ SWA_API uint32_t XamInputGetState(uint32_t userIndex, uint32_t flags, XAMINPUT_S
 
 SWA_API uint32_t XamInputSetState(uint32_t userIndex, uint32_t flags, XAMINPUT_VIBRATION* vibration)
 {
-    ByteSwap(vibration->wLeftMotorSpeed);
-    ByteSwap(vibration->wRightMotorSpeed);
+    ByteSwapInplace(vibration->wLeftMotorSpeed);
+    ByteSwapInplace(vibration->wRightMotorSpeed);
 
     return hid::SetState(userIndex, vibration);
 }

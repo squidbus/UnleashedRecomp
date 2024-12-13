@@ -24,6 +24,7 @@
         "magic-enum",
         "nativefiledialog-extended",
         "freetype",
-        "libvorbis"
+        "libvorbis",
+        "fmt"
     ]
 }

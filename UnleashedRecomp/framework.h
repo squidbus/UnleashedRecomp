@@ -22,12 +22,6 @@
     _##procName* procName = (_##procName*)PROC_ADDRESS(libraryName, #procName);
 
 template<typename T>
-inline void ByteSwap(T& value)
-{
-    value = std::byteswap(value);
-}
-
-template<typename T>
 inline T RoundUp(const T& in_rValue, uint32_t in_round)
 {
     return (in_rValue + in_round - 1) & ~(in_round - 1);

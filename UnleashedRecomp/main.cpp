@@ -94,20 +94,20 @@ void KiSystemStartup()
 uint32_t LdrLoadModule(const char* path)
 {
     auto loadResult = LoadFile(FileSystem::TransformPath(GAME_XEX_PATH));
-    if (!loadResult.has_value())
+    if (loadResult.empty())
     {
         assert("Failed to load module" && false);
         return 0;
     }
 
-    auto* xex = reinterpret_cast<XEX_HEADER*>(loadResult->data());
+    auto* xex = reinterpret_cast<XEX_HEADER*>(loadResult.data());
     auto security = reinterpret_cast<XEX2_SECURITY_INFO*>((char*)xex + xex->AddressOfSecurityInfo);
 
     g_memory.Alloc(security->ImageBase, security->SizeOfImage, MEM_COMMIT);
 
     auto format = Xex2FindOptionalHeader<XEX_FILE_FORMAT_INFO>(xex, XEX_HEADER_FILE_FORMAT_INFO);
     auto entry = *Xex2FindOptionalHeader<uint32_t>(xex, XEX_HEADER_ENTRY_POINT);
-    ByteSwap(entry);
+    ByteSwapInplace(entry);
 
     auto srcData = (char *)xex + xex->SizeOfHeader;
     auto destData = (char *)g_memory.Translate(security->ImageBase);

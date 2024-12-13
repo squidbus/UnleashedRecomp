@@ -134,11 +134,11 @@ uint32_t XFindFirstFileA(LPCSTR lpFileName, LPWIN32_FIND_DATAA lpFindFileData)
     if (handle == INVALID_HANDLE_VALUE)
         return 0xFFFFFFFF;
 
-    ByteSwap(data.dwFileAttributes);
-    ByteSwap(*(uint64_t*)&data.ftCreationTime);
-    ByteSwap(*(uint64_t*)&data.ftLastAccessTime);
-    ByteSwap(*(uint64_t*)&data.ftLastWriteTime);
-    ByteSwap(*(uint64_t*)&data.nFileSizeHigh);
+    ByteSwapInplace(data.dwFileAttributes);
+    ByteSwapInplace(*(uint64_t*)&data.ftCreationTime);
+    ByteSwapInplace(*(uint64_t*)&data.ftLastAccessTime);
+    ByteSwapInplace(*(uint64_t*)&data.ftLastWriteTime);
+    ByteSwapInplace(*(uint64_t*)&data.nFileSizeHigh);
 
     return GUEST_HANDLE(ObInsertObject(handle, FindHandleCloser));
 }
@@ -149,11 +149,11 @@ uint32_t XFindNextFileA(uint32_t Handle, LPWIN32_FIND_DATAA lpFindFileData)
     auto& data = *lpFindFileData;
     const auto result = FindNextFileA(handle, &data);
 
-    ByteSwap(data.dwFileAttributes);
-    ByteSwap(*(uint64_t*)&data.ftCreationTime);
-    ByteSwap(*(uint64_t*)&data.ftLastAccessTime);
-    ByteSwap(*(uint64_t*)&data.ftLastWriteTime);
-    ByteSwap(*(uint64_t*)&data.nFileSizeHigh);
+    ByteSwapInplace(data.dwFileAttributes);
+    ByteSwapInplace(*(uint64_t*)&data.ftCreationTime);
+    ByteSwapInplace(*(uint64_t*)&data.ftLastAccessTime);
+    ByteSwapInplace(*(uint64_t*)&data.ftLastWriteTime);
+    ByteSwapInplace(*(uint64_t*)&data.nFileSizeHigh);
 
     return result;
 }
@@ -194,7 +194,7 @@ BOOL XWriteFile(uint32_t hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, L
     BOOL result = WriteFile((HANDLE)hFile, lpBuffer, nNumberOfBytesToWrite, lpNumberOfBytesWritten, nullptr);
 
     if (result && lpNumberOfBytesWritten != nullptr)
-        ByteSwap(*lpNumberOfBytesWritten);
+        ByteSwapInplace(*lpNumberOfBytesWritten);
 
     return result;
 }

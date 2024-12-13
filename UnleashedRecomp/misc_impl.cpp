@@ -4,14 +4,14 @@
 BOOL QueryPerformanceCounterImpl(LARGE_INTEGER* lpPerformanceCount)
 {
     BOOL result = QueryPerformanceCounter(lpPerformanceCount);
-    ByteSwap(lpPerformanceCount->QuadPart);
+    ByteSwapInplace(lpPerformanceCount->QuadPart);
     return result;
 }
 
 BOOL QueryPerformanceFrequencyImpl(LARGE_INTEGER* lpFrequency)
 {
     BOOL result = QueryPerformanceFrequency(lpFrequency);
-    ByteSwap(lpFrequency->QuadPart);
+    ByteSwapInplace(lpFrequency->QuadPart);
     return result;
 }
 

@@ -35,7 +35,7 @@ void XAudioInitializeSystem()
 void XAudioRegisterClient(PPCFunc* callback, uint32_t param)
 {
     auto* pClientParam = static_cast<uint32_t*>(g_userHeap.Alloc(sizeof(param)));
-    ByteSwap(param);
+    ByteSwapInplace(param);
     *pClientParam = param;
     g_clientCallbackParam = g_memory.MapVirtual(pClientParam);
     g_clientCallback = callback;
