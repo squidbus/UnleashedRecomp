@@ -3,7 +3,7 @@
 class Fader
 {
 public:
-    inline static bool s_isVisible = false;
+    static inline bool s_isVisible = false;
 
     static void Draw();
     static void SetFadeColour(ImU32 colour);

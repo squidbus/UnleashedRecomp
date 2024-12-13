@@ -8,7 +8,7 @@ extern std::unordered_map<uint16_t, GuestTexture*> g_xdbfTextureCache;
 
 namespace xdbf
 {
-    inline static std::string& FixInvalidSequences(std::string& str)
+    inline std::string& FixInvalidSequences(std::string& str)
     {
         static std::vector<std::string> invalidSequences =
         {

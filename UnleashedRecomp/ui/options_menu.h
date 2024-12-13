@@ -5,11 +5,11 @@
 class OptionsMenu
 {
 public:
-    inline static bool s_isVisible = false;
-    inline static bool s_isPause = false;
-    inline static bool s_isRestartRequired = false;
+    static inline bool s_isVisible = false;
+    static inline bool s_isPause = false;
+    static inline bool s_isRestartRequired = false;
 
-    inline static SWA::EMenuType s_pauseMenuType;
+    static inline SWA::EMenuType s_pauseMenuType;
 
     static void Init();
     static void Draw();

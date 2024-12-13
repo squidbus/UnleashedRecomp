@@ -18,17 +18,17 @@
 class Window
 {
 public:
-    inline static SDL_Window* s_pWindow;
-    inline static HWND s_handle;
+    static inline SDL_Window* s_pWindow;
+    static inline HWND s_handle;
 
-    inline static int s_x;
-    inline static int s_y;
-    inline static int s_width = DEFAULT_WIDTH;
-    inline static int s_height = DEFAULT_HEIGHT;
+    static inline int s_x;
+    static inline int s_y;
+    static inline int s_width = DEFAULT_WIDTH;
+    static inline int s_height = DEFAULT_HEIGHT;
 
-    inline static bool s_isFocused;
-    inline static bool s_isIconNight;
-    inline static bool s_isFullscreenCursorVisible;
+    static inline bool s_isFocused;
+    static inline bool s_isIconNight;
+    static inline bool s_isFullscreenCursorVisible;
 
     static SDL_Surface* GetIconSurface(void* pIconBmp, size_t iconSize)
     {

@@ -22,19 +22,19 @@
     _##procName* procName = (_##procName*)PROC_ADDRESS(libraryName, #procName);
 
 template<typename T>
-void ByteSwap(T& value)
+inline void ByteSwap(T& value)
 {
     value = std::byteswap(value);
 }
 
 template<typename T>
-T RoundUp(const T& in_rValue, uint32_t in_round)
+inline T RoundUp(const T& in_rValue, uint32_t in_round)
 {
     return (in_rValue + in_round - 1) & ~(in_round - 1);
 }
 
 template<typename T>
-T RoundDown(const T& in_rValue, uint32_t in_round)
+inline T RoundDown(const T& in_rValue, uint32_t in_round)
 {
     return in_rValue & ~(in_round - 1);
 }
@@ -75,7 +75,7 @@ constexpr size_t FirstBitLow(TValue value)
     return 0;
 }
 
-inline static std::unique_ptr<uint8_t[]> ReadAllBytes(const char* filePath, size_t& fileSize)
+inline std::unique_ptr<uint8_t[]> ReadAllBytes(const char* filePath, size_t& fileSize)
 {
     FILE* file = fopen(filePath, "rb");
 

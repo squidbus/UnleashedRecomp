@@ -5,9 +5,9 @@
 class AchievementOverlay
 {
 public:
-    inline static bool s_isVisible = false;
+    static inline bool s_isVisible = false;
 
-    inline static std::queue<uint16_t> s_queue{};
+    static inline std::queue<uint16_t> s_queue{};
 
     static void Init();
     static void Draw();

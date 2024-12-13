@@ -2,9 +2,9 @@
 
 #include <user/config.h>
 
-inline static std::string g_localeMissing = "<missing string>";
+inline std::string g_localeMissing = "<missing string>";
 
-inline static std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_locale
+inline std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_locale
 {
     {
         "Options_Category_System",
@@ -294,7 +294,7 @@ inline static std::unordered_map<std::string, std::unordered_map<ELanguage, std:
     }
 };
 
-static std::string& Localise(const char* key)
+inline std::string& Localise(const char* key)
 {
     if (!g_locale.count(key))
         return g_localeMissing;

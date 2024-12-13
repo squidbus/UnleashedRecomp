@@ -36,9 +36,9 @@
 #include <res/images/options_menu/thumbnails/window_size.dds.h>
 #include <res/images/options_menu/thumbnails/xbox_color_correction.dds.h>
 
-inline static std::unordered_map<std::string_view, std::unique_ptr<GuestTexture>> g_thumbnails;
+inline std::unordered_map<std::string_view, std::unique_ptr<GuestTexture>> g_thumbnails;
 
-static void LoadThumbnails()
+inline void LoadThumbnails()
 {
     g_thumbnails[Config::Language.Name] = LOAD_ZSTD_TEXTURE(g_language);
     g_thumbnails[Config::Hints.Name] = LOAD_ZSTD_TEXTURE(g_hints);
@@ -73,7 +73,7 @@ static void LoadThumbnails()
     g_thumbnails[Config::UIScaleMode.Name] = LOAD_ZSTD_TEXTURE(g_ui_scale_mode);
 }
 
-static GuestTexture* GetThumbnail(const std::string_view name)
+inline GuestTexture* GetThumbnail(const std::string_view name)
 {
     if (!g_thumbnails.count(name))
         return nullptr;

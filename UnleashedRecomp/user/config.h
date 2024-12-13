@@ -8,7 +8,7 @@
 class Config
 {
 public:
-    inline static std::vector<IConfigDef*> Definitions{};
+    static inline std::vector<IConfigDef*> Definitions{};
 
     CONFIG_DEFINE_ENUM_LOCALISED("System", ELanguage, Language, ELanguage::English);
     CONFIG_DEFINE_LOCALISED("System", bool, Hints, true);

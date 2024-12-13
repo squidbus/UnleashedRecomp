@@ -3,10 +3,10 @@
 #include <user/config_detail.h>
 
 #define CONFIG_DEFINE_LOCALE(name) \
-    inline static std::unordered_map<ELanguage, std::tuple<std::string, std::string>> g_##name##_locale =
+    inline std::unordered_map<ELanguage, std::tuple<std::string, std::string>> g_##name##_locale =
 
 #define CONFIG_DEFINE_ENUM_LOCALE(type) \
-    inline static std::unordered_map<ELanguage, std::unordered_map<type, std::tuple<std::string, std::string>>> g_##type##_locale =
+    inline std::unordered_map<ELanguage, std::unordered_map<type, std::tuple<std::string, std::string>>> g_##type##_locale =
 
 CONFIG_DEFINE_ENUM_LOCALE(bool)
 {

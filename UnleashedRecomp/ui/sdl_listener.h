@@ -7,7 +7,7 @@ public:
     virtual void OnSDLEvent(SDL_Event* event) = 0;
 };
 
-std::vector<ISDLEventListener*>& GetEventListeners();
+extern std::vector<ISDLEventListener*>& GetEventListeners();
 
 class SDLEventListener : public ISDLEventListener
 {

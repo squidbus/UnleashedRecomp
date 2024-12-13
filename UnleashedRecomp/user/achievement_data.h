@@ -43,7 +43,7 @@ public:
         Record Records[ACH_RECORDS];
     };
 
-    inline static Data Data{ ACH_SIGNATURE, ACH_VERSION };
+    static inline Data Data{ ACH_SIGNATURE, ACH_VERSION };
 
     static std::filesystem::path GetDataPath()
     {

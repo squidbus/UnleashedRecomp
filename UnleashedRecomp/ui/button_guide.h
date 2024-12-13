@@ -55,7 +55,7 @@ public:
 class ButtonGuide
 {
 public:
-    inline static bool s_isVisible = false;
+    static inline bool s_isVisible = false;
 
     static void Init();
     static void Draw();

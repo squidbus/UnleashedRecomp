@@ -13,7 +13,7 @@
 #define CENTRE_TEXT_HORZ(min, max, textSize) min.x + ((max.x - min.x) - textSize.x) / 2
 #define CENTRE_TEXT_VERT(min, max, textSize) min.y + ((max.y - min.y) - textSize.y) / 2
 
-static void SetGradient(const ImVec2& min, const ImVec2& max, ImU32 top, ImU32 bottom)
+inline void SetGradient(const ImVec2& min, const ImVec2& max, ImU32 top, ImU32 bottom)
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetGradient);
     callbackData->setGradient.boundsMin[0] = min.x;
@@ -24,47 +24,47 @@ static void SetGradient(const ImVec2& min, const ImVec2& max, ImU32 top, ImU32 b
     callbackData->setGradient.gradientBottom = bottom;
 }
 
-static void ResetGradient()
+inline void ResetGradient()
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetGradient);
     memset(&callbackData->setGradient, 0, sizeof(callbackData->setGradient));
 }
 
-static void SetShaderModifier(uint32_t shaderModifier)
+inline void SetShaderModifier(uint32_t shaderModifier)
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetShaderModifier);
     callbackData->setShaderModifier.shaderModifier = shaderModifier;
 }
 
-static void SetOrigin(ImVec2 origin)
+inline void SetOrigin(ImVec2 origin)
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetOrigin);
     callbackData->setOrigin.origin[0] = origin.x;
     callbackData->setOrigin.origin[1] = origin.y;
 }
 
-static void SetScale(ImVec2 scale)
+inline void SetScale(ImVec2 scale)
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetScale);
     callbackData->setScale.scale[0] = scale.x;
     callbackData->setScale.scale[1] = scale.y;
 }
 
-static void SetTextSkew(float yCenter, float skewScale)
+inline void SetTextSkew(float yCenter, float skewScale)
 {
     SetShaderModifier(IMGUI_SHADER_MODIFIER_TEXT_SKEW);
     SetOrigin({ 0.0f, yCenter });
     SetScale({ skewScale, 1.0f });
 }
 
-static void ResetTextSkew()
+inline void ResetTextSkew()
 {
     SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
     SetOrigin({ 0.0f, 0.0f });
     SetScale({ 1.0f, 1.0f });
 }
 
-static void SetMarqueeFade(ImVec2 min, ImVec2 max, float fadeScale)
+inline void SetMarqueeFade(ImVec2 min, ImVec2 max, float fadeScale)
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetMarqueeFade);
     callbackData->setMarqueeFade.boundsMin[0] = min.x;
@@ -76,26 +76,26 @@ static void SetMarqueeFade(ImVec2 min, ImVec2 max, float fadeScale)
     SetScale({ fadeScale, 1.0f });
 }
 
-static void ResetMarqueeFade()
+inline void ResetMarqueeFade()
 {
     ResetGradient();
     SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
     SetScale({ 1.0f, 1.0f });
 }
 
-static void SetOutline(float outline)
+inline void SetOutline(float outline)
 {
     auto callbackData = AddImGuiCallback(ImGuiCallback::SetOutline);
     callbackData->setOutline.outline = outline;
 }
 
-static void ResetOutline()
+inline void ResetOutline()
 {
     SetOutline(0.0f);
 }
 
 // Aspect ratio aware.
-static float Scale(float size)
+inline float Scale(float size)
 {
     auto& io = ImGui::GetIO();
 
@@ -106,25 +106,25 @@ static float Scale(float size)
 }
 
 // Not aspect ratio aware. Will stretch.
-static float ScaleX(float x)
+inline float ScaleX(float x)
 {
     auto& io = ImGui::GetIO();
     return x * io.DisplaySize.x / 1280.0f;
 }
 
 // Not aspect ratio aware. Will stretch.
-static float ScaleY(float y)
+inline float ScaleY(float y)
 {
     auto& io = ImGui::GetIO();
     return y * io.DisplaySize.y / 720.0f;
 }
 
-static double ComputeMotion(double duration, double offset, double total)
+inline double ComputeMotion(double duration, double offset, double total)
 {
     return sqrt(std::clamp((ImGui::GetTime() - duration - offset / 60.0) / total * 60.0, 0.0, 1.0));
 }
 
-static void DrawPauseContainer(GuestTexture* texture, ImVec2 min, ImVec2 max, float alpha = 1)
+inline void DrawPauseContainer(GuestTexture* texture, ImVec2 min, ImVec2 max, float alpha = 1)
 {
     auto drawList = ImGui::GetForegroundDrawList();
 
@@ -155,7 +155,7 @@ static void DrawPauseContainer(GuestTexture* texture, ImVec2 min, ImVec2 max, fl
     drawList->AddImage(texture, { max.x - commonWidth, max.y - commonHeight }, { max.x, max.y + bottomHeight }, GET_UV_COORDS(br), colour);
 }
 
-static void DrawPauseHeaderContainer(GuestTexture* texture, ImVec2 min, ImVec2 max, float alpha = 1)
+inline void DrawPauseHeaderContainer(GuestTexture* texture, ImVec2 min, ImVec2 max, float alpha = 1)
 {
     auto drawList = ImGui::GetForegroundDrawList();
 
@@ -172,7 +172,7 @@ static void DrawPauseHeaderContainer(GuestTexture* texture, ImVec2 min, ImVec2 m
     drawList->AddImage(texture, { max.x - commonWidth, min.y }, max, GET_UV_COORDS(right), colour);
 }
 
-static void DrawTextWithMarquee(const ImFont* font, float fontSize, const ImVec2& pos, const ImVec2& min, const ImVec2& max, ImU32 color, const char* text, double time, double delay, double speed)
+inline void DrawTextWithMarquee(const ImFont* font, float fontSize, const ImVec2& pos, const ImVec2& min, const ImVec2& max, ImU32 color, const char* text, double time, double delay, double speed)
 {
     auto drawList = ImGui::GetForegroundDrawList();
     auto rectWidth = max.x - min.x;
@@ -190,7 +190,7 @@ static void DrawTextWithMarquee(const ImFont* font, float fontSize, const ImVec2
     drawList->PopClipRect();
 }
 
-static void DrawTextWithOutline(const ImFont* font, float fontSize, const ImVec2& pos, ImU32 color, const char* text, float outlineSize, ImU32 outlineColor, uint32_t shaderModifier = IMGUI_SHADER_MODIFIER_NONE)
+inline void DrawTextWithOutline(const ImFont* font, float fontSize, const ImVec2& pos, ImU32 color, const char* text, float outlineSize, ImU32 outlineColor, uint32_t shaderModifier = IMGUI_SHADER_MODIFIER_NONE)
 {
     auto drawList = ImGui::GetForegroundDrawList();
 
@@ -207,7 +207,7 @@ static void DrawTextWithOutline(const ImFont* font, float fontSize, const ImVec2
         SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
 }
 
-static void DrawTextWithShadow(const ImFont* font, float fontSize, const ImVec2& pos, ImU32 colour, const char* text, float offset = 2.0f, float radius = 1.0f, ImU32 shadowColour = IM_COL32(0, 0, 0, 255))
+inline void DrawTextWithShadow(const ImFont* font, float fontSize, const ImVec2& pos, ImU32 colour, const char* text, float offset = 2.0f, float radius = 1.0f, ImU32 shadowColour = IM_COL32(0, 0, 0, 255))
 {
     auto drawList = ImGui::GetForegroundDrawList();
 
@@ -220,7 +220,7 @@ static void DrawTextWithShadow(const ImFont* font, float fontSize, const ImVec2&
     drawList->AddText(font, fontSize, pos, colour, text, nullptr);
 }
 
-static float CalcWidestTextSize(const ImFont* font, float fontSize, std::span<std::string> strs)
+inline float CalcWidestTextSize(const ImFont* font, float fontSize, std::span<std::string> strs)
 {
     auto result = 0.0f;
 
@@ -230,7 +230,7 @@ static float CalcWidestTextSize(const ImFont* font, float fontSize, std::span<st
     return result;
 }
 
-static std::string Truncate(const std::string& input, size_t maxLength, bool useEllipsis = true, bool usePrefixEllipsis = false)
+inline std::string Truncate(const std::string& input, size_t maxLength, bool useEllipsis = true, bool usePrefixEllipsis = false)
 {
     const std::string ellipsis = "...";
 
@@ -256,7 +256,7 @@ static std::string Truncate(const std::string& input, size_t maxLength, bool use
     return input;
 }
 
-static std::vector<std::string> Split(const char* str, char delimiter)
+inline std::vector<std::string> Split(const char* str, char delimiter)
 {
     std::vector<std::string> result;
 
@@ -282,7 +282,7 @@ static std::vector<std::string> Split(const char* str, char delimiter)
     return result;
 }
 
-static ImVec2 MeasureCentredParagraph(const ImFont* font, float fontSize, float lineMargin, std::vector<std::string> lines)
+inline ImVec2 MeasureCentredParagraph(const ImFont* font, float fontSize, float lineMargin, std::vector<std::string> lines)
 {
     auto x = 0.0f;
     auto y = 0.0f;
@@ -298,12 +298,12 @@ static ImVec2 MeasureCentredParagraph(const ImFont* font, float fontSize, float 
     return { x, y };
 }
 
-static ImVec2 MeasureCentredParagraph(const ImFont* font, float fontSize, float lineMargin, const char* text)
+inline ImVec2 MeasureCentredParagraph(const ImFont* font, float fontSize, float lineMargin, const char* text)
 {
     return MeasureCentredParagraph(font, fontSize, lineMargin, Split(text, '\n'));
 }
 
-static void DrawCentredParagraph(const ImFont* font, float fontSize, const ImVec2& centre, float lineMargin, const char* text, std::function<void(const char*, ImVec2)> drawMethod)
+inline void DrawCentredParagraph(const ImFont* font, float fontSize, const ImVec2& centre, float lineMargin, const char* text, std::function<void(const char*, ImVec2)> drawMethod)
 {
     auto lines = Split(text, '\n');
     auto paragraphSize = MeasureCentredParagraph(font, fontSize, lineMargin, lines);
@@ -337,7 +337,7 @@ static void DrawCentredParagraph(const ImFont* font, float fontSize, const ImVec
     }
 }
 
-static void DrawTextWithMarqueeShadow(const ImFont* font, float fontSize, const ImVec2& pos, const ImVec2& min, const ImVec2& max, ImU32 colour, const char* text, double time, double delay, double speed, float offset = 2.0f, float radius = 1.0f, ImU32 shadowColour = IM_COL32(0, 0, 0, 255))
+inline void DrawTextWithMarqueeShadow(const ImFont* font, float fontSize, const ImVec2& pos, const ImVec2& min, const ImVec2& max, ImU32 colour, const char* text, double time, double delay, double speed, float offset = 2.0f, float radius = 1.0f, ImU32 shadowColour = IM_COL32(0, 0, 0, 255))
 {
     auto drawList = ImGui::GetForegroundDrawList();
     auto rectWidth = max.x - min.x;
@@ -355,27 +355,27 @@ static void DrawTextWithMarqueeShadow(const ImFont* font, float fontSize, const 
     drawList->PopClipRect();
 }
 
-static float Lerp(float a, float b, float t)
+inline float Lerp(float a, float b, float t)
 {
     return a + (b - a) * t;
 }
 
-static float Cubic(float a, float b, float t)
+inline float Cubic(float a, float b, float t)
 {
     return a + (b - a) * (t * t * t);
 }
 
-static float Hermite(float a, float b, float t)
+inline float Hermite(float a, float b, float t)
 {
     return a + (b - a) * (t * t * (3 - 2 * t));
 }
 
-static ImVec2 Lerp(const ImVec2& a, const ImVec2& b, float t)
+inline ImVec2 Lerp(const ImVec2& a, const ImVec2& b, float t)
 {
     return { a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t };
 }
 
-static ImU32 ColourLerp(ImU32 c0, ImU32 c1, float t)
+inline ImU32 ColourLerp(ImU32 c0, ImU32 c1, float t)
 {
     auto a = ImGui::ColorConvertU32ToFloat4(c0);
     auto b = ImGui::ColorConvertU32ToFloat4(c1);

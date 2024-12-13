@@ -5,12 +5,12 @@
 class App
 {
 public:
-    inline static bool s_isInit;
-    inline static bool s_isMissingDLC;
+    static inline bool s_isInit;
+    static inline bool s_isMissingDLC;
 
-    inline static ELanguage s_language;
+    static inline ELanguage s_language;
 
-    inline static double s_deltaTime;
+    static inline double s_deltaTime;
 
     static void Restart(std::vector<std::string> restartArgs = {});
     static void Exit();
