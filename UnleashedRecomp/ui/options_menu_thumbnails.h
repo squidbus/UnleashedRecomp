@@ -6,6 +6,7 @@
 
 #include <res/images/options_menu/thumbnails/achievement_notifications.dds.h>
 #include <res/images/options_menu/thumbnails/allow_background_input.dds.h>
+#include <res/images/options_menu/thumbnails/allow_dpad_movement.dds.h>
 #include <res/images/options_menu/thumbnails/antialiasing.dds.h>
 #include <res/images/options_menu/thumbnails/aspect_ratio.dds.h>
 #include <res/images/options_menu/thumbnails/battle_theme.dds.h>
@@ -48,6 +49,7 @@ inline void LoadThumbnails()
     g_thumbnails[Config::InvertCameraX.Name] = LOAD_ZSTD_TEXTURE(g_invert_camera_x);
     g_thumbnails[Config::InvertCameraY.Name] = LOAD_ZSTD_TEXTURE(g_invert_camera_y);
     g_thumbnails[Config::AllowBackgroundInput.Name] = LOAD_ZSTD_TEXTURE(g_allow_background_input);
+    g_thumbnails[Config::AllowDPadMovement.Name] = LOAD_ZSTD_TEXTURE(g_allow_dpad_movement);
     g_thumbnails[Config::ControllerIcons.Name] = LOAD_ZSTD_TEXTURE(g_controller_icons);
     g_thumbnails[Config::MusicVolume.Name] = LOAD_ZSTD_TEXTURE(g_music_volume);
     g_thumbnails[Config::EffectsVolume.Name] = LOAD_ZSTD_TEXTURE(g_effects_volume);
