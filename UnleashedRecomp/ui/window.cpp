@@ -3,6 +3,7 @@
 #include <user/config.h>
 #include <SDL_syswm.h>
 #include <app.h>
+#include <gpu/video.h>
 
 bool m_isFullscreenKeyReleased = true;
 bool m_isResizing = false;
@@ -33,8 +34,14 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
 
                     Config::Fullscreen = Window::SetFullscreen(!Window::IsFullscreen());
 
-                    if (!Config::Fullscreen)
+                    if (Config::Fullscreen)
+                    {
+                        Config::Monitor = Window::GetDisplay();
+                    }
+                    else
+                    {
                         Config::WindowState = Window::SetMaximised(Config::WindowState == EWindowState::Maximised);
+                    }
 
                     // Block holding ALT+ENTER spamming window changes.
                     m_isFullscreenKeyReleased = false;
@@ -45,7 +52,7 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
                 // Restore original window dimensions on F2.
                 case SDLK_F2:
                     Config::Fullscreen = Window::SetFullscreen(false);
-                    Window::SetDimensions(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+                    Window::ResetDimensions();
                     break;
 
                 // Recentre window on F3.
@@ -118,11 +125,9 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
         }
 
         case SDL_USER_EVILSONIC:
-        {
             Window::s_isIconNight = event->user.code;
             Window::SetIcon(Window::s_isIconNight);
             break;
-        }
     }
 
     if (!Window::IsFullscreen())
@@ -158,22 +163,14 @@ void Window::Init()
         s_x = s_y = SDL_WINDOWPOS_CENTERED;
 
     if (!IsPositionValid())
-    {
-        s_x = SDL_WINDOWPOS_CENTERED;
-        s_y = SDL_WINDOWPOS_CENTERED;
-        s_width = DEFAULT_WIDTH;
-        s_height = DEFAULT_HEIGHT;
-
-        Config::WindowX = s_x;
-        Config::WindowY = s_y;
-        Config::WindowWidth = s_width;
-        Config::WindowHeight = s_height;
-    }
+        Window::ResetDimensions();
 
     s_pWindow = SDL_CreateWindow("SWA", s_x, s_y, s_width, s_height, GetWindowFlags());
 
     if (IsFullscreen())
         SDL_ShowCursor(SDL_DISABLE);
+
+    SetDisplay(Config::Monitor);
 
     SetIcon();
     SetTitle();
@@ -192,7 +189,7 @@ void Window::Init()
 
 void Window::Update()
 {
-    if (!Window::IsFullscreen() && !Window::IsMaximised())
+    if (!Window::IsFullscreen() && !Window::IsMaximised() && !s_isChangingDisplay)
     {
         Config::WindowX = Window::s_x;
         Config::WindowY = Window::s_y;
@@ -205,4 +202,7 @@ void Window::Update()
         SetTitle();
         m_isResizing = false;
     }
+
+    if (g_needsResize)
+        s_isChangingDisplay = false;
 }
