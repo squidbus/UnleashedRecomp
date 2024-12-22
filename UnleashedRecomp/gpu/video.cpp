@@ -1974,6 +1974,10 @@ static void DrawProfiler()
         auto capabilities = g_device->getCapabilities();
         ImGui::Text("Present Wait: %s", capabilities.presentWait ? "Supported" : "Unsupported");
         ImGui::Text("Triangle Fan: %s", capabilities.triangleFan ? "Supported" : "Unsupported");
+
+        const char* sdlVideoDriver = SDL_GetCurrentVideoDriver();
+        if (sdlVideoDriver != nullptr)
+            ImGui::Text("SDL Video Driver: %s", sdlVideoDriver);
     }
     ImGui::End();
 
