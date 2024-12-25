@@ -147,25 +147,26 @@ int Window_OnSDLEvent(void*, SDL_Event* event)
     return 0;
 }
 
-void GameWindow::Init(const char *sdlVideoDriver)
+void GameWindow::Init(const char* sdlVideoDriver)
 {
 #ifdef __linux__
     SDL_SetHint("SDL_APP_ID", "io.github.hedge_dev.unleashedrecomp");
 #endif
 
-    int videoRes = SDL_VideoInit(sdlVideoDriver);
-    if (videoRes != 0 && sdlVideoDriver != nullptr)
+    if (SDL_VideoInit(sdlVideoDriver) != 0 && sdlVideoDriver)
     {
-        fmt::println("Failed to initialize the specified SDL Video Driver {}. Falling back to default.", sdlVideoDriver);
+        LOGFN_ERROR("Failed to initialise the SDL video driver: \"{}\". Falling back to default.", sdlVideoDriver);
         SDL_VideoInit(nullptr);
     }
 
-    const char* videoDriverName = SDL_GetCurrentVideoDriver();
-    if (videoDriverName != nullptr)
-        fmt::println("SDL Video Driver: {}", videoDriverName);
+    auto videoDriverName = SDL_GetCurrentVideoDriver();
+
+    if (videoDriverName)
+        LOGFN("SDL video driver: \"{}\"", videoDriverName);
 
     SDL_EventState(SDL_SYSWMEVENT, SDL_ENABLE);
     SDL_AddEventWatch(Window_OnSDLEvent, s_pWindow);
+
 #ifdef _WIN32
     SetProcessDPIAware();
 #endif

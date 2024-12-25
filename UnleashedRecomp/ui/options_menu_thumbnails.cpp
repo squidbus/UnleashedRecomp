@@ -21,6 +21,7 @@
 #include <res/images/options_menu/thumbnails/invert_camera_x.dds.h>
 #include <res/images/options_menu/thumbnails/invert_camera_y.dds.h>
 #include <res/images/options_menu/thumbnails/language.dds.h>
+#include <res/images/options_menu/thumbnails/master_volume.dds.h>
 #include <res/images/options_menu/thumbnails/monitor.dds.h>
 #include <res/images/options_menu/thumbnails/motion_blur_off.dds.h>
 #include <res/images/options_menu/thumbnails/motion_blur_original.dds.h>
@@ -77,6 +78,7 @@ void LoadThumbnails()
     g_configThumbnails[&Config::AllowBackgroundInput] = LOAD_ZSTD_TEXTURE(g_allow_background_input);
     g_configThumbnails[&Config::AllowDPadMovement] = LOAD_ZSTD_TEXTURE(g_allow_dpad_movement);
     g_configThumbnails[&Config::ControllerIcons] = LOAD_ZSTD_TEXTURE(g_controller_icons);
+    g_configThumbnails[&Config::MasterVolume] = LOAD_ZSTD_TEXTURE(g_master_volume);
     g_configThumbnails[&Config::MusicVolume] = LOAD_ZSTD_TEXTURE(g_music_volume);
     g_configThumbnails[&Config::EffectsVolume] = LOAD_ZSTD_TEXTURE(g_effects_volume);
     g_configThumbnails[&Config::VoiceLanguage] = LOAD_ZSTD_TEXTURE(g_voice_language);

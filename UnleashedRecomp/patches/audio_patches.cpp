@@ -53,15 +53,15 @@ void AudioPatches::Update(float deltaTime)
         }
         else
         {
-            *pMusicVolume = std::lerp(*pMusicVolume, Config::MusicVolume, time);
+            *pMusicVolume = std::lerp(*pMusicVolume, Config::MusicVolume * Config::MasterVolume, time);
         }
     }
     else
     {
-        *pMusicVolume = Config::MusicVolume;
+        *pMusicVolume = Config::MusicVolume * Config::MasterVolume;
     }
 
-    *pEffectsVolume = Config::EffectsVolume;
+    *pEffectsVolume = Config::EffectsVolume * Config::MasterVolume;
 }
 
 // Stub volume setter.

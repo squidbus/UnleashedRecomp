@@ -602,6 +602,7 @@ public:
     CONFIG_DEFINE_LOCALISED("Input", bool, AllowDPadMovement, false);
     CONFIG_DEFINE_ENUM_LOCALISED("Input", EControllerIcons, ControllerIcons, EControllerIcons::Auto);
 
+    CONFIG_DEFINE_LOCALISED("Audio", float, MasterVolume, 1.0f);
     CONFIG_DEFINE_LOCALISED("Audio", float, MusicVolume, 1.0f);
     CONFIG_DEFINE_LOCALISED("Audio", float, EffectsVolume, 1.0f);
     CONFIG_DEFINE_ENUM_LOCALISED("Audio", EVoiceLanguage, VoiceLanguage, EVoiceLanguage::English);

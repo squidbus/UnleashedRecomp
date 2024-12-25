@@ -29,7 +29,7 @@ inline void SDL_MoveEvent(SDL_Window* pWindow, int x, int y)
     SDL_PushEvent(&event);
 }
 
-inline void SDL_User_EvilSonic(SDL_Window* pWindow, bool isCtor)
+inline void SDL_User_EvilSonic(bool isCtor)
 {
     SDL_Event event{};
     event.type = SDL_USER_EVILSONIC;

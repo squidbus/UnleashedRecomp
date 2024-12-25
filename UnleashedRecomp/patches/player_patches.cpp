@@ -126,7 +126,7 @@ PPC_FUNC(sub_823B49D8)
 {
     __imp__sub_823B49D8(ctx, base);
 
-    SDL_User_EvilSonic(GameWindow::s_pWindow, true);
+    SDL_User_EvilSonic(true);
 }
 
 // SWA::Player::CEvilSonicContext::Dtor
@@ -135,5 +135,5 @@ PPC_FUNC(sub_823B4590)
 {
     __imp__sub_823B4590(ctx, base);
 
-    SDL_User_EvilSonic(GameWindow::s_pWindow, false);
+    SDL_User_EvilSonic(false);
 }

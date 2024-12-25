@@ -825,6 +825,7 @@ static void DrawConfigOptions()
             break;
 
         case 2: // AUDIO
+            DrawConfigOption(rowCount++, yOffset, &Config::MasterVolume, true);
             DrawConfigOption(rowCount++, yOffset, &Config::MusicVolume, true);
             DrawConfigOption(rowCount++, yOffset, &Config::EffectsVolume, true);
             DrawConfigOption(rowCount++, yOffset, &Config::VoiceLanguage, OptionsMenu::s_pauseMenuType == SWA::eMenuType_WorldMap, cmnReason);
