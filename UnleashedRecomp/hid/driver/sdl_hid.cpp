@@ -102,6 +102,7 @@ public:
 
         pad.wButtons |= TRANSLATE_INPUT(SDL_CONTROLLER_BUTTON_START, XAMINPUT_GAMEPAD_START);
         pad.wButtons |= TRANSLATE_INPUT(SDL_CONTROLLER_BUTTON_BACK, XAMINPUT_GAMEPAD_BACK);
+        pad.wButtons |= TRANSLATE_INPUT(SDL_CONTROLLER_BUTTON_TOUCHPAD, XAMINPUT_GAMEPAD_BACK);
 
         pad.wButtons |= TRANSLATE_INPUT(SDL_CONTROLLER_BUTTON_LEFTSTICK, XAMINPUT_GAMEPAD_LEFT_THUMB);
         pad.wButtons |= TRANSLATE_INPUT(SDL_CONTROLLER_BUTTON_RIGHTSTICK, XAMINPUT_GAMEPAD_RIGHT_THUMB);
@@ -196,21 +197,21 @@ int HID_OnSDLEvent(void*, SDL_Event* event)
         {
             auto* controller = FindController(event->cdevice.which);
 
-            if (controller)
-            {
-                if (event->type == SDL_CONTROLLERAXISMOTION)
-                {
-                    if (abs(event->caxis.value) > 8000)
-                        SetControllerInputDevice(controller);
+            if (!controller)
+                break;
 
-                    controller->PollAxis();
-                }
-                else
-                {
+            if (event->type == SDL_CONTROLLERAXISMOTION)
+            {
+                if (abs(event->caxis.value) > 8000)
                     SetControllerInputDevice(controller);
 
-                    controller->Poll();
-                }
+                controller->PollAxis();
+            }
+            else
+            {
+                SetControllerInputDevice(controller);
+
+                controller->Poll();
             }
 
             break;
@@ -241,7 +242,9 @@ int HID_OnSDLEvent(void*, SDL_Event* event)
 
         case SDL_USER_EVILSONIC:
         {
-            if (!g_activeController)
+            auto* controller = FindController(event->cdevice.which);
+
+            if (!controller)
                 break;
 
             auto isNight = event->user.code;
@@ -249,7 +252,7 @@ int HID_OnSDLEvent(void*, SDL_Event* event)
             auto g = isNight ? 0 : 37;
             auto b = isNight ? 101 : 184;
 
-            SDL_GameControllerSetLED(g_activeController->controller, r, g, b);
+            SDL_GameControllerSetLED(controller->controller, r, g, b);
 
             break;
         }
