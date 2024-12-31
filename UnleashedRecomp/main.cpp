@@ -18,6 +18,7 @@
 #include <install/installer.h>
 #include <os/logger.h>
 #include <ui/installer_wizard.h>
+#include <mod/mod_loader.h>
 
 #define GAME_XEX_PATH "game:\\default.xex"
 
@@ -53,13 +54,26 @@ void KiSystemStartup()
     XamRegisterContent(gameContent, GAME_INSTALL_DIRECTORY "/game");
     XamRegisterContent(updateContent, GAME_INSTALL_DIRECTORY "/update");
 
-    const auto savePath = GetSavePath();
-    const auto saveName = "SYS-DATA";
+    const auto saveFilePath = GetSaveFilePath(true);
+    bool saveFileExists = std::filesystem::exists(saveFilePath);
 
-    if (std::filesystem::exists(savePath / saveName))
+    if (!saveFileExists)
     {
-        std::u8string savePathU8 = savePath.u8string();
-        XamRegisterContent(XamMakeContent(XCONTENTTYPE_SAVEDATA, saveName), (const char *)(savePathU8.c_str()));
+        // Copy base save data to modded save as fallback.
+        std::error_code ec;
+        std::filesystem::create_directories(saveFilePath.parent_path(), ec);
+
+        if (!ec)
+        {
+            std::filesystem::copy_file(GetSaveFilePath(false), saveFilePath, ec);
+            saveFileExists = !ec;
+        }
+    }
+
+    if (saveFileExists)
+    {
+        std::u8string savePathU8 = saveFilePath.parent_path().u8string();
+        XamRegisterContent(XamMakeContent(XCONTENTTYPE_SAVEDATA, "SYS-DATA"), (const char*)(savePathU8.c_str()));
     }
 
     // Mount game
@@ -175,12 +189,14 @@ int main(int argc, char *argv[])
         }
     }
 
+    ModLoader::Init();
+
     AchievementData::Load();
 
     KiSystemStartup();
 
-    const char *modulePath = FileSystem::TransformPath(GAME_XEX_PATH);
-    uint32_t entry = LdrLoadModule(std::u8string_view((const char8_t*)(modulePath)));
+    auto modulePath = FileSystem::ResolvePath(GAME_XEX_PATH, false);
+    uint32_t entry = LdrLoadModule(modulePath);
 
     if (!runInstallerWizard)
         Video::CreateHostDevice(sdlVideoDriver);

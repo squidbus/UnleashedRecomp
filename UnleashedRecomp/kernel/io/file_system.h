@@ -2,5 +2,5 @@
 
 struct FileSystem
 {
-    static const char* TransformPath(const char* path);
+    static std::filesystem::path ResolvePath(const std::string_view& path, bool checkForMods);
 };
