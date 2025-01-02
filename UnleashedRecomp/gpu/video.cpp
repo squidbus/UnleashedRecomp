@@ -1862,7 +1862,10 @@ static void* LockIndexBuffer(GuestBuffer* buffer, uint32_t, uint32_t, uint32_t f
 
 static void UnlockIndexBuffer(GuestBuffer* buffer) 
 {
-    UnlockBuffer<uint16_t>(buffer);
+    if (buffer->guestFormat == D3DFMT_INDEX32)
+        UnlockBuffer<uint32_t>(buffer);
+    else
+        UnlockBuffer<uint16_t>(buffer);
 }
 
 static void GetIndexBufferDesc(GuestBuffer* buffer, GuestBufferDesc* desc)
