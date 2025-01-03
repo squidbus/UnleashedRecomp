@@ -505,6 +505,9 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                             // remember value
                             s_oldValue = config->Value;
 
+                            if (config->LockCallback)
+                                config->LockCallback(config);
+
                             Game_PlaySound("sys_worldmap_decide");
                         }
                         else
@@ -781,13 +784,9 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
         {
             auto displayModes = GameWindow::GetDisplayModes();
 
-            // Try matching the current window size with a known configuration.
-            if (config->Value < 0)
-                config->Value = GameWindow::FindMatchingDisplayMode();
-
             if (config->Value >= 0 && config->Value < displayModes.size())
             {
-                auto displayMode = displayModes[config->Value];
+                auto& displayMode = displayModes[config->Value];
 
                 valueText = fmt::format("{}x{}", displayMode.w, displayMode.h);
             }
@@ -1005,6 +1004,8 @@ static void DrawSettingsPanel()
     if (DrawCategories())
     {
         DrawConfigOptions();
+
+        g_isControlsVisible = true;
     }
     else
     {
@@ -1147,14 +1148,7 @@ static bool DrawFadeTransition()
     if (scaleMotion < 0.8)
         return false;
 
-    if (fgAlphaOutMotion >= 1.0)
-    {
-        g_isControlsVisible = true;
-    }
-    else
-    {
-        drawList->AddRectFilled({ 0, 0 }, res, IM_COL32(0, 0, 0, Lerp(255, 0, fgAlphaOutMotion)));
-    }
+    drawList->AddRectFilled({ 0, 0 }, res, IM_COL32(0, 0, 0, Lerp(255, 0, fgAlphaOutMotion)));
 
     return fgAlphaOutMotion >= 1.0;
 }
@@ -1175,10 +1169,7 @@ void OptionsMenu::Init()
 void OptionsMenu::Draw()
 {
     if (!s_isVisible)
-    {
-        g_isControlsVisible = false;
         return;
-    }
 
     // We've entered the menu now, no need to check this.
     auto pInputState = SWA::CInputState::GetInstance();
@@ -1189,10 +1180,6 @@ void OptionsMenu::Draw()
     {
         if (!DrawMilesElectric())
             return;
-    }
-    else
-    {
-        g_isControlsVisible = true;
     }
 
     if (!g_isClosing)
@@ -1249,18 +1236,22 @@ void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
 
 void OptionsMenu::Close()
 {
-    g_isClosing = true;
-    g_appearTime = ImGui::GetTime();
+    if (!g_isClosing)
+    {
+        g_appearTime = ImGui::GetTime();
+        g_isControlsVisible = false;
+        g_isClosing = true;
+
+        ButtonGuide::Close();
+        Config::Save();
+    }
 
     // Skip Miles Electric animation at main menu.
     if (!g_isStage)
         SetOptionsMenuVisible(false);
-
-    ButtonGuide::Close();
-    Config::Save();
 }
 
 bool OptionsMenu::CanClose()
 {
-    return !g_lockedOnOption;
+    return !g_lockedOnOption && g_isControlsVisible;
 }

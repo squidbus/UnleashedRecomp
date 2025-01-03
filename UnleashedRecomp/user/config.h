@@ -294,6 +294,7 @@ public:
     std::map<T, std::string> EnumTemplateReverse{};
     CONFIG_ENUM_LOCALE(T)* EnumLocale{};
     std::function<void(ConfigDef<T>*)> Callback;
+    std::function<void(ConfigDef<T>*)> LockCallback;
     std::function<void(ConfigDef<T>*)> ApplyCallback;
 
     // CONFIG_DEFINE

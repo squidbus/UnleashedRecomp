@@ -181,6 +181,13 @@ void GameWindow::Init(const char* sdlVideoDriver)
     SetProcessDPIAware();
 #endif
 
+    Config::WindowSize.LockCallback = [](ConfigDef<int32_t>* def)
+    {
+        // Try matching the current window size with a known configuration.
+        if (def->Value < 0)
+            def->Value = GameWindow::FindNearestDisplayMode();
+    };
+
     Config::WindowSize.ApplyCallback = [](ConfigDef<int32_t>* def)
     {
         auto displayModes = GetDisplayModes();
@@ -519,19 +526,28 @@ std::vector<SDL_DisplayMode> GameWindow::GetDisplayModes(bool ignoreInvalidModes
     return result;
 }
 
-int GameWindow::FindMatchingDisplayMode()
+int GameWindow::FindNearestDisplayMode()
 {
+    auto result = -1;
     auto displayModes = GetDisplayModes();
+    auto currentDiff = std::numeric_limits<int>::max();
 
     for (int i = 0; i < displayModes.size(); i++)
     {
         auto& mode = displayModes[i];
 
-        if (mode.w == s_width && mode.h == s_height)
-            return i;
+        auto widthDiff = abs(mode.w - s_width);
+        auto heightDiff = abs(mode.h - s_height);
+        auto totalDiff = widthDiff + heightDiff;
+
+        if (totalDiff < currentDiff)
+        {
+            currentDiff = totalDiff;
+            result = i;
+        }
     }
 
-    return -1;
+    return result;
 }
 
 bool GameWindow::IsPositionValid()
