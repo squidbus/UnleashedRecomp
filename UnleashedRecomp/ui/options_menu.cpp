@@ -569,7 +569,7 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
         DrawTextWithMarquee(g_seuratFont, size, textPos, min, max, textColour, configName.c_str(), g_rowSelectionTime, 0.9, Scale(250.0));
 
         // Show reset button if this option is accessible or not a language option.
-        g_canReset = !g_lockedOnOption && g_selectedItem->GetName().find("Language") == std::string::npos && isAccessible;
+        g_canReset = g_isControlsVisible && !g_lockedOnOption && g_selectedItem->GetName().find("Language") == std::string::npos && isAccessible;
     }
     else
     {
@@ -1040,17 +1040,27 @@ static void DrawInfoPanel()
     drawList->PopClipRect();
 }
 
+static void SetOptionsMenuVisible(bool isVisible)
+{
+    OptionsMenu::s_isVisible = isVisible;
+    *(bool*)g_memory.Translate(0x8328BB26) = !isVisible;
+}
+
 static bool DrawMilesElectric()
 {
     auto drawList = ImGui::GetForegroundDrawList();
     auto& res = ImGui::GetIO().DisplaySize;
+
+    // Compensate for the lack of CSD UI dimming the background.
+    if (g_isStage)
+        drawList->AddRectFilled({ 0.0f, 0.0f }, res, IM_COL32(0, 0, 0, 127));
 
     auto scaleMotion = ComputeMotion(g_appearTime, 0, MILES_ELECTRIC_SCALE_DURATION);
 
     if (scaleMotion >= 1.0)
     {
         if (g_isClosing)
-            OptionsMenu::s_isVisible = false;
+            SetOptionsMenuVisible(false);
     
         return true;
     }
@@ -1169,7 +1179,6 @@ void OptionsMenu::Draw()
 
 void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
 {
-    s_isVisible = true;
     g_isClosing = false;
     s_isPause = isPause;
     s_pauseMenuType = pauseMenuType;
@@ -1187,9 +1196,7 @@ void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
         g_isEnterKeyBuffered = true;
 
     ResetSelection();
-    
-    // Hide CSD UI.
-    *(bool*)g_memory.Translate(0x8328BB26) = false;
+    SetOptionsMenuVisible(true);
 
     std::array<Button, 4> buttons =
     {
@@ -1210,10 +1217,7 @@ void OptionsMenu::Close()
 
     // Skip Miles Electric animation at main menu.
     if (!g_isStage)
-        s_isVisible = false;
-
-    // Show CSD UI.
-    *(bool*)g_memory.Translate(0x8328BB26) = true;
+        SetOptionsMenuVisible(false);
 
     ButtonGuide::Close();
     Config::Save();
