@@ -80,7 +80,7 @@ static void DrawSelectionContainer(ImVec2 min, ImVec2 max)
     auto drawList = ImGui::GetForegroundDrawList();
 
     static auto breatheStart = ImGui::GetTime();
-    auto alpha = Lerp(1.0f, 0.75f, (sin((ImGui::GetTime() - breatheStart) * (2.0f * M_PI / (55.0f / 60.0f))) + 1.0f) / 2.0f);
+    auto alpha = Lerp(1.0f, 0.65f, (sin((ImGui::GetTime() - breatheStart) * (2.0f * M_PI / (55.0f / 60.0f))) + 1.0f) / 2.0f);
     auto colour = IM_COL32(255, 255, 255, 255 * alpha);
 
     auto commonWidth = Scale(11);

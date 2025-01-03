@@ -52,6 +52,12 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        "Options_Desc_NotAvailableFullscreen",
+        {
+            { ELanguage::English, "This option is not available in fullscreen mode." }
+        }
+    },
+    {
         "Options_Desc_NotAvailableWindowed",
         {
             { ELanguage::English, "This option is not available in windowed mode." }

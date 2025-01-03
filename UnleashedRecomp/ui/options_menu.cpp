@@ -509,9 +509,14 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                         }
                         else
                         {
-                            // released lock, call video callbacks if value is different
+                            // released lock, do callbacks if value is different
                             if (config->Value != s_oldValue)
+                            {
                                 VideoConfigValueChangedCallback(config);
+
+                                if (config->ApplyCallback)
+                                    config->ApplyCallback(config);
+                            }
 
                             Game_PlaySound("sys_worldmap_finaldecide");
                         }
@@ -533,12 +538,13 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                 {
                     config->MakeDefault();
 
-                    // TODO: check if value was changed?
                     VideoConfigValueChangedCallback(config);
 
-                    // TODO: check if value was changed?
                     if (config->Callback)
                         config->Callback(config);
+
+                    if (config->ApplyCallback)
+                        config->ApplyCallback(config);
 
                     Game_PlaySound("sys_worldmap_decide");
                 }
@@ -568,8 +574,12 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
 
         DrawTextWithMarquee(g_seuratFont, size, textPos, min, max, textColour, configName.c_str(), g_rowSelectionTime, 0.9, Scale(250.0));
 
-        // Show reset button if this option is accessible or not a language option.
-        g_canReset = g_isControlsVisible && !g_lockedOnOption && g_selectedItem->GetName().find("Language") == std::string::npos && isAccessible;
+        // large
+        g_canReset = g_isControlsVisible &&
+            !g_lockedOnOption &&
+            g_selectedItem->GetName().find("Language") == std::string::npos &&
+            g_selectedItem != &Config::WindowSize &&
+            isAccessible;
     }
     else
     {
@@ -753,8 +763,11 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
             config->Value = std::clamp(config->Value, valueMin, valueMax);
         }
 
-        if ((increment || decrement) && config->Callback)
-            config->Callback(config);
+        if (!config->ApplyCallback)
+        {
+            if ((increment || decrement) && config->Callback)
+                config->Callback(config);
+        }
     }
 
     std::string valueText;
@@ -764,10 +777,32 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
     }
     else if constexpr (std::is_same_v<T, int32_t>)
     {
-        valueText = fmt::format("{}", config->Value);
+        if (config == &Config::WindowSize)
+        {
+            auto displayModes = GameWindow::GetDisplayModes();
 
-        if (isSlider && config->Value >= valueMax)
-            valueText = Localise("Options_Value_Max");
+            // Try matching the current window size with a known configuration.
+            if (config->Value < 0)
+                config->Value = GameWindow::FindMatchingDisplayMode();
+
+            if (config->Value >= 0 && config->Value < displayModes.size())
+            {
+                auto displayMode = displayModes[config->Value];
+
+                valueText = fmt::format("{}x{}", displayMode.w, displayMode.h);
+            }
+            else
+            {
+                valueText = fmt::format("{}x{}", GameWindow::s_width, GameWindow::s_height);
+            }
+        }
+        else
+        {
+            valueText = fmt::format("{}", config->Value);
+
+            if (isSlider && config->Value >= valueMax)
+                valueText = Localise("Options_Value_Max");
+        }
     }
     else
     {
@@ -851,7 +886,9 @@ static void DrawConfigOptions()
 
         case 3: // VIDEO
         {
-            // TODO: expose WindowWidth/WindowHeight as WindowSize.
+            DrawConfigOption(rowCount++, yOffset, &Config::WindowSize,
+                !Config::Fullscreen, &Localise("Options_Desc_NotAvailableFullscreen"),
+                0, 0, (int32_t)GameWindow::GetDisplayModes().size() - 1, false);
 
             auto displayCount = GameWindow::GetDisplayCount();
             auto canChangeMonitor = Config::Fullscreen && displayCount > 1;

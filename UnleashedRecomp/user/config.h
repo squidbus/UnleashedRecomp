@@ -294,6 +294,7 @@ public:
     std::map<T, std::string> EnumTemplateReverse{};
     CONFIG_ENUM_LOCALE(T)* EnumLocale{};
     std::function<void(ConfigDef<T>*)> Callback;
+    std::function<void(ConfigDef<T>*)> ApplyCallback;
 
     // CONFIG_DEFINE
     ConfigDef(std::string section, std::string name, T defaultValue) : Section(section), Name(name), DefaultValue(defaultValue)
@@ -619,6 +620,7 @@ public:
 
     CONFIG_DEFINE("Video", int32_t, WindowX, WINDOWPOS_CENTRED);
     CONFIG_DEFINE("Video", int32_t, WindowY, WINDOWPOS_CENTRED);
+    CONFIG_DEFINE_LOCALISED("Video", int32_t, WindowSize, -1);
     CONFIG_DEFINE("Video", int32_t, WindowWidth, 1280);
     CONFIG_DEFINE("Video", int32_t, WindowHeight, 720);
     CONFIG_DEFINE_ENUM("Video", EWindowState, WindowState, EWindowState::Normal);
@@ -638,7 +640,7 @@ public:
         def->Value = std::clamp(def->Value, 0.25f, 2.0f);
     });
 
-    CONFIG_DEFINE_CALLBACK("Video", bool, Fullscreen, false,
+    CONFIG_DEFINE_CALLBACK("Video", bool, Fullscreen, true,
     {
         def->Locale = &g_Fullscreen_locale;
 

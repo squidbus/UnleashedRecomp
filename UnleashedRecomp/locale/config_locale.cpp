@@ -150,6 +150,11 @@ CONFIG_DEFINE_LOCALE(BattleTheme)
     { ELanguage::English, { "Battle Theme", "Play the Werehog battle theme during combat.\n\nThis option will apply the next time you're in combat." } }
 };
 
+CONFIG_DEFINE_LOCALE(WindowSize)
+{
+    { ELanguage::English, { "Window Size", "Adjust the size of the game window in windowed mode." } }
+};
+
 CONFIG_DEFINE_LOCALE(Monitor)
 {
     { ELanguage::English, { "Monitor", "Change which monitor to display the game on." } }
