@@ -12,7 +12,9 @@ else()
     add_compile_options(-ffp-model=strict)
 endif()
 
-target_compile_definitions(PowerRecomp PRIVATE CONFIG_FILE_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/config/SWA.toml\")
+target_compile_definitions(PowerRecomp PRIVATE 
+    CONFIG_FILE_PATH=\"${CMAKE_CURRENT_SOURCE_DIR}/config/SWA.toml\"
+    HEADER_FILE_PATH=\"${SWA_TOOLS_ROOT}/PowerRecomp/PowerUtils/ppc_context.h\")
 
 set(SWA_PPC_RECOMPILED_SOURCES 
     "${CMAKE_CURRENT_SOURCE_DIR}/ppc/ppc_config.h"

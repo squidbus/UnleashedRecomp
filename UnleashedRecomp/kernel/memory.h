@@ -34,12 +34,12 @@ struct Memory
 
     PPCFunc* FindFunction(uint32_t guest) const noexcept
     {
-        return *reinterpret_cast<PPCFunc**>(base + PPC_FUNC_TABLE_OFFSET + (uint64_t(guest) * 2));
+        return PPC_LOOKUP_FUNC(base, guest);
     }
 
     void InsertFunction(uint32_t guest, PPCFunc* host)
     {
-        *reinterpret_cast<PPCFunc**>(base + PPC_FUNC_TABLE_OFFSET + (uint64_t(guest) * 2)) = host;
+        PPC_LOOKUP_FUNC(base, guest) = host;
     }
 };
 
