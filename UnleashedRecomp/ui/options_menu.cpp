@@ -151,16 +151,17 @@ static void DrawScanlineBars()
     SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
 
     // Options text
-    // TODO: localise this.
-    DrawTextWithOutline(
+    DrawTextWithOutline
+    (
         g_dfsogeistdFont,
         Scale(48.0f),
         { Scale(122.0f), Scale(56.0f) },
         IM_COL32(255, 190, 33, 255),
-        "OPTIONS",
+        Localise("Options_Header_Name").c_str(),
         4,
         IM_COL32_BLACK,
-        IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
+        IMGUI_SHADER_MODIFIER_TITLE_BEVEL
+    );
 
     // Top bar line
     drawList->AddLine

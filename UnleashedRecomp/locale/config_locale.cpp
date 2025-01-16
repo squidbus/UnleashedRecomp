@@ -1,5 +1,23 @@
 #include <user/config.h>
 
+/*
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LOCALISATION NOTES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    - Ensure brand names are always presented on the same line.
+
+      Correct:
+      This is a string that contains a brand name like
+      Xbox 360, which is one of the few consoles to have a port of
+      Sonic Unleashed.
+
+      Incorrect:
+      This is a string that contains a brand name like Xbox
+      360, which is one of the few consoles to have a port of Sonic
+      Unleashed.
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*/
+
 #define CONFIG_DEFINE_LOCALE(name) \
     CONFIG_LOCALE Config::g_##name##_locale =
 

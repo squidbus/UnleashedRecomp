@@ -1,8 +1,32 @@
 #include <user/config.h>
 #include <locale/locale.h>
 
+/*
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! LOCALISATION NOTES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    - Ensure brand names are always presented on the same line.
+
+      Correct:
+      This is a string that contains a brand name like
+      Xbox 360, which is one of the few consoles to have a port of
+      Sonic Unleashed.
+
+      Incorrect:
+      This is a string that contains a brand name like Xbox
+      360, which is one of the few consoles to have a port of Sonic
+      Unleashed.
+
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*/
+
 std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_locale =
 {
+    {
+        "Options_Header_Name",
+        {
+            { ELanguage::English, "OPTIONS" }
+        }
+    },
     {
         "Options_Category_System",
         {
@@ -28,6 +52,7 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        // Notes: integer values in the options menu (e.g. FPS) when at their maximum value.
         "Options_Value_Max",
         {
             { ELanguage::English, "MAX" }
@@ -46,54 +71,63 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        // Notes: description for options that cannot be accessed anywhere but the title screen or world map (e.g. Language).
         "Options_Desc_NotAvailable",
         {
             { ELanguage::English, "This option is not available at this location." }
         }
     },
     {
+        // Notes: currently the description for Window Size when in fullscreen.
         "Options_Desc_NotAvailableFullscreen",
         {
             { ELanguage::English, "This option is not available in fullscreen mode." }
         }
     },
     {
+        // Notes: currently the description for Monitor when in fullscreen.
         "Options_Desc_NotAvailableWindowed",
         {
             { ELanguage::English, "This option is not available in windowed mode." }
         }
     },
     {
+        // Notes: currently the description for Monitor when the user only has one display connected.
         "Options_Desc_NotAvailableHardware",
         {
             { ELanguage::English, "This option is not available with your current hardware configuration." }
         }
     },
     {
+        // Notes: description for Transparency Anti-Aliasing when MSAA is disabled.
         "Options_Desc_NotAvailableMSAA",
         {
             { ELanguage::English, "This option is not available without MSAA." }
         }
     },
     {
+        // Notes: description for Music Attenuation when the user is not running a supported OS.
         "Options_Desc_OSNotSupported",
         {
             { ELanguage::English, "This option is not supported by your operating system." }
         }
     },
     {
+        // Notes: message appears when changing the Language option and backing out of the options menu.
         "Options_Message_Restart",
         {
             { ELanguage::English, "The game will now restart." }
         }
     },
     {
+        // Notes: used for the button guide at the pause menu.
         "Achievements_Name",
         {
             { ELanguage::English, "Achievements" }
         }
     },
     {
+        // Notes: used for the header in the achievements menu.
         "Achievements_Name_Uppercase",
         {
             { ELanguage::English, "ACHIEVEMENTS" }
@@ -138,22 +172,19 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
     {
         "Installer_Page_SelectGameAndUpdate",
         {
-            { ELanguage::English, "Add the files for the game and its title update. You can use digital dumps or pre-extracted folders containing the necessary files." },
-            { ELanguage::Italian, "Aggiungi i file del gioco e del suo aggiornamento. Puoi utilizzare una copia digitale o delle cartelle contenenti i file necessari." }
+            { ELanguage::English, "Add the files for the game and its title update. You can use digital dumps or an extracted folder containing the unmodified files." }
         }
     },
     {
         "Installer_Page_SelectDLC",
         {
-            { ELanguage::English, "Add the files for the DLC. You can use digital dumps or pre-extracted folders containing the necessary files." },
-            { ELanguage::Italian, "Aggiungi i file dei DLC. Puoi utilizzare una copia digitale o cartelle contenenti i file necessari." }
+            { ELanguage::English, "Add the files for the DLC. You can use digital dumps or an extracted folder containing the unmodified files." }
         }
     },
     {
         "Installer_Page_CheckSpace",
         {
             { ELanguage::English, "The content will be installed to the program's folder. Please confirm you have enough free space.\n\n" },
-
             { ELanguage::Italian, "Il contenuto verrà installato nella cartella di questo programma. Assicurati di avere abbastanza spazio libero sul tuo hard disk.\n\n" }
         }
     },
@@ -242,6 +273,7 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        // Notes: message appears when using the "Add Files" option and choosing any file that is not an Xbox 360 game dump.
         "Installer_Message_InvalidFilesList",
         {
             { ELanguage::English, "The following selected files are invalid:" },
@@ -249,6 +281,7 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        // Notes: message appears in the event there are some invalid files after adding the DLC and moving onto the next step.
         "Installer_Message_InvalidFiles",
         {
             { ELanguage::English, "Some of the files that have\nbeen provided are not valid.\n\nPlease make sure all the\nspecified files are correct\nand try again." },
@@ -256,26 +289,29 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        // Notes: message appears when clicking the "Add Files" option for the first time.
         "Installer_Message_FilePickerTutorial",
         {
-            { ELanguage::English, "Select a digital dump from\nyour Xbox 360.\n\nFor choosing a folder with\npre-existing game files,\nuse the \"Add Folder\"\noption instead." },
+            { ELanguage::English, "Select a digital dump.\n\nFor choosing a folder with\nextracted and unmodified\ngame files, use the\n\"Add Folder\" option instead." },
         }
     },
     {
+        // Notes: message appears when clicking the "Add Folder" option for the first time.
         "Installer_Message_FolderPickerTutorial",
         {
-            { ELanguage::English, "Select a folder that contains\nthe files that have been\nextracted from the game.\n\nFor choosing a digital dump\nfrom your Xbox 360, use the\n\"Add Files\" option instead." },
+            { ELanguage::English, "Select a folder that contains\nthe unmodified files that have\nbeen extracted from the game.\n\nFor choosing a digital dump,\nuse the\"Add Files\" option instead." },
         }
     },
     {
+        // Notes: message appears when providing a title update that does not match the region or version of the game dump.
         "Installer_Message_IncompatibleGameData",
         {
-            { ELanguage::English, "The specified game and\nupdate file are incompatible.\n\nPlease ensure the files are\nfor the same version and\nregion and try again." },
-
+            { ELanguage::English, "The specified game and\ntitle update are incompatible.\n\nPlease ensure the files are\nfor the same version and\nregion and try again." },
             { ELanguage::Italian, "I file del gioco\ne dell'aggiornamento sono incompatibili.\n\nAssicurati che i file sono\ndella stessa versione\ne regione e riprova." }
         }
     },
     {
+        // Notes: message appears when clicking Skip at the DLC step.
         "Installer_Message_DLCWarning",
         {
             { ELanguage::English, "It is highly recommended\nthat you install all of the\nDLC, as it includes high\nquality lighting textures\nfor the base game.\n\nAre you sure you want to\nskip this step?" },
@@ -283,6 +319,7 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        // Notes: message appears when choosing the Install option at the title screen when the user is missing DLC content.
         "Installer_Message_TitleMissingDLC",
         {
             { ELanguage::English, "This will restart the game to\nallow you to install any DLC\nthat you are missing.\n\nInstalling DLC will improve the\nlighting quality across the game.\n\nWould you like to install missing\ncontent?" },
@@ -290,14 +327,15 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         }
     },
     {
+        // Notes: message appears when choosing the Install option at the title screen when the user is not missing any content.
         "Installer_Message_Title",
         {
             { ELanguage::English, "This restarts the game to\nallow you to install any DLC\nthat you may be missing.\n\nYou are not currently\nmissing any DLC.\n\nWould you like to proceed\nanyway?" },
-
             { ELanguage::Italian, "Questa opzione riavviera il gioco\nper farti installare qualsiasi DLC\nche non hai installato.\n\nHai già installato tutti i DLC.\n\nVuoi procedere comunque?" }
         }
     },
     {
+        // Notes: message appears when pressing B at the title screen.
         "Title_Message_Quit",
         {
             { ELanguage::English, "Are you sure you want to quit?" },
@@ -330,7 +368,6 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
         "Common_Yes",
         {
             { ELanguage::English, "Yes" },
-
             { ELanguage::Italian, "Sì" }
         }
     },
