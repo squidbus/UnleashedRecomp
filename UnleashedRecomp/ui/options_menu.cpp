@@ -685,28 +685,6 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
         bool decrement = leftTapped;
         bool increment = rightTapped;
 
-        bool fastIncrement = (time - g_lastTappedTime) > 0.5;
-        constexpr double INCREMENT_TIME = 1.0 / 120.0;
-
-        constexpr double INCREMENT_SOUND_TIME = 1.0 / 7.5;
-        bool isPlayIncrementSound = true;
-
-        if (fastIncrement)
-        {
-            isPlayIncrementSound = (time - g_lastIncrementSoundTime) > INCREMENT_SOUND_TIME;
-
-            if ((time - g_lastIncrementTime) < INCREMENT_TIME)
-                fastIncrement = false;
-            else
-                g_lastIncrementTime = time;
-        }
-
-        if (fastIncrement)
-        {
-            decrement = leftIsHeld;
-            increment = rightIsHeld;
-        }
-
         g_leftWasHeld = leftIsHeld;
         g_rightWasHeld = rightIsHeld;
 
@@ -737,6 +715,31 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
         else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, int32_t>)
         {
             float deltaTime = ImGui::GetIO().DeltaTime;
+
+            bool fastIncrement = (time - g_lastTappedTime) > 0.5;
+            bool isPlayIncrementSound = true;
+
+            constexpr double INCREMENT_TIME = 1.0 / 120.0;
+            constexpr double INCREMENT_SOUND_TIME = 1.0 / 7.5;
+
+            if (isSlider)
+            {
+                if (fastIncrement)
+                {
+                    isPlayIncrementSound = (time - g_lastIncrementSoundTime) > INCREMENT_SOUND_TIME;
+
+                    if ((time - g_lastIncrementTime) < INCREMENT_TIME)
+                        fastIncrement = false;
+                    else
+                        g_lastIncrementTime = time;
+                }
+
+                if (fastIncrement)
+                {
+                    decrement = leftIsHeld;
+                    increment = rightIsHeld;
+                }
+            }
 
             do
             {
