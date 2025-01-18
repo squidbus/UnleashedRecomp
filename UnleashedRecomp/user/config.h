@@ -373,7 +373,8 @@ public:
             if (Callback)
                 Callback(this);
 
-            IsLoadedFromConfig = true;
+            if (pSection->contains(Name))
+                IsLoadedFromConfig = true;
         }
     }
 
@@ -683,6 +684,7 @@ public:
     CONFIG_DEFINE_HIDDEN("Exports", bool, HomingAttackOnBoost, true);
     CONFIG_DEFINE_HIDDEN("Exports", bool, SaveScoreAtCheckpoints, false);
     CONFIG_DEFINE_HIDDEN("Exports", bool, SkipIntroLogos, false);
+    CONFIG_DEFINE_HIDDEN("Exports", bool, UseOfficialTitleOnTitleBar, false);
 
     static std::filesystem::path GetConfigPath()
     {

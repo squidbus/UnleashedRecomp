@@ -298,9 +298,14 @@ void GameWindow::SetIcon(bool isNight)
 
 const char* GameWindow::GetTitle()
 {
-    return Config::Language == ELanguage::Japanese
-        ? "SONIC WORLD ADVENTURE"
-        : "SONIC UNLEASHED";
+    if (Config::UseOfficialTitleOnTitleBar)
+    {
+        return Config::Language == ELanguage::Japanese
+            ? "SONIC WORLD ADVENTURE"
+            : "SONIC UNLEASHED";
+    }
+
+    return "Unleashed Recompiled";
 }
 
 void GameWindow::SetTitle(const char* title)
