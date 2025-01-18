@@ -1123,7 +1123,7 @@ static std::unique_ptr<GuestShader> g_enhancedMotionBlurShader;
 #else
 
 #define CREATE_SHADER(NAME) \
-    g_device->createShader(g_##NAME##_spirv, sizeof(g_##NAME##_spirv), "main", RenderShaderFormat::SPIRV);
+    g_device->createShader(g_##NAME##_spirv, sizeof(g_##NAME##_spirv), "main", RenderShaderFormat::SPIRV)
 
 #endif
 
