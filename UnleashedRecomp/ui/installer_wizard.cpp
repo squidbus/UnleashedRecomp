@@ -687,6 +687,8 @@ static void DrawDescriptionContainer()
         auto imageScale = hedgeDevTextSize.x / 3;
         auto imageMarginY = Scale(15);
 
+        auto colWhite = IM_COL32(255, 255, 255, 255 * textAlpha);
+
         ImVec2 imageMin = 
         {
             /* X */ Scale(g_aspectRatioOffsetX + CONTAINER_X) + (Scale(CONTAINER_WIDTH) / 2) - (imageScale / 2) - (hedgeDevTextSize.x / 2) - hedgeDevTextMarginX,
@@ -695,14 +697,14 @@ static void DrawDescriptionContainer()
 
         ImVec2 imageMax = { imageMin.x + imageScale, imageMin.y + imageScale };
 
-        drawList->AddImage(g_upHedgeDev.get(), imageMin, imageMax);
+        drawList->AddImage(g_upHedgeDev.get(), imageMin, imageMax, { 0, 0 }, { 1, 1 }, colWhite);
 
         drawList->AddText
         (
             g_seuratFont,
             fontSize,
             { /* X */ imageMax.x + hedgeDevTextMarginX, /* Y */ imageMin.y + (imageScale / 2) - (hedgeDevTextSize.y / 2) },
-            IM_COL32_WHITE,
+            colWhite,
             hedgeDevStr
         );
 
@@ -715,7 +717,7 @@ static void DrawDescriptionContainer()
         ImVec2 textMax = { Scale(g_aspectRatioOffsetX + CONTAINER_X) + Scale(CONTAINER_WIDTH), Scale(g_aspectRatioOffsetY + CONTAINER_Y) + Scale(CONTAINER_HEIGHT) };
 
         SetMarqueeFade(textMin, textMax, Scale(32));
-        DrawTextWithMarquee(g_seuratFont, fontSize, textPos, textMin, textMax, IM_COL32_WHITE, CREDITS_TEXT, g_appearTime, 0.9, Scale(250));
+        DrawTextWithMarquee(g_seuratFont, fontSize, textPos, textMin, textMax, colWhite, CREDITS_TEXT, g_appearTime, 0.9, Scale(250));
         ResetMarqueeFade();
     }
 
