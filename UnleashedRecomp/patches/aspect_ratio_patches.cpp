@@ -197,7 +197,7 @@ void AspectRatioPatches::ComputeOffsets()
         if (g_aspectRatio < WIDE_ASPECT_RATIO)
         {
             // interpolate to original 4:3 scale
-            float steamDeckScale = 1.0f / g_aspectRatioScale;
+            float steamDeckScale = g_aspectRatio / WIDE_ASPECT_RATIO;
             float narrowScale = ComputeScale(NARROW_ASPECT_RATIO);
 
             float lerpFactor = std::clamp((g_aspectRatio - NARROW_ASPECT_RATIO) / (STEAM_DECK_ASPECT_RATIO - NARROW_ASPECT_RATIO), 0.0f, 1.0f);
