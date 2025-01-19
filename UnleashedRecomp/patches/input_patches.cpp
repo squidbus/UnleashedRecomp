@@ -28,6 +28,16 @@ void PostureDPadSupportMidAsmHook(PPCRegister& pPadState, PPCRegister& x, PPCReg
     SetDPadAnalogDirectionY(pPadState, y, true);
 }
 
+void PostureDPadSupportXMidAsmHook(PPCRegister& pPadState, PPCRegister& x)
+{
+    SetDPadAnalogDirectionX(pPadState, x, false);
+}
+
+void PostureDPadSupportYMidAsmHook(PPCRegister& pPadState, PPCRegister& y)
+{
+    SetDPadAnalogDirectionY(pPadState, y, false);
+}
+
 void PostureDPadSupportPathLocalMidAsmHook(PPCRegister& pPadState, PPCRegister& x, PPCRegister& y)
 {
     SetDPadAnalogDirectionX(pPadState, x, false);
