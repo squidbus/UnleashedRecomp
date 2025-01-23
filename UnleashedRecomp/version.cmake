@@ -31,15 +31,15 @@ function(CheckOutputFile OUTPUT_FILE TEMPLATE_FILE)
     endif()
 endfunction()
 
-# OUTPUT_DIR                  : the output directory of the resulting *.h/*.cpp files.
-# VERSION_TXT                 : the input text file containing the milestone, major, minor and revision variables.
-# H_TEMPLATE                  : the input template for the header.
-# CXX_TEMPLATE                : the input template for the source file.
-# BUILD_TYPE                  : the current build configuration (e.g. "Release", "RelWithDebInfo", "Debug") (optional).
-# IS_BUILD_TYPE_IN_VER_STRING : the build type should be appended to the version string (optional).
-# IS_GIT_REPO                 : the project is part of a Git repository (optional).
+# OUTPUT_DIR      : the output directory of the resulting *.h/*.cpp files.
+# VERSION_TXT     : the input text file containing the milestone, major, minor and revision variables.
+# H_TEMPLATE      : the input template for the header.
+# CXX_TEMPLATE    : the input template for the source file.
+# BUILD_TYPE      : the current build configuration (e.g. "Release", "RelWithDebInfo", "Debug") (optional).
+# SHOW_GIT_INFO   : the Git commit hash and branch name should be appended to the version string (optional).
+# SHOW_BUILD_TYPE : the build type should be appended to the version string (optional).
 function(GenerateVersionSources)
-    cmake_parse_arguments(ARGS "" "OUTPUT_DIR;VERSION_TXT;H_TEMPLATE;CXX_TEMPLATE;BUILD_TYPE;IS_BUILD_TYPE_IN_VER_STRING;IS_GIT_REPO" "" ${ARGN})
+    cmake_parse_arguments(ARGS "" "OUTPUT_DIR;VERSION_TXT;H_TEMPLATE;CXX_TEMPLATE;BUILD_TYPE;SHOW_GIT_INFO;SHOW_BUILD_TYPE" "" ${ARGN})
 
     message("-- Generating version information...")
 
@@ -61,7 +61,7 @@ function(GenerateVersionSources)
 
     set(BUILD_TYPE ${ARGS_BUILD_TYPE})
 
-    if (ARGS_IS_GIT_REPO)
+    if (ARGS_SHOW_GIT_INFO)
         find_package(Git REQUIRED)
 
         # Get Git branch name.
@@ -120,7 +120,7 @@ function(GenerateVersionSources)
     endif()
 
     # Append build configuration.
-    if (ARGS_BUILD_TYPE AND ARGS_IS_BUILD_TYPE_IN_VER_STRING)
+    if (ARGS_BUILD_TYPE AND ARGS_SHOW_BUILD_TYPE)
         string(APPEND VERSION_STRING " (${ARGS_BUILD_TYPE})")
     endif()
 

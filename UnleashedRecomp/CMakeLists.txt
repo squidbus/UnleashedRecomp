@@ -408,9 +408,9 @@ generate_aggregate_header(
 )
 
 # Only show build type if not Release.
-set(IS_BUILD_TYPE_IN_VER_STRING 0)
+set(SHOW_GIT_INFO_AND_BUILD_TYPE 0)
 if (NOT ${CMAKE_BUILD_TYPE} MATCHES "Release")
-    set(IS_BUILD_TYPE_IN_VER_STRING 1)
+    set(SHOW_GIT_INFO_AND_BUILD_TYPE 1)
 endif()
 
 include("version.cmake")
@@ -420,8 +420,8 @@ GenerateVersionSources(
     H_TEMPLATE "${PROJECT_SOURCE_DIR}/res/version.h.template"
     CXX_TEMPLATE "${PROJECT_SOURCE_DIR}/res/version.cpp.template"
     BUILD_TYPE ${CMAKE_BUILD_TYPE}
-    IS_BUILD_TYPE_IN_VER_STRING ${IS_BUILD_TYPE_IN_VER_STRING}
-    IS_GIT_REPO 1
+    SHOW_GIT_INFO ${SHOW_GIT_INFO_AND_BUILD_TYPE}
+    SHOW_BUILD_TYPE ${SHOW_GIT_INFO_AND_BUILD_TYPE}
 )
 
 set(RESOURCES_SOURCE_PATH "${PROJECT_SOURCE_DIR}/../UnleashedRecompResources")
