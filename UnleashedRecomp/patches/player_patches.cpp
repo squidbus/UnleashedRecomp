@@ -50,11 +50,8 @@ PPC_FUNC(sub_8245F048)
 
 void ResetScoreOnRestartMidAsmHook()
 {
-    if (auto pGameDocument = SWA::CGameDocument::GetInstance())
-    {
-        pGameDocument->m_pMember->m_ScoreInfo.EnemyScore = 0;
-        pGameDocument->m_pMember->m_ScoreInfo.TrickScore = 0;
-    }
+    g_lastEnemyScore = 0;
+    g_lastTrickScore = 0;
 }
 
 // Dark Gaia energy change hook.
