@@ -390,6 +390,12 @@ static const ankerl::unordered_dense::map<XXH64_hash_t, CsdModifier> g_modifiers
     { HashStr("ui_loading/bg_1"), { STRETCH } },
     { HashStr("ui_loading/bg_2"), { STRETCH } },
 
+    // ui_mediaroom
+    { HashStr("ui_mediaroom/header/bg/img_1"), { EXTEND_LEFT } },
+    { HashStr("ui_mediaroom/header/bg/img_10"), { EXTEND_RIGHT } },  
+    { HashStr("ui_mediaroom/header/frame/img_1"), { EXTEND_LEFT } },
+    { HashStr("ui_mediaroom/header/frame/img_5"), { EXTEND_RIGHT } },
+
     // ui_missionscreen
     { HashStr("ui_missionscreen/player_count"), { ALIGN_TOP_LEFT | SCALE } },
     { HashStr("ui_missionscreen/time_count"), { ALIGN_TOP_LEFT | SCALE } },
@@ -592,6 +598,8 @@ static const ankerl::unordered_dense::map<XXH64_hash_t, CsdModifier> g_modifiers
     { HashStr("ui_status/header/status_title/title_bg/right"), { ALIGN_TOP | STORE_RIGHT_CORNER } },
     { HashStr("ui_status/logo/logo/bg_position/c_1"), { STRETCH_HORIZONTAL } },
     { HashStr("ui_status/logo/logo/bg_position/c_2"), { STRETCH_HORIZONTAL } },
+    { HashStr("ui_status/main/arrow_effect/a_efc_1"), { OFFSET_SCALE_LEFT, 866.0f } },
+    { HashStr("ui_status/main/arrow_effect/a_efc_1/position/img_01"), { STORE_RIGHT_CORNER } },
     { HashStr("ui_status/main/progless/bg/prgs_bg_1"), { OFFSET_SCALE_LEFT, 714.0f } },
     { HashStr("ui_status/main/progless/bg/prgs_bg_1/position/center/right"), { STORE_RIGHT_CORNER } },
     { HashStr("ui_status/main/progless/prgs/prgs_bar_1"), { OFFSET_SCALE_LEFT, 586.0f } },
@@ -630,7 +638,11 @@ static const ankerl::unordered_dense::map<XXH64_hash_t, CsdModifier> g_modifiers
     { HashStr("ui_worldmap/footer/worldmap_footer_bg"), { ALIGN_BOTTOM } },
     { HashStr("ui_worldmap/footer/worldmap_footer_img_A"), { ALIGN_BOTTOM } },
     { HashStr("ui_worldmap/header/worldmap_header_bg"), { ALIGN_TOP } },
-    { HashStr("ui_worldmap/header/worldmap_header_img"), { ALIGN_TOP_LEFT | WORLD_MAP } }
+    { HashStr("ui_worldmap/header/worldmap_header_img"), { ALIGN_TOP_LEFT | WORLD_MAP } },
+
+    // ui_worldmap_help
+    { HashStr("ui_worldmap_help/balloon/help_window/position/msg_bg_l"), { EXTEND_LEFT } },
+    { HashStr("ui_worldmap_help/balloon/help_window/position/msg_bg_r"), { EXTEND_RIGHT } },
 };
 
 static std::optional<CsdModifier> FindModifier(uint32_t data)
