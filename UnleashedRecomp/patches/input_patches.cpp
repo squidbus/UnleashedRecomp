@@ -7,7 +7,7 @@
 constexpr double WORLD_MAP_ROTATE_DEADZONE = 0.69999999;
 constexpr double WORLD_MAP_CURSOR_DEADZONE = 0.30000001;
 
-class WorldMapTouchParams
+class WorldMapCursorParams
 {
 public:
     float Damping{ 0.99f };
@@ -20,45 +20,63 @@ public:
     float Smoothing{ 0.8f };
 };
 
-class WorldMapTouchParamsProspero : public WorldMapTouchParams
+class WorldMapCursorParamsProspero : public WorldMapCursorParams
 {
 public:
-    WorldMapTouchParamsProspero()
+    WorldMapCursorParamsProspero()
     {
         SensitivityX = 1.15f;
         SensitivityY = 1.05f;
     }
 }
-g_worldMapTouchParamsProspero;
+g_worldMapCursorParamsProspero;
 
-class WorldMapTouchParamsOrbis : public WorldMapTouchParams
+class WorldMapCursorParamsOrbis : public WorldMapCursorParams
 {
 public:
-    WorldMapTouchParamsOrbis()
+    WorldMapCursorParamsOrbis()
     {
         SensitivityX = 0.95f;
         SensitivityY = 1.0f;
     }
 }
-g_worldMapTouchParamsOrbis;
+g_worldMapCursorParamsOrbis;
 
-WorldMapTouchParams g_worldMapTouchParams{};
+#ifdef UI_KBM_SUPPORT
+class WorldMapCursorParamsMouse : public WorldMapCursorParams
+{
+public:
+    WorldMapCursorParamsMouse()
+    {
+        FlickAccelX = 0.025f;
+        FlickAccelY = 0.025f;
+        FlickThreshold = 7.5f;
+        SensitivityX = 0.15f;
+        SensitivityY = 0.15f;
+    }
+}
+g_worldMapCursorParamsMouse;
+#endif
 
-static bool g_isTouchActive;
+WorldMapCursorParams g_worldMapCursorParams{};
 
-static float g_worldMapTouchVelocityX;
-static float g_worldMapTouchVelocityY;
+static bool g_isCursorActive;
+
+static float g_worldMapCursorVelocityX;
+static float g_worldMapCursorVelocityY;
 
 class SDLEventListenerForInputPatches : public SDLEventListener
 {
+    static inline bool ms_isMouseDown;
+
     static inline int ms_touchpadFingerCount;
 
-    static inline float ms_touchpadX;
-    static inline float ms_touchpadY;
-    static inline float ms_touchpadDeltaX;
-    static inline float ms_touchpadDeltaY;
-    static inline float ms_touchpadPrevX;
-    static inline float ms_touchpadPrevY;
+    static inline float ms_cursorX;
+    static inline float ms_cursorY;
+    static inline float ms_cursorDeltaX;
+    static inline float ms_cursorDeltaY;
+    static inline float ms_cursorPrevX;
+    static inline float ms_cursorPrevY;
 
 public:
     static void Update(float deltaTime)
@@ -69,37 +87,37 @@ public:
            all the constants that I had tuned. */
         constexpr auto referenceDeltaTime = 1.0f / 144.0f;
 
-        if (g_isTouchActive)
+        if (g_isCursorActive)
         {
-            auto dxNorm = ms_touchpadDeltaX / referenceDeltaTime;
-            auto dyNorm = ms_touchpadDeltaY / referenceDeltaTime;
-            auto dxSens = dxNorm * g_worldMapTouchParams.SensitivityX;
-            auto dySens = dyNorm * g_worldMapTouchParams.SensitivityY;
+            auto dxNorm = ms_cursorDeltaX / referenceDeltaTime;
+            auto dyNorm = ms_cursorDeltaY / referenceDeltaTime;
+            auto dxSens = dxNorm * g_worldMapCursorParams.SensitivityX;
+            auto dySens = dyNorm * g_worldMapCursorParams.SensitivityY;
 
-            auto smoothing = powf(g_worldMapTouchParams.Smoothing, deltaTime / referenceDeltaTime);
+            auto smoothing = powf(g_worldMapCursorParams.Smoothing, deltaTime / referenceDeltaTime);
 
-            g_worldMapTouchVelocityX = smoothing * g_worldMapTouchVelocityX + (1.0f - smoothing) * dxSens;
-            g_worldMapTouchVelocityY = smoothing * g_worldMapTouchVelocityY + (1.0f - smoothing) * dySens;
+            g_worldMapCursorVelocityX = smoothing * g_worldMapCursorVelocityX + (1.0f - smoothing) * dxSens;
+            g_worldMapCursorVelocityY = smoothing * g_worldMapCursorVelocityY + (1.0f - smoothing) * dySens;
 
-            auto flickThreshold = g_worldMapTouchParams.FlickThreshold;
+            auto flickThreshold = g_worldMapCursorParams.FlickThreshold;
 
             if (fabs(dxSens) > flickThreshold || fabs(dySens) > flickThreshold)
             {
-                g_worldMapTouchVelocityX += dxNorm * g_worldMapTouchParams.FlickAccelX * (deltaTime / referenceDeltaTime);
-                g_worldMapTouchVelocityY += dyNorm * g_worldMapTouchParams.FlickAccelY * (deltaTime / referenceDeltaTime);
+                g_worldMapCursorVelocityX += dxNorm * g_worldMapCursorParams.FlickAccelX * (deltaTime / referenceDeltaTime);
+                g_worldMapCursorVelocityY += dyNorm * g_worldMapCursorParams.FlickAccelY * (deltaTime / referenceDeltaTime);
             }
 
-            auto terminalVelocity = g_worldMapTouchParams.FlickTerminalVelocity;
+            auto terminalVelocity = g_worldMapCursorParams.FlickTerminalVelocity;
 
-            g_worldMapTouchVelocityX = std::clamp(g_worldMapTouchVelocityX, -terminalVelocity, terminalVelocity);
-            g_worldMapTouchVelocityY = std::clamp(g_worldMapTouchVelocityY, -terminalVelocity, terminalVelocity);
+            g_worldMapCursorVelocityX = std::clamp(g_worldMapCursorVelocityX, -terminalVelocity, terminalVelocity);
+            g_worldMapCursorVelocityY = std::clamp(g_worldMapCursorVelocityY, -terminalVelocity, terminalVelocity);
         }
         else
         {
-            auto dampingFactor = powf(g_worldMapTouchParams.Damping, deltaTime / referenceDeltaTime);
+            auto dampingFactor = powf(g_worldMapCursorParams.Damping, deltaTime / referenceDeltaTime);
 
-            g_worldMapTouchVelocityX *= dampingFactor;
-            g_worldMapTouchVelocityY *= dampingFactor;
+            g_worldMapCursorVelocityX *= dampingFactor;
+            g_worldMapCursorVelocityY *= dampingFactor;
         }
     }
 
@@ -107,41 +125,77 @@ public:
     {
         switch (event->type)
         {
+#ifdef UI_KBM_SUPPORT
+            case SDL_MOUSEMOTION:
+            {
+                if (!ms_isMouseDown)
+                    break;
+            
+                g_isCursorActive = true;
+            
+                ms_cursorDeltaX = (float)event->motion.xrel / 100.0f;
+                ms_cursorDeltaY = (float)event->motion.yrel / 100.0f;
+            
+                break;
+            }
+            
+            case SDL_MOUSEBUTTONDOWN:
+            {
+                if (event->button.button == SDL_BUTTON_LEFT)
+                {
+                    g_worldMapCursorParams = g_worldMapCursorParamsMouse;
+                    ms_isMouseDown = true;
+                }
+            
+                break;
+            }
+            
+            case SDL_MOUSEBUTTONUP:
+            {
+                if (event->button.button == SDL_BUTTON_LEFT)
+                {
+                    g_isCursorActive = false;
+                    ms_isMouseDown = false;
+                }
+            
+                break;
+            }
+#endif
             case SDL_CONTROLLERTOUCHPADMOTION:
             {
-                g_isTouchActive = true;
+                g_isCursorActive = true;
 
                 if (ms_touchpadFingerCount > 1)
                 {
-                    g_isTouchActive = false;
+                    g_isCursorActive = false;
                     break;
                 }
 
-                ms_touchpadX = event->ctouchpad.x;
-                ms_touchpadY = event->ctouchpad.y;
-                ms_touchpadDeltaX = ms_touchpadX - ms_touchpadPrevX;
-                ms_touchpadDeltaY = ms_touchpadY - ms_touchpadPrevY;
-                ms_touchpadPrevX = ms_touchpadX;
-                ms_touchpadPrevY = ms_touchpadY;
+                ms_cursorX = event->ctouchpad.x;
+                ms_cursorY = event->ctouchpad.y;
+                ms_cursorDeltaX = ms_cursorX - ms_cursorPrevX;
+                ms_cursorDeltaY = ms_cursorY - ms_cursorPrevY;
+                ms_cursorPrevX = ms_cursorX;
+                ms_cursorPrevY = ms_cursorY;
 
                 break;
             }
 
             case SDL_CONTROLLERTOUCHPADDOWN:
             {
-                g_worldMapTouchParams = hid::g_inputDeviceExplicit == hid::EInputDeviceExplicit::DualSense
-                    ? (WorldMapTouchParams)g_worldMapTouchParamsProspero
-                    : (WorldMapTouchParams)g_worldMapTouchParamsOrbis;
+                g_worldMapCursorParams = hid::g_inputDeviceExplicit == hid::EInputDeviceExplicit::DualSense
+                    ? (WorldMapCursorParams)g_worldMapCursorParamsProspero
+                    : (WorldMapCursorParams)g_worldMapCursorParamsOrbis;
 
                 ms_touchpadFingerCount++;
-                ms_touchpadPrevX = event->ctouchpad.x;
-                ms_touchpadPrevY = event->ctouchpad.y;
+                ms_cursorPrevX = event->ctouchpad.x;
+                ms_cursorPrevY = event->ctouchpad.y;
 
                 break;
             }
 
             case SDL_CONTROLLERTOUCHPADUP:
-                g_isTouchActive = false;
+                g_isCursorActive = false;
                 ms_touchpadFingerCount--;
                 break;
         }
@@ -165,10 +219,10 @@ static bool IsLeftStickThreshold(const SWA::SPadState* pPadState, double deadzon
         (pPadState->LeftStickVertical * pPadState->LeftStickVertical)) > deadzone;
 }
 
-static bool IsTouchThreshold(double deadzone = 0, bool isBelowThreshold = false)
+static bool IsCursorThreshold(double deadzone = 0, bool isBelowThreshold = false)
 {
-    auto sqrt = sqrtl((g_worldMapTouchVelocityX * g_worldMapTouchVelocityX) +
-        (g_worldMapTouchVelocityY * g_worldMapTouchVelocityY));
+    auto sqrt = sqrtl((g_worldMapCursorVelocityX * g_worldMapCursorVelocityX) +
+        (g_worldMapCursorVelocityY * g_worldMapCursorVelocityY));
 
     if (isBelowThreshold)
         return sqrt < deadzone;
@@ -252,20 +306,20 @@ bool WorldMapDeadzoneMidAsmHook(PPCRegister& pPadState)
 
     if (IsLeftStickThreshold(pGuestPadState))
     {
-        g_worldMapTouchVelocityX = 0;
-        g_worldMapTouchVelocityY = 0;
+        g_worldMapCursorVelocityX = 0;
+        g_worldMapCursorVelocityY = 0;
     }
     else
     {
         SDLEventListenerForInputPatches::Update(App::s_deltaTime);
 
-        /* Reduce touch noise if the player has their finger
-           resting on the touchpad, but allow much precise values
-           without touch for proper interpolation to zero. */
-        if (IsTouchThreshold(0.05, true))
-            return !g_isTouchActive;
+        /* Reduce noise if the cursor is resting in
+           place, but allow much precise values for
+           proper interpolation to zero. */
+        if (IsCursorThreshold(0.05, true))
+            return !g_isCursorActive;
 
-        return IsTouchThreshold();
+        return IsCursorThreshold();
     }
 
     return IsDPadThreshold(pGuestPadState) || IsLeftStickThreshold(pGuestPadState, WORLD_MAP_ROTATE_DEADZONE);
@@ -273,10 +327,10 @@ bool WorldMapDeadzoneMidAsmHook(PPCRegister& pPadState)
 
 bool WorldMapMagnetismMidAsmHook(PPCRegister& f0)
 {
-    if (IsTouchThreshold(f0.f64, true))
+    if (IsCursorThreshold(f0.f64, true))
     {
-        g_worldMapTouchVelocityX = 0;
-        g_worldMapTouchVelocityY = 0;
+        g_worldMapCursorVelocityX = 0;
+        g_worldMapCursorVelocityY = 0;
 
         return true;
     }
@@ -284,7 +338,7 @@ bool WorldMapMagnetismMidAsmHook(PPCRegister& f0)
     return false;
 }
 
-void TouchAndDPadSupportWorldMapXMidAsmHook(PPCRegister& pPadState, PPCRegister& x)
+void WorldMapHidSupportXMidAsmHook(PPCRegister& pPadState, PPCRegister& x)
 {
     auto pGuestPadState = (SWA::SPadState*)g_memory.Translate(pPadState.u32);
 
@@ -292,13 +346,13 @@ void TouchAndDPadSupportWorldMapXMidAsmHook(PPCRegister& pPadState, PPCRegister&
     {
         SetDPadAnalogDirectionX(pPadState, x, false);
     }
-    else if (fabs(g_worldMapTouchVelocityX) > 0)
+    else if (fabs(g_worldMapCursorVelocityX) > 0)
     {
-        x.f64 = -g_worldMapTouchVelocityX;
+        x.f64 = -g_worldMapCursorVelocityX;
     }
 }
 
-void TouchAndDPadSupportWorldMapYMidAsmHook(PPCRegister& pPadState, PPCRegister& y)
+void WorldMapHidSupportYMidAsmHook(PPCRegister& pPadState, PPCRegister& y)
 {
     auto pGuestPadState = (SWA::SPadState*)g_memory.Translate(pPadState.u32);
 
@@ -306,9 +360,9 @@ void TouchAndDPadSupportWorldMapYMidAsmHook(PPCRegister& pPadState, PPCRegister&
     {
         SetDPadAnalogDirectionY(pPadState, y, false);
     }
-    else if (fabs(g_worldMapTouchVelocityY) > 0)
+    else if (fabs(g_worldMapCursorVelocityY) > 0)
     {
-        y.f64 = g_worldMapTouchVelocityY;
+        y.f64 = g_worldMapCursorVelocityY;
     }
 }
 
@@ -320,7 +374,7 @@ PPC_FUNC(sub_82486968)
 
     // Reset vertical velocity if maximum pitch reached.
     if (fabs(pWorldMapCamera->m_Pitch) >= 80.0f)
-        g_worldMapTouchVelocityY = 0;
+        g_worldMapCursorVelocityY = 0;
 
     __imp__sub_82486968(ctx, base);
 }
@@ -330,7 +384,7 @@ PPC_FUNC(sub_8256C938)
 {
     auto pWorldMapCursor = (SWA::CWorldMapCursor*)g_memory.Translate(ctx.r3.u32);
 
-    pWorldMapCursor->m_IsCursorMoving = g_isTouchActive && IsTouchThreshold(1.0);
+    pWorldMapCursor->m_IsCursorMoving = g_isCursorActive && IsCursorThreshold(1.0);
 
     if (ctx.r4.u8)
     {

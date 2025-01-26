@@ -716,38 +716,38 @@ jump_address_on_false = 0x82486838
 
 # SWA::CWorldMapCamera - touch and D-Pad support for camera adjustment threshold on the X axis
 [[midasm_hook]]
-name = "TouchAndDPadSupportWorldMapXMidAsmHook"
+name = "WorldMapHidSupportXMidAsmHook"
 address = 0x824862D8
 registers = ["r30", "f12"]
 
 # SWA::CWorldMapCamera - touch and D-Pad support for adjusing camera yaw
 [[midasm_hook]]
-name = "TouchAndDPadSupportWorldMapXMidAsmHook"
+name = "WorldMapHidSupportXMidAsmHook"
 address = 0x82486318
 registers = ["r30", "f12"]
 
 # SWA::CWorldMapCamera - touch and D-Pad support for camera adjustment threshold on the Y axis
 [[midasm_hook]]
-name = "TouchAndDPadSupportWorldMapYMidAsmHook"
+name = "WorldMapHidSupportYMidAsmHook"
 address = 0x824862CC
 registers = ["r30", "f0"]
 
 # SWA::CWorldMapCamera - touch and D-Pad support for adjusing camera pitch
 [[midasm_hook]]
-name = "TouchAndDPadSupportWorldMapYMidAsmHook"
+name = "WorldMapHidSupportYMidAsmHook"
 address = 0x824862F4
 registers = ["r30", "f0"]
 
 # SWA::CWorldMapCamera - touch and D-Pad support for flag magnetism on the X axis
 [[midasm_hook]]
-name = "TouchAndDPadSupportWorldMapXMidAsmHook"
+name = "WorldMapHidSupportXMidAsmHook"
 address = 0x8248665C
 registers = ["r27", "f29"]
 after_instruction = true
 
 # SWA::CWorldMapCamera - touch and D-Pad support for flag magnetism on the Y axis
 [[midasm_hook]]
-name = "TouchAndDPadSupportWorldMapYMidAsmHook"
+name = "WorldMapHidSupportYMidAsmHook"
 address = 0x82486658
 registers = ["r27", "f28"]
 after_instruction = true
