@@ -115,7 +115,7 @@ namespace boost
         }
 
     public:
-        shared_ptr() : px(nullptr), pn(nullptr) {}
+        shared_ptr() : px(), pn() {}
 
         // TODO
         explicit shared_ptr(T* p) = delete;
