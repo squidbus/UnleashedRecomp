@@ -304,6 +304,9 @@ void MessageWindow::Draw()
     // Handle controller input when the game is booted.
     if (App::s_isInit)
     {
+        // Always assume keyboard to prevent mouse from blocking control in-game.
+        isKeyboard = true;
+
         if (auto pInputState = SWA::CInputState::GetInstance())
         {
             auto& rPadState = pInputState->GetPadState();
@@ -383,7 +386,7 @@ void MessageWindow::Draw()
                     if (scrollUp || scrollDown)
                     {
                         Game_PlaySound("sys_actstg_pausecursor");
-                        g_joypadAxis = {};
+                        g_joypadAxis.y = 0;
                     }
 
                     g_upWasHeld = upIsHeld;
