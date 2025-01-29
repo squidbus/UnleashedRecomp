@@ -1108,8 +1108,10 @@ static void DrawLanguagePicker()
     bool buttonPressed = false;
     if (g_currentPage == WizardPage::SelectLanguage)
     {
-        bool buttonPressed;
+        float alphaMotion = ComputeMotionInstaller(g_appearTime, g_disappearTime, CONTAINER_INNER_TIME, CONTAINER_INNER_DURATION);
         float minX, maxX;
+        bool buttonPressed;
+
         for (int i = 0; i < 6; i++)
         {
             ComputeButtonColumnCoordinates((i < 3) ? ButtonColumnLeft : ButtonColumnRight, minX, maxX);
@@ -1118,13 +1120,13 @@ static void DrawLanguagePicker()
             ImVec2 min = { minX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - BUTTON_HEIGHT - minusY) };
             ImVec2 max = { maxX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - minusY) };
 
-            // TODO: The active button should change its style to show an enabled toggle if it matches the current language.
+            auto lightSize = Scale(14);
 
             DrawButton(min, max, LANGUAGE_TEXT[i], false, true, buttonPressed, FLT_MAX, LANGUAGE_ENUM[i] == ELanguage::English);
+            DrawToggleLight({ min.x + lightSize, min.y + ((max.y - min.y) - lightSize) / 2 + Scale(1) }, Config::Language == LANGUAGE_ENUM[i], alphaMotion);
+
             if (buttonPressed)
-            {
                 Config::Language = LANGUAGE_ENUM[i];
-            }
         }
     }
 }

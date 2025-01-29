@@ -58,4 +58,4 @@ ImVec2 Lerp(const ImVec2& a, const ImVec2& b, float t);
 ImU32 ColourLerp(ImU32 c0, ImU32 c1, float t);
 void DrawVersionString(const ImFont* font, const ImU32 col = IM_COL32(255, 255, 255, 70));
 void DrawSelectionContainer(ImVec2 min, ImVec2 max, bool fadeTop = false);
-void DrawToggleLight(ImVec2 pos, bool isEnabled);
+void DrawToggleLight(ImVec2 pos, bool isEnabled, float alpha = 1.0f);

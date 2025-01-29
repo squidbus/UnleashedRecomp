@@ -510,10 +510,11 @@ void DrawSelectionContainer(ImVec2 min, ImVec2 max, bool fadeTop)
     drawList->AddImage(g_texSelectFill.get(), { max.x - commonWidth, max.y - commonHeight }, { max.x, max.y }, GET_UV_COORDS(br), colour);
 }
 
-void DrawToggleLight(ImVec2 pos, bool isEnabled)
+void DrawToggleLight(ImVec2 pos, bool isEnabled, float alpha)
 {
     auto drawList = ImGui::GetForegroundDrawList();
     auto lightSize = Scale(14);
+    auto lightCol = IM_COL32(255, 255, 255, 255 * alpha);
 
     ImVec2 min = { pos.x, pos.y };
     ImVec2 max = { min.x + lightSize, min.y + lightSize };
@@ -527,17 +528,17 @@ void DrawToggleLight(ImVec2 pos, bool isEnabled)
         ImVec2 lightGlowMax = { min.x + lightGlowSize, min.y + lightGlowSize };
 
         SetAdditive(true);
-        drawList->AddImage(g_texLight.get(), lightGlowMin, lightGlowMax, GET_UV_COORDS(lightGlowUVs), IM_COL32(255, 255, 0, 127));
+        drawList->AddImage(g_texLight.get(), lightGlowMin, lightGlowMax, GET_UV_COORDS(lightGlowUVs), IM_COL32(255, 255, 0, 127 * alpha));
         SetAdditive(false);
 
         auto lightOnUVs = PIXELS_TO_UV_COORDS(64, 64, 14, 0, 14, 14);
 
-        drawList->AddImage(g_texLight.get(), min, max, GET_UV_COORDS(lightOnUVs));
+        drawList->AddImage(g_texLight.get(), min, max, GET_UV_COORDS(lightOnUVs), lightCol);
     }
     else
     {
         auto lightOffUVs = PIXELS_TO_UV_COORDS(64, 64, 0, 0, 14, 14);
 
-        drawList->AddImage(g_texLight.get(), min, max, GET_UV_COORDS(lightOffUVs));
+        drawList->AddImage(g_texLight.get(), min, max, GET_UV_COORDS(lightOffUVs), lightCol);
     }
 }
