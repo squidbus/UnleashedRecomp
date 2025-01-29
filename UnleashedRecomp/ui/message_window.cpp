@@ -216,7 +216,7 @@ void DrawButton(int rowIndex, float yOffset, float width, float height, std::str
     if (isSelected)
     {
         static auto breatheStart = ImGui::GetTime();
-        auto alpha = Lerp(1.0f, 0.75f, (sin((ImGui::GetTime() - breatheStart) * (2.0f * M_PI / (55.0f / 60.0f))) + 1.0f) / 2.0f);
+        auto alpha = BREATHE_MOTION(breatheStart, 0.92f);
         auto colour = IM_COL32(255, 255, 255, 255 * alpha);
 
         auto width  = Scale(11);

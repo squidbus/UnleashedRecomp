@@ -580,38 +580,56 @@ static void DrawScanlineBars()
     SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
 
     // Installer text
-    const std::string &headerText = Localise(g_currentPage == WizardPage::Installing ? "Installer_Header_Installing" : "Installer_Header_Installer");
+    auto& headerText = Localise(g_currentPage == WizardPage::Installing ? "Installer_Header_Installing" : "Installer_Header_Installer");
     auto alphaMotion = ComputeMotionInstaller(g_appearTime, g_disappearTime, TITLE_ANIMATION_TIME, TITLE_ANIMATION_DURATION);
-    DrawTextWithOutline(g_dfsogeistdFont, Scale(42.0f), { g_aspectRatioOffsetX + Scale(285.0f), Scale(57.0f) }, IM_COL32(255, 195, 0, 255 * alphaMotion), headerText.c_str(), 4, IM_COL32(0, 0, 0, 255 * alphaMotion), IMGUI_SHADER_MODIFIER_TITLE_BEVEL);
+    auto breatheMotion = 1.0f;
+
+    if (g_currentPage == WizardPage::Installing)
+    {
+        // Breathing animation
+        static auto breatheStart = ImGui::GetTime();
+        breatheMotion = BREATHE_MOTION(breatheStart, 1.5f);
+    }
+
+    DrawTextWithOutline
+    (
+        g_dfsogeistdFont,
+        Scale(42),
+        { g_aspectRatioOffsetX + Scale(285), Scale(57) },
+        IM_COL32(255, 195, 0, 255 * alphaMotion * breatheMotion),
+        headerText.c_str(), 4,
+        IM_COL32(0, 0, 0, 255 * alphaMotion * breatheMotion),
+        IMGUI_SHADER_MODIFIER_TITLE_BEVEL
+    );
 
     auto drawLine = [&](bool top)
-        {
-            float y = top ? height : (res.y - height);
+    {
+        float y = top ? height : (res.y - height);
 
-            const uint32_t TOP_COLOR0 = IM_COL32(222, 255, 189, 7 * scanlinesAlpha);
-            const uint32_t TOP_COLOR1 = IM_COL32(222, 255, 189, 65 * scanlinesAlpha);
-            const uint32_t BOTTOM_COLOR0 = IM_COL32(173, 255, 156, 65 * scanlinesAlpha);
-            const uint32_t BOTTOM_COLOR1 = IM_COL32(173, 255, 156, 7 * scanlinesAlpha);
+        const uint32_t TOP_COLOR0 = IM_COL32(222, 255, 189, 7 * scanlinesAlpha);
+        const uint32_t TOP_COLOR1 = IM_COL32(222, 255, 189, 65 * scanlinesAlpha);
+        const uint32_t BOTTOM_COLOR0 = IM_COL32(173, 255, 156, 65 * scanlinesAlpha);
+        const uint32_t BOTTOM_COLOR1 = IM_COL32(173, 255, 156, 7 * scanlinesAlpha);
 
-            drawList->AddRectFilledMultiColor(
-                { 0.0f, y - Scale(2.0f) },
-                { res.x, y },
-                top ? TOP_COLOR0 : BOTTOM_COLOR1,
-                top ? TOP_COLOR0 : BOTTOM_COLOR1,
-                top ? TOP_COLOR1 : BOTTOM_COLOR0,
-                top ? TOP_COLOR1 : BOTTOM_COLOR0);
+        drawList->AddRectFilledMultiColor(
+            { 0.0f, y - Scale(2.0f) },
+            { res.x, y },
+            top ? TOP_COLOR0 : BOTTOM_COLOR1,
+            top ? TOP_COLOR0 : BOTTOM_COLOR1,
+            top ? TOP_COLOR1 : BOTTOM_COLOR0,
+            top ? TOP_COLOR1 : BOTTOM_COLOR0);
 
-            drawList->AddRectFilledMultiColor(
-                { 0.0f, y + Scale(1.0f) },
-                { res.x, y + Scale(3.0f) },
-                top ? BOTTOM_COLOR0 : TOP_COLOR1,
-                top ? BOTTOM_COLOR0 : TOP_COLOR1,
-                top ? BOTTOM_COLOR1 : TOP_COLOR0,
-                top ? BOTTOM_COLOR1 : TOP_COLOR0);
+        drawList->AddRectFilledMultiColor(
+            { 0.0f, y + Scale(1.0f) },
+            { res.x, y + Scale(3.0f) },
+            top ? BOTTOM_COLOR0 : TOP_COLOR1,
+            top ? BOTTOM_COLOR0 : TOP_COLOR1,
+            top ? BOTTOM_COLOR1 : TOP_COLOR0,
+            top ? BOTTOM_COLOR1 : TOP_COLOR0);
 
-            const uint32_t CENTER_COLOR = IM_COL32(115, 178, 104, 255 * scanlinesAlpha);
-            drawList->AddRectFilled({ 0.0f, y }, { res.x, y + Scale(1.0f) }, CENTER_COLOR);
-        };
+        const uint32_t CENTER_COLOR = IM_COL32(115, 178, 104, 255 * scanlinesAlpha);
+        drawList->AddRectFilled({ 0.0f, y }, { res.x, y + Scale(1.0f) }, CENTER_COLOR);
+    };
 
     // Top bar line
     drawLine(true);
