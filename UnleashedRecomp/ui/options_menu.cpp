@@ -805,7 +805,7 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
     SetShaderModifier(IMGUI_SHADER_MODIFIER_NONE);
 
     if constexpr (std::is_same_v<T, bool>)
-        DrawToggleLight({ min.x + Scale(14), min.y + ((max.y - min.y) - Scale(14)) / 2 + Scale(1) }, config->Value);
+        DrawToggleLight({ min.x + Scale(14), min.y + ((max.y - min.y) - Scale(14)) / 2 + Scale(1) }, config->Value, alpha);
 
     // Selection triangles
     if (lockedOnOption)

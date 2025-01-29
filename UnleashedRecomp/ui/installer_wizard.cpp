@@ -915,7 +915,7 @@ static void DrawSourceButton(ButtonColumn buttonColumn, float yRatio, const char
     auto lightSize = Scale(14);
 
     DrawButton(min, max, sourceText, true, sourceSet, buttonPressed, (max.x - min.x) - lightSize * 10);
-    DrawToggleLight({ min.x + lightSize, min.y + ((max.y - min.y) - lightSize) / 2 + Scale(1) }, sourceSet);
+    DrawToggleLight({ min.x + lightSize, min.y + ((max.y - min.y) - lightSize) / 2 + Scale(1) }, sourceSet, sourceSet ? 1.0f : 0.5f);
 }
 
 static void DrawProgressBar(float progressRatio)
