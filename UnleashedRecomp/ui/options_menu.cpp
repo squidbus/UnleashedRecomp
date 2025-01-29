@@ -724,6 +724,11 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
     auto alpha = fadedOut ? 0.5f : 1.0f;
     auto textColour = IM_COL32(255, 255, 255, 255 * alpha);
 
+    if (Config::Language == ELanguage::Japanese)
+    {
+        textPos.y += Scale(10.0f);
+    }
+
     if (g_selectedItem == config)
     {
         float prevItemOffset = (g_prevSelectedRowIndex - g_selectedRowIndex) * (optionHeight + optionPadding);
@@ -746,7 +751,27 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
     }
     else
     {
-        drawList->AddText(g_seuratFont, size, textPos, textColour, configName.c_str(), 0, 0.0f, &textClipRect);
+        drawList->PushClipRect(min, max, true);
+
+        DrawRubyAnnotatedText
+        (
+            g_seuratFont,
+            size,
+            FLT_MAX,
+            textPos,
+            0.0f,
+            configName.c_str(),
+            [=](const char* str, ImVec2 pos)
+            {
+                DrawTextBasic(g_seuratFont, size, pos, textColour, str);
+            },
+            [=](const char* str, float annotationSize, ImVec2 pos)
+            {
+                DrawTextBasic(g_seuratFont, annotationSize, pos, textColour, str);
+            }
+        );
+
+        drawList->PopClipRect();
     }
 
     // Right side
@@ -1231,18 +1256,51 @@ static void DrawInfoPanel(ImVec2 infoMin, ImVec2 infoMax)
             desc += "\n\n" + g_selectedItem->GetValueDescription(Config::Language);
         }
 
-        auto size = Scale(26.0f);
+        auto fontSize = Scale(28.0f);
+        auto annotationFontSize = fontSize * ANNOTATION_FONT_SIZE_MODIFIER;
 
-        drawList->AddText
+        // Extra padding between the start of the description text and the bottom of the thumbnail
+        float offsetY = Scale(24.0f);
+        
+        float textX = clipRectMin.x - Scale(0.5f);
+        float textY = thumbnailMax.y + offsetY;
+
+        if (Config::Language == ELanguage::Japanese)
+        {
+            // Removing some padding of the applied due to the inclusion of annotation for Japanese
+            textY -= Scale(8.0f);
+
+            // The annotation (and thus the Japanese) can be drawn above the edges of the info panel thus the clip needs to be extended a bit
+            clipRectMin.x -= annotationFontSize;
+            clipRectMin.y -= annotationFontSize;
+            clipRectMax.x += annotationFontSize;
+            clipRectMax.y += annotationFontSize;
+
+            textY += annotationFontSize;
+        }
+
+        drawList->PushClipRect(clipRectMin, clipRectMax, false);
+
+        DrawRubyAnnotatedText
         (
             g_seuratFont,
-            size,
-            { clipRectMin.x, thumbnailMax.y + size - 5.0f },
-            IM_COL32_WHITE,
+            fontSize,
+            clipRectMax.x - clipRectMin.x,
+            { textX, textY },
+            5.0f,
             desc.c_str(),
-            0,
-            clipRectMax.x - clipRectMin.x
+
+            [=](const char* str, ImVec2 pos)
+            {
+                DrawTextBasic(g_seuratFont, fontSize, pos, IM_COL32(255, 255, 255, 255), str);
+            },
+            [=](const char* str, float size, ImVec2 pos)
+            {
+                DrawTextBasic(g_seuratFont, size, pos, IM_COL32(255, 255, 255, 255), str);
+            }
         );
+
+        drawList->PopClipRect();
     }
 
     ResetProceduralOrigin();

@@ -272,9 +272,30 @@ void MessageWindow::Draw()
 
     auto maxWidth = Scale(820);
     auto fontSize = Scale(28);
-    auto textSize = MeasureCentredParagraph(g_fntSeurat, fontSize, maxWidth, 5, g_text.c_str());
+
+    const auto input = RemoveRubyAnnotations(g_text.c_str());
+    auto lines = Split(input.first.c_str(), g_fntSeurat, fontSize, maxWidth);
+    
+    for (auto& line : lines)
+    {
+        line = ReAddRubyAnnotations(line, input.second);
+    }
+
+    auto lineMargin = Config::Language != ELanguage::Japanese ? 5.0f : 5.5f;
+    auto textSize = MeasureCentredParagraph(g_fntSeurat, fontSize, lineMargin, lines);
     auto textMarginX = Scale(37);
     auto textMarginY = Scale(45);
+
+    auto textX = centre.x;
+    auto textY = centre.y + Scale(3);
+
+    if (Config::Language == ELanguage::Japanese)
+    {
+        textMarginX -= Scale(2.5f);
+        textMarginY -= Scale(7.5f);
+
+        textY += Scale(lines.size() % 2 == 0 ? 8.5f : 15.5f);
+    }
 
     bool isController = hid::IsInputDeviceController();
     bool isKeyboard = hid::g_inputDevice == hid::EInputDevice::Keyboard;
@@ -307,19 +328,25 @@ void MessageWindow::Draw()
 
     if (DrawContainer(g_appearTime, centre, { textSize.x / 2 + textMarginX, textSize.y / 2 + textMarginY }, !g_isControlsVisible))
     {
-        DrawCentredParagraph
+        DrawRubyAnnotatedText
         (
             g_fntSeurat,
             fontSize,
             maxWidth,
-            { centre.x, centre.y + Scale(3) },
-            5,
+            { textX, textY },
+            lineMargin,
             g_text.c_str(),
 
             [=](const char* str, ImVec2 pos)
             {
                 DrawTextWithShadow(g_fntSeurat, fontSize, pos, IM_COL32(255, 255, 255, 255), str);
-            }
+            },
+            [=](const char* str, float size, ImVec2 pos)
+            {
+                DrawTextWithShadow(g_fntSeurat, size, pos, IM_COL32(255, 255, 255, 255), str, 1.0f);
+            },
+
+            true
         );
 
         drawList->PopClipRect();
