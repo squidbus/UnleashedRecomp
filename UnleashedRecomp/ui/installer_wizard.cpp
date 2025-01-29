@@ -1170,8 +1170,8 @@ static void DrawSources()
 {
     if (g_currentPage == WizardPage::SelectGameAndUpdate)
     {
-        DrawSourceButton(ButtonColumnMiddle, 1.5f, Localise("Installer_Step_Game").c_str(), !g_gameSourcePath.empty());
-        DrawSourceButton(ButtonColumnMiddle, 0.5f, Localise("Installer_Step_Update").c_str(), !g_updateSourcePath.empty());
+        DrawSourceButton(ButtonColumnLeft, 0, Localise("Installer_Step_Game").c_str(), !g_gameSourcePath.empty());
+        DrawSourceButton(ButtonColumnRight, 0, Localise("Installer_Step_Update").c_str(), !g_updateSourcePath.empty());
     }
 
     if (g_currentPage == WizardPage::SelectDLC)

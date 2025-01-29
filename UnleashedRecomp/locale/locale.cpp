@@ -170,26 +170,26 @@ std::unordered_map<std::string, std::unordered_map<ELanguage, std::string>> g_lo
     {
         "Installer_Page_Introduction",
         {
-            { ELanguage::English, "Welcome to Unleashed Recompiled!\n\nYou'll need an Xbox 360 copy\nof Sonic Unleashed in order to proceed with the installation." },
-            { ELanguage::Italian, "Benvenuto a Unleashed Recompiled!\n\nDovrai avere una copia di\nSonic Unleashed per la Xbox 360\nper proseguire con l'installazione." }
+            { ELanguage::English, "Welcome to\nUnleashed Recompiled!\n\nYou'll need an Xbox 360 copy\nof Sonic Unleashed in order to proceed with the installation." },
+            { ELanguage::Italian, "Benvenuto a\nUnleashed Recompiled!\n\nDovrai avere una copia di\nSonic Unleashed per la Xbox 360\nper proseguire con l'installazione." }
         }
     },
     {
         "Installer_Page_SelectGameAndUpdate",
         {
-            { ELanguage::English, "Add the files for the game and its title update. You can use digital dumps or an extracted folder containing the unmodified files." }
+            { ELanguage::English, "Add the sources for your copy of the game and its title update." }
         }
     },
     {
         "Installer_Page_SelectDLC",
         {
-            { ELanguage::English, "Add the files for the DLC. You can use digital dumps or an extracted folder containing the unmodified files." }
+            { ELanguage::English, "Add the sources for the DLC." }
         }
     },
     {
         "Installer_Page_CheckSpace",
         {
-            { ELanguage::English, "The content will be installed to the program's folder. Please confirm you have enough free space.\n\n" },
+            { ELanguage::English, "The content will be installed to the program's folder.\n\nPlease confirm that you have enough free space.\n\n" },
             { ELanguage::Italian, "Il contenuto verrà installato nella cartella di questo programma. Assicurati di avere abbastanza spazio libero sul tuo hard disk.\n\n" }
         }
     },
