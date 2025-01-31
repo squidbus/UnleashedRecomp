@@ -18,12 +18,6 @@ CONFIG_DEFINE_ENUM_TEMPLATE(ELanguage)
     { "Italian",  ELanguage::Italian }
 };
 
-CONFIG_DEFINE_ENUM_TEMPLATE(EUnleashGaugeBehaviour)
-{
-    { "Original", EUnleashGaugeBehaviour::Original },
-    { "Revised",  EUnleashGaugeBehaviour::Revised }
-};
-
 CONFIG_DEFINE_ENUM_TEMPLATE(ETimeOfDayTransition)
 {
     { "Xbox",        ETimeOfDayTransition::Xbox },
