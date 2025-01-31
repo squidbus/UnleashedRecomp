@@ -164,6 +164,7 @@ set(UNLEASHED_RECOMP_INSTALL_CXX_SOURCES
     "install/installer.cpp"
     "install/iso_file_system.cpp"
     "install/memory_mapped_file.cpp"
+    "install/update_checker.cpp"
     "install/xcontent_file_system.cpp"
     "install/xex_patcher.cpp"
     "install/hashes/apotos_shamar.cpp"
@@ -208,6 +209,7 @@ set(UNLEASHED_RECOMP_THIRDPARTY_INCLUDES
     "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/ddspp"
     "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/imgui"
     "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/implot"
+    "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/json/include"
     "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/libmspack/libmspack/mspack"
     "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/magic_enum/include"
     "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/stb"
@@ -321,6 +323,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
 endif()
 
 find_package(directx-dxc REQUIRED)
+find_package(CURL REQUIRED)
 
 if (UNLEASHED_RECOMP_D3D12)
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/D3D12)
@@ -366,6 +369,7 @@ target_link_libraries(UnleashedRecomp PRIVATE
     tomlplusplus::tomlplusplus
     UnleashedRecompLib
     xxHash::xxhash
+    CURL::libcurl
 )
 
 target_include_directories(UnleashedRecomp PRIVATE

@@ -108,3 +108,5 @@ CONFIG_DEFINE_HIDDEN("Exports", bool, HUDToggleHotkey, false);
 CONFIG_DEFINE_HIDDEN("Exports", bool, SaveScoreAtCheckpoints, false);
 CONFIG_DEFINE_HIDDEN("Exports", bool, SkipIntroLogos, false);
 CONFIG_DEFINE_HIDDEN("Exports", bool, UseOfficialTitleOnTitleBar, false);
+
+CONFIG_DEFINE("Update", time_t, LastChecked, 0);
