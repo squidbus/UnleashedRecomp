@@ -952,10 +952,11 @@ static void DrawSourceButton(ButtonColumn buttonColumn, float yRatio, const char
     ImVec2 min = { minX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - BUTTON_HEIGHT - minusY) };
     ImVec2 max = { maxX, g_aspectRatioOffsetY + Scale(CONTAINER_Y + CONTAINER_HEIGHT - CONTAINER_BUTTON_GAP - minusY) };
 
+    auto alphaMotion = ComputeMotionInstaller(g_appearTime, g_disappearTime, CONTAINER_INNER_TIME, CONTAINER_INNER_DURATION);
     auto lightSize = Scale(14);
 
-    DrawButton(min, max, sourceText, true, sourceSet, buttonPressed, (max.x - min.x) - lightSize * 10);
-    DrawToggleLight({ min.x + lightSize, min.y + ((max.y - min.y) - lightSize) / 2 + Scale(1) }, sourceSet, sourceSet ? 1.0f : 0.5f);
+    DrawButton(min, max, sourceText, true, sourceSet, buttonPressed, ((max.x - min.x) * 0.7) / g_aspectRatioScale);
+    DrawToggleLight({ min.x + lightSize, min.y + ((max.y - min.y) - lightSize) / 2 + Scale(1) }, sourceSet, (sourceSet ? 1.0f : 0.5f) * alphaMotion);
 }
 
 static void DrawProgressBar(float progressRatio)
