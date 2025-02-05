@@ -4907,8 +4907,6 @@ static std::thread g_renderThread([]
                 default:                                                   assert(false && "Unrecognized render command type."); break;
                 }
             }
-
-            std::this_thread::yield();
         }
     });
 
