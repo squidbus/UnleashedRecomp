@@ -6,20 +6,17 @@
 
 #include <res/images/common/general_window.dds.h>
 #include <res/images/common/light.dds.h>
-#include <res/images/common/select_fade.dds.h>
-#include <res/images/common/select_fill.dds.h>
+#include <res/images/common/select.dds.h>
 
 std::unique_ptr<GuestTexture> g_texGeneralWindow;
 std::unique_ptr<GuestTexture> g_texLight;
-std::unique_ptr<GuestTexture> g_texSelectFade;
-std::unique_ptr<GuestTexture> g_texSelectFill;
+std::unique_ptr<GuestTexture> g_texSelect;
 
 void InitImGuiUtils()
 {
     g_texGeneralWindow = LOAD_ZSTD_TEXTURE(g_general_window);
     g_texLight = LOAD_ZSTD_TEXTURE(g_light);
-    g_texSelectFade = LOAD_ZSTD_TEXTURE(g_select_fade);
-    g_texSelectFill = LOAD_ZSTD_TEXTURE(g_select_fill);
+    g_texSelect = LOAD_ZSTD_TEXTURE(g_select);
 }
 
 void SetGradient(const ImVec2& min, const ImVec2& max, ImU32 top, ImU32 bottom)
@@ -760,32 +757,32 @@ void DrawSelectionContainer(ImVec2 min, ImVec2 max, bool fadeTop)
         auto centre = PIXELS_TO_UV_COORDS(64, 64, 11, 0, 8, 50);
         auto right = PIXELS_TO_UV_COORDS(64, 64, 19, 0, 11, 50);
 
-        drawList->AddImage(g_texSelectFade.get(), min, { min.x + commonWidth, max.y }, GET_UV_COORDS(left), colour);
-        drawList->AddImage(g_texSelectFade.get(), { min.x + commonWidth, min.y }, { max.x - commonWidth, max.y }, GET_UV_COORDS(centre), colour);
-        drawList->AddImage(g_texSelectFade.get(), { max.x - commonWidth, min.y }, max, GET_UV_COORDS(right), colour);
+        drawList->AddImage(g_texSelect.get(), min, { min.x + commonWidth, max.y }, GET_UV_COORDS(left), colour);
+        drawList->AddImage(g_texSelect.get(), { min.x + commonWidth, min.y }, { max.x - commonWidth, max.y }, GET_UV_COORDS(centre), colour);
+        drawList->AddImage(g_texSelect.get(), { max.x - commonWidth, min.y }, max, GET_UV_COORDS(right), colour);
 
         return;
     }
 
-    auto tl = PIXELS_TO_UV_COORDS(64, 64, 0, 0, 11, 24);
-    auto tc = PIXELS_TO_UV_COORDS(64, 64, 11, 0, 8, 24);
-    auto tr = PIXELS_TO_UV_COORDS(64, 64, 19, 0, 11, 24);
-    auto cl = PIXELS_TO_UV_COORDS(64, 64, 0, 24, 11, 2);
-    auto cc = PIXELS_TO_UV_COORDS(64, 64, 11, 24, 8, 2);
-    auto cr = PIXELS_TO_UV_COORDS(64, 64, 19, 24, 11, 2);
-    auto bl = PIXELS_TO_UV_COORDS(64, 64, 0, 26, 11, 24);
-    auto bc = PIXELS_TO_UV_COORDS(64, 64, 11, 26, 8, 24);
-    auto br = PIXELS_TO_UV_COORDS(64, 64, 19, 26, 11, 24);
+    auto tl = PIXELS_TO_UV_COORDS(64, 64, 34, 0, 11, 24);
+    auto tc = PIXELS_TO_UV_COORDS(64, 64, 45, 0, 8, 24);
+    auto tr = PIXELS_TO_UV_COORDS(64, 64, 53, 0, 11, 24);
+    auto cl = PIXELS_TO_UV_COORDS(64, 64, 34, 24, 11, 2);
+    auto cc = PIXELS_TO_UV_COORDS(64, 64, 45, 24, 8, 2);
+    auto cr = PIXELS_TO_UV_COORDS(64, 64, 53, 24, 11, 2);
+    auto bl = PIXELS_TO_UV_COORDS(64, 64, 34, 26, 11, 24);
+    auto bc = PIXELS_TO_UV_COORDS(64, 64, 45, 26, 8, 24);
+    auto br = PIXELS_TO_UV_COORDS(64, 64, 53, 26, 11, 24);
 
-    drawList->AddImage(g_texSelectFill.get(), min, { min.x + commonWidth, min.y + commonHeight }, GET_UV_COORDS(tl), colour);
-    drawList->AddImage(g_texSelectFill.get(), { min.x + commonWidth, min.y }, { max.x - commonWidth, min.y + commonHeight }, GET_UV_COORDS(tc), colour);
-    drawList->AddImage(g_texSelectFill.get(), { max.x - commonWidth, min.y }, { max.x, min.y + commonHeight }, GET_UV_COORDS(tr), colour);
-    drawList->AddImage(g_texSelectFill.get(), { min.x, min.y + commonHeight }, { min.x + commonWidth, max.y - commonHeight }, GET_UV_COORDS(cl), colour);
-    drawList->AddImage(g_texSelectFill.get(), { min.x + commonWidth, min.y + commonHeight }, { max.x - commonWidth, max.y - commonHeight }, GET_UV_COORDS(cc), colour);
-    drawList->AddImage(g_texSelectFill.get(), { max.x - commonWidth, min.y + commonHeight }, { max.x, max.y - commonHeight }, GET_UV_COORDS(cr), colour);
-    drawList->AddImage(g_texSelectFill.get(), { min.x, max.y - commonHeight }, { min.x + commonWidth, max.y }, GET_UV_COORDS(bl), colour);
-    drawList->AddImage(g_texSelectFill.get(), { min.x + commonWidth, max.y - commonHeight }, { max.x - commonWidth, max.y }, GET_UV_COORDS(bc), colour);
-    drawList->AddImage(g_texSelectFill.get(), { max.x - commonWidth, max.y - commonHeight }, { max.x, max.y }, GET_UV_COORDS(br), colour);
+    drawList->AddImage(g_texSelect.get(), min, { min.x + commonWidth, min.y + commonHeight }, GET_UV_COORDS(tl), colour);
+    drawList->AddImage(g_texSelect.get(), { min.x + commonWidth, min.y }, { max.x - commonWidth, min.y + commonHeight }, GET_UV_COORDS(tc), colour);
+    drawList->AddImage(g_texSelect.get(), { max.x - commonWidth, min.y }, { max.x, min.y + commonHeight }, GET_UV_COORDS(tr), colour);
+    drawList->AddImage(g_texSelect.get(), { min.x, min.y + commonHeight }, { min.x + commonWidth, max.y - commonHeight }, GET_UV_COORDS(cl), colour);
+    drawList->AddImage(g_texSelect.get(), { min.x + commonWidth, min.y + commonHeight }, { max.x - commonWidth, max.y - commonHeight }, GET_UV_COORDS(cc), colour);
+    drawList->AddImage(g_texSelect.get(), { max.x - commonWidth, min.y + commonHeight }, { max.x, max.y - commonHeight }, GET_UV_COORDS(cr), colour);
+    drawList->AddImage(g_texSelect.get(), { min.x, max.y - commonHeight }, { min.x + commonWidth, max.y }, GET_UV_COORDS(bl), colour);
+    drawList->AddImage(g_texSelect.get(), { min.x + commonWidth, max.y - commonHeight }, { max.x - commonWidth, max.y }, GET_UV_COORDS(bc), colour);
+    drawList->AddImage(g_texSelect.get(), { max.x - commonWidth, max.y - commonHeight }, { max.x, max.y }, GET_UV_COORDS(br), colour);
 }
 
 void DrawToggleLight(ImVec2 pos, bool isEnabled, float alpha)

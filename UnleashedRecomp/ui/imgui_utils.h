@@ -18,8 +18,7 @@ constexpr float ANNOTATION_FONT_SIZE_MODIFIER = 0.6f;
 
 extern std::unique_ptr<GuestTexture> g_texGeneralWindow;
 extern std::unique_ptr<GuestTexture> g_texLight;
-extern std::unique_ptr<GuestTexture> g_texSelectFade;
-extern std::unique_ptr<GuestTexture> g_texSelectFill;
+extern std::unique_ptr<GuestTexture> g_texSelect;
 
 struct TextSegment {
     bool annotated;
