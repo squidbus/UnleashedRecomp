@@ -170,10 +170,25 @@ static std::string g_creditsStr;
 class SDLEventListenerForInstaller : public SDLEventListener
 {
 public:
-    void OnSDLEvent(SDL_Event *event) override
+    bool OnSDLEvent(SDL_Event *event) override
     {
-        if (!InstallerWizard::s_isVisible || !g_currentMessagePrompt.empty() || g_currentPickerVisible || !hid::IsInputAllowed())
-            return;
+        if (!InstallerWizard::s_isVisible)
+            return false;
+
+        bool noModals = g_currentMessagePrompt.empty() && !g_currentPickerVisible;
+        if (event->type == SDL_QUIT && g_currentPage == WizardPage::Installing)
+        {
+            // Pretend the back button was pressed if the user tried quitting during installation.
+            // This condition is above the rest of the event processing as we want to block the exit
+            // button while there's confirmation message is open as well.
+            if (noModals)
+                g_currentCursorBack = true;
+
+            return true;
+        }
+
+        if (!noModals || !hid::IsInputAllowed())
+            return false;
 
         constexpr float AxisValueRange = 32767.0f;
         constexpr float AxisTapRange = 0.5f;
@@ -326,6 +341,8 @@ public:
 
             g_currentCursorIndex = newCursorIndex;
         }
+
+        return false;
     }
 }
 g_sdlEventListenerForInstaller;

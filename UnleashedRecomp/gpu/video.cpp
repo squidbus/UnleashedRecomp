@@ -6973,14 +6973,14 @@ PPC_FUNC(sub_82E328D8)
 class SDLEventListenerForPSOCaching : public SDLEventListener
 {
 public:
-    void OnSDLEvent(SDL_Event* event) override 
+    bool OnSDLEvent(SDL_Event* event) override 
     {
         if (event->type != SDL_QUIT)
-            return;
+            return false;
 
         std::lock_guard lock(g_pipelineCacheMutex);
         if (g_pipelineStatesToCache.empty())
-            return;
+            return false;
 
         FILE* f = fopen("send_this_file_to_skyth.txt", "ab");
         if (f != nullptr)
@@ -7095,6 +7095,8 @@ public:
 
             fclose(f);
         }
+
+        return false;
     }
 };
 SDLEventListenerForPSOCaching g_sdlEventListenerForPSOCaching;
