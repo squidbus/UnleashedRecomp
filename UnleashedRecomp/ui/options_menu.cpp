@@ -1106,6 +1106,10 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                 valueText = fmt::format("{}x{}", GameWindow::s_width, GameWindow::s_height);
             }
         }
+        else if (config == &Config::Monitor)
+        {
+            valueText = fmt::format("{}", config->Value + 1);
+        }
         else
         {
             valueText = fmt::format("{}", config->Value);
