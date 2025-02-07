@@ -382,11 +382,6 @@ void GameWindow::SetFullscreenCursorVisibility(bool isVisible)
     }
 }
 
-void GameWindow::SetResizable(bool isResizable)
-{
-    SDL_SetWindowResizable(s_pWindow, (SDL_bool)isResizable);
-}
-
 bool GameWindow::IsMaximised()
 {
     return SDL_GetWindowFlags(s_pWindow) & SDL_WINDOW_MAXIMIZED;
@@ -447,7 +442,7 @@ void GameWindow::ResetDimensions()
 
 uint32_t GameWindow::GetWindowFlags()
 {
-    uint32_t flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_ALLOW_HIGHDPI;
+    uint32_t flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 
     if (Config::WindowState == EWindowState::Maximised)
         flags |= SDL_WINDOW_MAXIMIZED;

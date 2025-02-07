@@ -38,7 +38,6 @@ PPC_FUNC(sub_824EB490)
 
     SWA::SGlobals::Init();
     Registry::Save();
-    GameWindow::SetResizable(true);
 
     __imp__sub_824EB490(ctx, base);
 }
