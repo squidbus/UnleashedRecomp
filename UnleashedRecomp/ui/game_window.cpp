@@ -9,7 +9,7 @@
 
 #if _WIN32
 #include <dwmapi.h>
-#pragma comment(lib, "dwmapi.lib")
+#include <shellscalingapi.h>
 #endif
 
 #include <res/images/game_icon.bmp.h>
@@ -184,7 +184,7 @@ void GameWindow::Init(const char* sdlVideoDriver)
     SDL_AddEventWatch(Window_OnSDLEvent, s_pWindow);
 
 #ifdef _WIN32
-    SetProcessDPIAware();
+    SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 #endif
 
     Config::WindowSize.LockCallback = [](ConfigDef<int32_t>* def)
@@ -442,7 +442,7 @@ void GameWindow::ResetDimensions()
 
 uint32_t GameWindow::GetWindowFlags()
 {
-    uint32_t flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE;
+    uint32_t flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 
     if (Config::WindowState == EWindowState::Maximised)
         flags |= SDL_WINDOW_MAXIMIZED;

@@ -352,9 +352,11 @@ file(CHMOD ${DIRECTX_DXC_TOOL} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
 if (WIN32)
     target_link_libraries(UnleashedRecomp PRIVATE
         comctl32
+        dwmapi
         ntdll
-        winmm
+        Shcore
         Synchronization
+        winmm
     )
 endif()
 
