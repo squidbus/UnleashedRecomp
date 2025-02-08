@@ -196,7 +196,7 @@ CONFIG_DEFINE_LOCALE(MusicAttenuation)
 
 CONFIG_DEFINE_LOCALE(ChannelConfiguration)
 {
-    { ELanguage::English, { "Channel Configuration", "Change the output mode for your playback device." } }
+    { ELanguage::English, { "Channel Configuration", "Change the output mode for your audio device." } }
 };
 
 CONFIG_DEFINE_ENUM_LOCALE(EChannelConfiguration)
