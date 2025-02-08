@@ -1157,6 +1157,8 @@ static void DrawConfigOptions()
     auto clipRectMin = drawList->GetClipRectMin();
     auto clipRectMax = drawList->GetClipRectMax();
 
+    drawList->PushClipRect({ clipRectMin.x, clipRectMin.y }, { clipRectMax.x, clipRectMax.y - Scale(5.0f) });
+
     g_selectedItem = nullptr;
 
     float gridSize = Scale(GRID_SIZE);
@@ -1332,6 +1334,8 @@ static void DrawConfigOptions()
 
     if (disableMoveAnimation)
         g_prevSelectedRowIndex = g_selectedRowIndex;
+
+    drawList->PopClipRect();
 
     // Pop clip rect from DrawCategories
     drawList->PopClipRect();
