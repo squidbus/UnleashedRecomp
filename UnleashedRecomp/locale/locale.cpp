@@ -16,6 +16,28 @@
       360, which is one of the few consoles to have a port of Sonic
       Unleashed.
 
+    - Ensure your locale is added in the correct order following the language enum.
+
+      Correct:
+      {
+          { ELanguage::English,  "Example" },
+          { ELanguage::Japanese, "Example" },
+          { ELanguage::German,   "Example" },
+          { ELanguage::French,   "Example" },
+          { ELanguage::Spanish,  "Example" },
+          { ELanguage::Italian,  "Example" }
+      }
+
+      Incorrect:
+      {
+          { ELanguage::English,  "Example" },
+          { ELanguage::French,   "Example" },
+          { ELanguage::Spanish,  "Example" },
+          { ELanguage::German,   "Example" },
+          { ELanguage::Italian,  "Example" },
+          { ELanguage::Japanese, "Example" }
+      }
+
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 */
 
