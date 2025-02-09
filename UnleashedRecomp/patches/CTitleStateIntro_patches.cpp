@@ -148,9 +148,10 @@ void PressStartSaveLoadThreadMidAsmHook()
 PPC_FUNC_IMPL(__imp__sub_82587E50);
 PPC_FUNC(sub_82587E50)
 {
-    auto isAutoSaveWarningShown = *(bool*)g_memory.Translate(0x83367BC1);
+    auto pTitleStateIntro = (SWA::CTitleStateIntro*)g_memory.Translate(ctx.r3.u32);
+    auto pTime = (be<float>*)((uint8_t*)pTitleStateIntro->GetContextBase() + 0x10C);
 
-    if (isAutoSaveWarningShown)
+    if (*SWA::SGlobals::ms_IsAutoSaveWarningShown)
     {
         __imp__sub_82587E50(ctx, base);
     }
@@ -158,7 +159,7 @@ PPC_FUNC(sub_82587E50)
     {
         if (auto pInputState = SWA::CInputState::GetInstance())
         {
-            if (pInputState->GetPadState().IsTapped(SWA::eKeyState_B))
+            if (pInputState->GetPadState().IsTapped(SWA::eKeyState_B) && *pTime > 0.5f)
                 g_quitMessageOpen = true;
         }
 

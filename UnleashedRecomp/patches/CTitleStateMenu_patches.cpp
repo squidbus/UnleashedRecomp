@@ -52,14 +52,14 @@ static bool ProcessInstallMessage()
 PPC_FUNC_IMPL(__imp__sub_825882B8);
 PPC_FUNC(sub_825882B8)
 {
-    auto pTitleState = (SWA::CTitleStateBase*)g_memory.Translate(ctx.r3.u32);
+    auto pTitleStateMenu = (SWA::CTitleStateMenu*)g_memory.Translate(ctx.r3.u32);
     auto pGameDocument = SWA::CGameDocument::GetInstance();
 
     auto pInputState = SWA::CInputState::GetInstance();
     auto& pPadState = pInputState->GetPadState();
     auto isAccepted = pPadState.IsTapped(SWA::eKeyState_A) || pPadState.IsTapped(SWA::eKeyState_Start);
 
-    auto pContext = pTitleState->GetContextBase<SWA::CTitleStateBase::CTitleStateContext>();
+    auto pContext = pTitleStateMenu->GetContextBase<SWA::CTitleStateMenu::CTitleStateMenuContext>();
     auto isNewGameIndex = pContext->m_pTitleMenu->m_CursorIndex == 0;
     auto isOptionsIndex = pContext->m_pTitleMenu->m_CursorIndex == 2;
     auto isInstallIndex = pContext->m_pTitleMenu->m_CursorIndex == 3;

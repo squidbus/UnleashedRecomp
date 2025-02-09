@@ -9,6 +9,9 @@ namespace SWA
         // ms_DrawLightFieldSamplingPoint: サンプリング点をデバッグ表示
         static inline bool* ms_DrawLightFieldSamplingPoint;
 
+        // N/A
+        static inline bool* ms_IsAutoSaveWarningShown;
+
         // ms_IgnoreLightFieldData: データを無視する
         static inline bool* ms_IgnoreLightFieldData;
 
@@ -39,6 +42,9 @@ namespace SWA
         // ms_IsRenderHudPause: ポーズメニュー 描画
         static inline bool* ms_IsRenderHudPause;
 
+        // N/A
+        static inline bool* ms_IsTitleStateMenu;
+
         // IsTriggerRender
         static inline bool* ms_IsTriggerRender;
 
@@ -52,6 +58,7 @@ namespace SWA
         {
             ms_DrawLightFieldSamplingPoint = (bool*)MmGetHostAddress(0x83367BCE);
             ms_IgnoreLightFieldData = (bool*)MmGetHostAddress(0x83367BCF);
+            ms_IsAutoSaveWarningShown = (bool*)MmGetHostAddress(0x83367BC1);
             ms_IsCollisionRender = (bool*)MmGetHostAddress(0x833678A6);
             ms_IsLoading = (bool*)MmGetHostAddress(0x83367A4C);
             ms_IsObjectCollisionRender = (bool*)MmGetHostAddress(0x83367905);
@@ -61,6 +68,7 @@ namespace SWA
             ms_IsRenderGameMainHud = (bool*)MmGetHostAddress(0x8328BB27);
             ms_IsRenderHud = (bool*)MmGetHostAddress(0x8328BB26);
             ms_IsRenderHudPause = (bool*)MmGetHostAddress(0x8328BB28);
+            ms_IsTitleStateMenu = (bool*)MmGetHostAddress(0x83367BC0);
             ms_IsTriggerRender = (bool*)MmGetHostAddress(0x83367904);
             ms_LightFieldDebug = (bool*)MmGetHostAddress(0x83367BCD);
             ms_VisualizeLoadedLevel = (bool*)MmGetHostAddress(0x833678C1);
