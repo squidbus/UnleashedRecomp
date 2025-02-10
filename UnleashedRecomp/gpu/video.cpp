@@ -1615,7 +1615,7 @@ bool Video::CreateHostDevice(const char *sdlVideoDriver)
         g_interface = interfaceFunction();
         if (g_interface != nullptr)
         {
-            g_device = g_interface->createDevice();
+            g_device = g_interface->createDevice(Config::GraphicsDevice);
             if (g_device != nullptr)
             {
 #ifdef UNLEASHED_RECOMP_D3D12
@@ -2256,6 +2256,21 @@ static void DrawProfiler()
         const char* sdlVideoDriver = SDL_GetCurrentVideoDriver();
         if (sdlVideoDriver != nullptr)
             ImGui::Text("SDL Video Driver: %s", sdlVideoDriver);
+
+        ImGui::NewLine();
+        if (ImGui::TreeNode("Device Names"))
+        {
+            ImGui::Indent();
+
+            uint32_t deviceIndex = 0;
+            for (const std::string &deviceName : g_interface->getDeviceNames())
+            {
+                ImGui::Text("Option #%d: %s", deviceIndex++, deviceName.c_str());
+            }
+
+            ImGui::Unindent();
+            ImGui::TreePop();
+        }
     }
     ImGui::End();
 
