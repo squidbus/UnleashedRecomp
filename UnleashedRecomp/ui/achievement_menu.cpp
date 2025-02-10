@@ -76,6 +76,7 @@ static void DrawHeaderContainer(const char* text)
 {
     auto drawList = ImGui::GetBackgroundDrawList();
     auto fontSize = Scale(24);
+    auto minTextSize = Scale(294.575989);
     auto textSize = g_fntNewRodinUB->CalcTextSizeA(fontSize, FLT_MAX, 0, text);
     auto cornerRadius = 23;
     auto textMarginX = Scale(16) + (Scale(cornerRadius) / 2);
@@ -99,13 +100,12 @@ static void DrawHeaderContainer(const char* text)
         : Lerp(0, 1, colourMotion);
 
     ImVec2 min = { g_aspectRatioOffsetX + Scale(containerMarginX), g_aspectRatioOffsetY + Scale(136) };
-    ImVec2 max = { min.x + textMarginX * 2 + textSize.x + Scale(5), g_aspectRatioOffsetY + Scale(196) };
+    ImVec2 max = { std::max(min.x + minTextSize, min.x + textMarginX * 2 + textSize.x + Scale(5)), g_aspectRatioOffsetY + Scale(196) };
 
     DrawPauseHeaderContainer(min, max, alpha);
 
     SetTextSkew((min.y + max.y) / 2.0f, Scale(3.0f));
 
-    // TODO: Apply bevel.
     DrawTextWithOutline
     (
         g_fntNewRodinUB,
@@ -564,15 +564,12 @@ static void DrawContentContainer()
     // Draw separators.
     for (int i = 1; i <= 3; i++)
     {
-        auto lineMarginLeft = Scale(35);
-        auto lineMarginRight = Scale(55);
-        auto lineMarginY = Scale(2);
+        ImVec2 lineMin = { clipRectMin.x + Scale(35), clipRectMin.y + itemHeight * i + Scale(2) };
+        ImVec2 lineMax = { clipRectMax.x - Scale(55), lineMin.y + Scale(1.3f) };
 
-        ImVec2 lineMin = { clipRectMin.x + lineMarginLeft, clipRectMin.y + itemHeight * i + lineMarginY };
-        ImVec2 lineMax = { clipRectMax.x - lineMarginRight, clipRectMin.y + itemHeight * i + lineMarginY };
-
-        drawList->AddLine(lineMin, lineMax, IM_COL32(163, 163, 163, 255));
-        drawList->AddLine({ lineMin.x, lineMin.y + Scale(1) }, { lineMax.x, lineMax.y + Scale(1) }, IM_COL32(143, 148, 143, 255));
+        SetAdditive(true);
+        drawList->AddRectFilled(lineMin, lineMax, IM_COL32(160, 160, 160, 60));
+        SetAdditive(false);
     }
 
     for (auto& tpl : g_achievements)

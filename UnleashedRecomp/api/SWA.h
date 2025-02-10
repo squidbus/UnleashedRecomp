@@ -85,6 +85,7 @@
 #include "SWA/Movie/MovieDisplayer.h"
 #include "SWA/Movie/MovieManager.h"
 #include "SWA/Object/Common/DashPanel/ObjDashPanel.h"
+#include "SWA/Object/SonicStage/EU/RollingBarrel/ObjRollingBarrel.h"
 #include "SWA/Player/Character/EvilSonic/EvilSonic.h"
 #include "SWA/Player/Character/EvilSonic/EvilSonicContext.h"
 #include "SWA/Player/Character/EvilSonic/Hud/EvilHudGuide.h"

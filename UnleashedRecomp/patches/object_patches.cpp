@@ -1,8 +1,9 @@
+#include <api/SWA.h>
 #include <user/config.h>
-#include <SWA/CharacterUtility/CharacterProxy.h>
 #include <hid/hid.h>
+#include <app.h>
 
-// CObjFlame::CObjFlame
+// SWA::CObjFlame::CObjFlame
 // A field is not zero initialized,
 // causing collisions to constantly get created
 // and slow down the game.
@@ -28,7 +29,7 @@ void ObjBigBarrelAllocMidAsmHook(PPCRegister& r3)
     r3.u32 += sizeof(ObjBigBarrelEx);
 }
 
-// CObjBigBarrel::CObjBigBarrel
+// SWA::CObjBigBarrel::CObjBigBarrel
 PPC_FUNC_IMPL(__imp__sub_8271AC08);
 PPC_FUNC(sub_8271AC08)
 {
