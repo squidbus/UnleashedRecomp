@@ -3604,6 +3604,7 @@ namespace plume {
                 description.name = deviceName;
                 description.type = toDeviceType(deviceProperties.deviceType);
                 description.driverVersion = deviceProperties.driverVersion;
+                description.vendor = RenderDeviceVendor(deviceProperties.vendorID);
                 currentDeviceTypeScore = deviceTypeScore;
 
                 if (preferUserChoice) {
