@@ -1790,10 +1790,10 @@ void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
 
     std::array<Button, 4> buttons =
     {
-        Button("Common_Switch", EButtonIcon::LBRB, EButtonAlignment::Left, &g_isControlsVisible),
-        Button("Common_Reset", EButtonIcon::X, &g_canReset),
-        Button("Common_Select", EButtonIcon::A, &g_isControlsVisible),
-        Button("Common_Back", EButtonIcon::B, &g_isControlsVisible)
+        Button("Common_Switch", 115.0f, EButtonIcon::LBRB, EButtonAlignment::Left, &g_isControlsVisible),
+        Button("Common_Reset", 110.0f, EButtonIcon::X, &g_canReset),
+        Button("Common_Select", 115.0f, EButtonIcon::A, &g_isControlsVisible),
+        Button("Common_Back", 65.0f, EButtonIcon::B, &g_isControlsVisible)
     };
     
     ButtonGuide::Open(buttons);
