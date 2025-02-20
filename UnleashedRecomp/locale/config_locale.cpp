@@ -52,7 +52,7 @@ CONFIG_DEFINE_LOCALE(Language)
     { ELanguage::Japanese, { "言語", "" } },
     { ELanguage::German,   { "Sprache", "Ändere die Sprache für Text und Logos." } },
     { ELanguage::French,   { "Langue", "Modifie la langue utilisée pour le texte et logos." } },
-    { ELanguage::Spanish,  { "Idioma", "" } },
+    { ELanguage::Spanish,  { "Idioma", "Cambia el idioma utilizado para el texto y los logos." } },
     { ELanguage::Italian,  { "Lingua", "Cambia la lingua utilizzata per i testi e i logo." } }
 };
 
@@ -124,7 +124,7 @@ CONFIG_DEFINE_LOCALE(Hints)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Hinweise", "Zeige Hinweise während des Spiels." } },
     { ELanguage::French,   { "Indices", "Affiche les indices pendant le jeu." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Pistas", "Muestra pistas durante el juego." } },
     { ELanguage::Italian,  { "Indizi", "Mostra degli indizzi durante il gioco." } }
 };
 
@@ -134,7 +134,7 @@ CONFIG_DEFINE_LOCALE(ControlTutorial)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Steuerungsanleitung", "Zeige Steuerungshinweise während des Spiels.\n\nKritische Angriffe des Werehogs werden hiervon nicht beeinflusst." } },
     { ELanguage::French,   { "Indication des commandes", "Affiche les indications des commandes pendant le jeu.\n\nCeci n'affecte pas les Coup critiques du Werehog." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Tutorial de controles", "Muestra pistas de controles durante el juego.\n\nEl indicador de ataque crítico del Werehog no se verá afectado." } },
     { ELanguage::Italian,  { "Tutorial dei comandi", "Mostra i tutorial dei comandi durante il gioco.\n\nIl tutorial per l'attacco critico del Werehog non verrà influenzato da questa opzione." } }
 };
 
@@ -144,7 +144,7 @@ CONFIG_DEFINE_LOCALE(AchievementNotifications)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Erfolgsbenachrichtigungen", "Zeige Benachrichtigungen für das Freischalten von Erfolgen.\n\nErfolge werden weiterhin freigeschaltet, auch wenn die Benachrichtigungen ausgeschaltet sind." } },
     { ELanguage::French,   { "Notification des succès", "Affiche les notifications pour le déverrouillage des succès.\n\nLes succès seront toujours obtenus même si les notifications sont désactivées." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Notificaciones de logros", "Muestra notificaciones al desbloquear logros.\n\nLos logros se seguirán obteniendo aunque las notificaciones estén desactivadas." } },
     { ELanguage::Italian,  { "Notifiche obiettivi", "Mostra delle notifiche quando sblocchi degli obiettivi.\n\nGli obiettivi verranno comunque assegnati anche con le notifiche disattivate." } }
 };
 
@@ -154,7 +154,7 @@ CONFIG_DEFINE_LOCALE(TimeOfDayTransition)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Tageszeit Übergang", "Verändere den Ladebildschirm beim Verändern der Tageszeit in Städten und Eingangslevel." } },
     { ELanguage::French,   { "Transition jour/nuit", "Change l'écran de chargement lors de la transition dans le hub." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Transición de hora del día", "Cambia cómo aparece la pantalla de carga al cambiar la hora del día en las áreas principales." } },
     { ELanguage::Italian,  { "Transizione giorno/notte", "Modifica l'aspetto della schermata di caricamento quando fai scorrere il tempo." } }
 };
 
@@ -191,8 +191,8 @@ CONFIG_DEFINE_ENUM_LOCALE(ETimeOfDayTransition)
     {
         ELanguage::Spanish,
         {
-            { ETimeOfDayTransition::Xbox,        { "", "" } },
-            { ETimeOfDayTransition::PlayStation, { "", "" } }
+            { ETimeOfDayTransition::Xbox,        { "XBOX", "Xbox: la cinemática de transformación se reproducirá con tiempos de carga artificiales." } },
+            { ETimeOfDayTransition::PlayStation, { "PLAYSTATION", "PlayStation: se usará una pantalla de carga con una medalla giratoria." } }
         }
     },
     {
@@ -210,7 +210,7 @@ CONFIG_DEFINE_LOCALE(ControllerIcons)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Controllersymbole", "Ändere die Controllersymbole, um sie auf dein Modell anzupassen." } },
     { ELanguage::French,   { "Icône des boutons", "Modifie les icônes pour les faire correspondre à votre manette." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Iconos del mando", "Cambia los iconos para que coincidan con tu mando." } },
     { ELanguage::Italian,  { "Icone dei tasti", "Modifica le icone per farle corrispondere con il tuo controller." } }
 };
 
@@ -251,9 +251,9 @@ CONFIG_DEFINE_ENUM_LOCALE(EControllerIcons)
     {
         ELanguage::Spanish,
         {
-            { EControllerIcons::Auto,        { "", "" } },
-            { EControllerIcons::Xbox,        { "", "" } },
-            { EControllerIcons::PlayStation, { "", "" } }
+            { EControllerIcons::Auto,        { "AUTO", "Auto: el juego determinará de forma automática qué iconos utilizar dependiendo del dispositivo de entrada actual." } },
+            { EControllerIcons::Xbox,        { "XBOX", "" } },
+            { EControllerIcons::PlayStation, { "PLAYSTATION", "" } }
         }
     },
     {
@@ -272,7 +272,7 @@ CONFIG_DEFINE_LOCALE(HorizontalCamera)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Horizontale Kamera", "Ändere wie sich die Kamera nach links und rechts bewegt." } },
     { ELanguage::French,   { "Caméra horizontale", "Modifie la rotation horizontale de la caméra." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Cámara horizontal", "Cambia cómo se mueve la camara hacia la izquierda y la derecha." } },
     { ELanguage::Italian,  { "Telecamera orizzontale", "Modifica come la telecamera si muove da sinistra a destra." } }
 };
 
@@ -282,7 +282,7 @@ CONFIG_DEFINE_LOCALE(VerticalCamera)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Vertikale Kamera", "Ändere wie sich die Kamera nach oben und unten bewegt." } },
     { ELanguage::French,   { "Caméra verticale", "Modifie la rotation verticale de la caméra." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish, { "Cámara vertical", "Cambia cómo se mueve la camara hacia arriba y abajo." } },
     { ELanguage::Italian,  { "Telecamera verticale", "Modifica come la telecamera si muove su e giù." } }
 };
 
@@ -319,8 +319,8 @@ CONFIG_DEFINE_ENUM_LOCALE(ECameraRotationMode)
     {
         ELanguage::Spanish,
         {
-            { ECameraRotationMode::Normal,  { "", "" } },
-            { ECameraRotationMode::Reverse, { "", "" } }
+            { ECameraRotationMode::Normal,  { "NORMAL", "" } },
+            { ECameraRotationMode::Reverse, { "INVERTIDO", "" } }
         }
     },
     {
@@ -338,7 +338,7 @@ CONFIG_DEFINE_LOCALE(Vibration)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Vibration", "Schalte die Controllervibration an oder aus." } },
     { ELanguage::French,   { "Vibration", "Active les vibrations manette." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Vibración", "Activa o desactiva la vibración del mando." } },
     { ELanguage::Italian,  { "Vibrazione", "Attiva/disattiva la vibrazione del controller." } }
 };
 
@@ -348,7 +348,7 @@ CONFIG_DEFINE_LOCALE(AllowBackgroundInput)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Erlaube Hintergrundeingaben", "Erlaube Eingaben deines Controllers auch wenn das Spielfenster nicht fokussiert ist." } },
     { ELanguage::French,   { "Manette en arrière plan", "Permet d'utiliser la manette dans le jeu lorsque qu'il n'est pas au premier plan." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Control en segundo plano", "Permite controlar el juego con un mando mientras la ventana esté en segundo plano." } },
     { ELanguage::Italian,  { "Input con la finestra inattiva", "Attiva/disattiva i tasti del controller mentre la finestra è inattiva." } }
 };
 
@@ -358,7 +358,7 @@ CONFIG_DEFINE_LOCALE(MasterVolume)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Gesamtlautstärke", "Passe die Gesamtlautstärke an." } },
     { ELanguage::French,   { "Volume général", "Réglage du volume général." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Volumen maestro", "Ajusta el volumen general." } },
     { ELanguage::Italian,  { "Volume principale", "Regola il volume principale" } }
 };
 
@@ -368,7 +368,7 @@ CONFIG_DEFINE_LOCALE(MusicVolume)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Musiklautstärke", "Passe die Lautstärke der Musik an." } },
     { ELanguage::French,   { "Volume de la musique", "Réglage du volume de la musique." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Volumen de la música", "Ajusta el volumen de la música." } },
     { ELanguage::Italian,  { "Volume musica di sottofondo", "Regola il volume della musica di sottofondo." } }
 };
 
@@ -378,7 +378,7 @@ CONFIG_DEFINE_LOCALE(EffectsVolume)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Soundeffektlautstärke", "Passe die Lautstärke der Soundeffekte an." } },
     { ELanguage::French,   { "Volume des effets sonores", "Réglage du volume des effets sonores." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Volumen de efectos", "Ajusta el volumen de los efectos de sonido." } },
     { ELanguage::Italian,  { "Volume effetti sonori", "Regola il volume degli effetti sonori." } }
 };
 
@@ -388,7 +388,7 @@ CONFIG_DEFINE_LOCALE(MusicAttenuation)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Musikdämpfung", "Stelle die Musik des Spiels stumm während externe Medien abgespielt werden." } },
     { ELanguage::French,   { "Atténuation audio", "Abaisse le volume des musiques du jeu lorsqu'un média externe est en cours de lecture." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Atenuación de música", "Atenúa la música del juego cuando un reproductor multimedia se encuentra activo." } },
     { ELanguage::Italian,  { "Attenuazione musica", "Abbassa il volume della musica di sottofondo quando un'altra applicazione riproduce dei suoni." } }
 };
 
@@ -398,7 +398,7 @@ CONFIG_DEFINE_LOCALE(ChannelConfiguration)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Kanalkonfiguration", "Ändere den Ausgabemodus für dein Audioausgabegerät." } },
     { ELanguage::French,   { "Configuration sortie audio", "Modifie le mode de sortie pour votre périphérique audio." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Configuración de canales", "Cambia el modo de salida para tu dispositivo de audio." } },
     { ELanguage::Italian,  { "Configurazione canali audio", "Modifica la modalità di output per il tuo dispositivo audio." } }
 };
 
@@ -435,8 +435,8 @@ CONFIG_DEFINE_ENUM_LOCALE(EChannelConfiguration)
     {
         ELanguage::Spanish,
         {
-            { EChannelConfiguration::Stereo,   { "", "" } },
-            { EChannelConfiguration::Surround, { "", "" } }
+            { EChannelConfiguration::Stereo,   { "ESTÉREO", "" } },
+            { EChannelConfiguration::Surround, { "ENVOLVENTE", "" } }
         }
     },
     {
@@ -454,7 +454,7 @@ CONFIG_DEFINE_LOCALE(VoiceLanguage)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Stimmeinstellung", "Ändere die Sprache, die für Charakterstimmen benutzt wird." } },
     { ELanguage::French,   { "Langue de doublage", "Modifie la langue utilisée pour la voix des personnages." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Idioma de voz", "Cambia el idioma utilizado para las voces de los personajes." } },
     { ELanguage::Italian, { "Lingua delle voci", "Modifica la lingua utilizzata per le voci dei personaggi." } }
 };
 
@@ -464,7 +464,7 @@ CONFIG_DEFINE_LOCALE(Subtitles)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Untertitel", "Zeige Untertitel bei Dialogen." } },
     { ELanguage::French,   { "Sous-titres", "Affiche les sous-titres pendant les dialogues." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Subtítulos", "Muestra subtítulos durante los diálogos." } },
     { ELanguage::Italian,  { "Sottotitoli", "Mostra i sottotitoli durante i dialoghi." } }
 };
 
@@ -474,7 +474,7 @@ CONFIG_DEFINE_LOCALE(BattleTheme)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Kampfmusik", "Spiele die Kampfmusik des Werehogs während dem Kämpfen ab.\n\nDiese Option tritt das nächste Mal, wenn du in einen Kampf gerätst, in Kraft.\n\nExorzismen und Mini-Bosse werden hiervon nicht beeinflusst." } },
     { ELanguage::French,   { "Thème de combat", "Joue le thème de combat du Werehog pendant les combat.\n\nCette option s'appliquera la prochaine fois que vous serez en combat.\n\nLes missions d'exorcisme et les thèmes des miniboss ne seront pas affectés." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Tema de batalla", "Reproduce el tema de batalla del Werehog durante el combate.\n\nEsta opción se aplicará la próxima vez que entres en combate.\n\nLas misiones de exorcismo y los temas de los minijefes no se verán afectados." } },
     { ELanguage::Italian,  { "Musica di combattimento", "Riproduci la musica di combattimento del Werehog quando inizi una battaglia.\n\nQuesta opzione verrà applicata la prossima volta che sei in battaglia.\n\nLa traccia musicale verrà riprodotta ugualmente nelle missioni di Esorcismo e i miniboss." } }
 };
 
@@ -484,7 +484,7 @@ CONFIG_DEFINE_LOCALE(WindowSize)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Fenstergröße", "Ändere die Größe des Spielfensters im Fenstermodus." } },
     { ELanguage::French,   { "Taille de la fenêtre", "Modifie la taille de la fenêtre de jeu en mode fenêtré." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Tamaño de ventana", "Ajusta el tamaño de la ventana de juego." } },
     { ELanguage::Italian,  { "Dimensioni finestra", "Regola le dimensioni della finestra del gioco in modalità finestra." } }
 };
 
@@ -494,7 +494,7 @@ CONFIG_DEFINE_LOCALE(Monitor)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Monitor", "Ändere auf welchem Monitor das Spiel angezeigt wird." } },
     { ELanguage::French,   { "Moniteur", "Change le moniteur sur lequel le jeu sera affiché." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Pantalla", "Cambia la pantalla en la cuál se muestra el juego." } },
     { ELanguage::Italian,  { "Schermo", "Cambia lo schermo su cui visualizzare il gioco." } }
 };
 
@@ -504,7 +504,7 @@ CONFIG_DEFINE_LOCALE(AspectRatio)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Seitenverhältnis", "Verändere das Seitenverhältnis." } },
     { ELanguage::French,   { "Format d'image", "Modifie le format d'image." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Relación de aspecto", "Cambia la relación de aspecto." } },
     { ELanguage::Italian,  { "Rapporto d'aspetto", "Modifica il rapporto d'aspetto." } }
 };
 
@@ -549,10 +549,10 @@ CONFIG_DEFINE_ENUM_LOCALE(EAspectRatio)
     {
         ELanguage::Spanish,
         {
-            { EAspectRatio::Auto, { "", "" } },
-            { EAspectRatio::Wide, { "", "" } },
-            { EAspectRatio::Narrow, { "", "" } },
-            { EAspectRatio::OriginalNarrow, { "", "" } }
+            { EAspectRatio::Auto, { "AUTO", "Auto: la relación de aspecto se ajusta de forma dinámica al tamaño de la ventana." } },
+            { EAspectRatio::Wide, { "16:9", "16:9: muestra el juego en relación de aspecto de pantalla ancha." } },
+            { EAspectRatio::Narrow, { "4:3", "4:3: muestra el juego en relación de aspecto de pantalla estrecha." } },
+            { EAspectRatio::OriginalNarrow, { "ORIGINAL 4:3", "Original 4:3: muestra el juego en relación de aspecto de pantalla estrecha y mantiene paridad con la implementación original del juego." } }
         }
     },
     {
@@ -572,7 +572,7 @@ CONFIG_DEFINE_LOCALE(ResolutionScale)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Rendering-Auflösung", "Passe die Auflösung der internen Darstellung an.\n\n%dx%d" } },
     { ELanguage::French,   { "Échelle de rendu", "Modifie la résolution interne du jeu.\n\n%dx%d" } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Escala de resolución", "Ajusta la resolución interna del juego.\n\n%dx%d" } },
     { ELanguage::Italian, { "Scala risoluzione", "Regola la risoluzione interna del gioco.\n\n%dx%d" } }
 };
 
@@ -582,7 +582,7 @@ CONFIG_DEFINE_LOCALE(Fullscreen)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Vollbild", "Wechsle zwischen dem randlosen Vollbildmodus und dem Fenstermodus." } },
     { ELanguage::French,   { "Plein écran", "Alterne entre le mode plein écran sans bordure et le mode fenêtré." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Pantalla completa", "Cambia entre modo de pantalla completa o ventana." } },
     { ELanguage::Italian,  { "Schermo pieno", "Attiva/disattiva tra modalità finestra senza cornice e modalità finestra." } }
 };
 
@@ -592,7 +592,7 @@ CONFIG_DEFINE_LOCALE(VSync)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "V-Sync", "Synchronisiere das Spiel mit der Bildwiederholrate deines Bildschirms um Bildverzerrungen zu vermeiden." } },
     { ELanguage::French,   { "V-Sync", "Synchronise le jeu avec la fréquence de rafraîchissement de l'écran pour éviter le screen tearing." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "V-Sync", "Sincroniza el juego a la tasa de refresco de la pantalla para prevenir el rasgado de la imagen." } },
     { ELanguage::Italian,  { "V-Sync", "Sincronizza il gioco con la frequenza d'aggiornamento del display per evitare lo screen tearing." } }
 };
 
@@ -602,7 +602,7 @@ CONFIG_DEFINE_LOCALE(FPS)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "FPS", "Setze die maximale Anzahl der Bilder pro Sekunde, die das Spiel darstellen kann.\n\nWARNUNG: Das Spiel kann bei höheren FPS als 60 ungewolltes Verhalten aufweisen." } },
     { ELanguage::French,   { "FPS", "Détermine la fréquence d'images maximale du jeu.\n\nATTENTION: cela peut entraîner des problèmes à des taux de rafraîchissement supérieurs à 60 FPS." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "FPS", "Establece la tasa de fotogramas máxima a la que puede correr el juego.\n\nADVERTENCIA: esto puede introducir fallos en tasas mayores a 60 FPS." } },
     { ELanguage::Italian,  { "FPS", "Imposta il frame rate massimo del gioco.\n\nATTENZIONE: questa opzione può causare dei glitch a frame rate più alti di 60 FPS." } }
 };
 
@@ -612,7 +612,7 @@ CONFIG_DEFINE_LOCALE(Brightness)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Helligkeit", "Passe die Helligkeit des Spiels an bis das linke Symbol noch gerade so sichtbar ist." } },
     { ELanguage::French,   { "Luminosité", "Règle le niveau de luminosité jusqu'à ce que le symbole à gauche soit à peine visible." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Brillo", "Ajusta el nivel de brillo hasta que el símbolo a la izquierda sea apenas visible." } },
     { ELanguage::Italian,  { "Luminosità", "Regola la luminosità dello schermo fino a quando il simbolo a sinistra diventa leggermente visibile." } }
 };
 
@@ -622,7 +622,7 @@ CONFIG_DEFINE_LOCALE(AntiAliasing)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Kantenglättung", "Passe die Menge an Kantenglättung an." } },
     { ELanguage::French,   { "Anticrénelage", "Ajuste le niveau d'anticrénelage appliqué aux bords des objets." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Anti-Aliasing", "Ajusta el nivel de suavizado aplicado a los dientes de sierra." } },
     { ELanguage::Italian,  { "Anti-Aliasing", "Regola la quantità di smussamento applicata ai bordi." } }
 };
 
@@ -655,7 +655,7 @@ CONFIG_DEFINE_ENUM_LOCALE(EAntiAliasing)
     {
         ELanguage::Spanish,
         {
-            { EAntiAliasing::None, { "", "" } }
+            { EAntiAliasing::None, { "NO", "" } },
         }
     },
     {
@@ -663,7 +663,7 @@ CONFIG_DEFINE_ENUM_LOCALE(EAntiAliasing)
         {
             { EAntiAliasing::None, { "NULLO", "" } }
         }
-    }
+    },
 };
 
 CONFIG_DEFINE_LOCALE(TransparencyAntiAliasing)
@@ -672,7 +672,7 @@ CONFIG_DEFINE_LOCALE(TransparencyAntiAliasing)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Transparenz-Kantenglättung", "Wende Kantenglättung auf Alpha-Transparenz-Texturen an." } },
     { ELanguage::French,   { "Anticrénelage de transparence", "Applique l'anticrénelage sur les textures transparentes." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Anti-Aliasing de transparencias", "Aplica antialiasing a las texturas transparentes." } },
     { ELanguage::Italian,  { "Anti-Aliasing su texture trasparenti", "Applica l'anti-aliasing alle texture trasparenti." } }
 };
 
@@ -682,7 +682,7 @@ CONFIG_DEFINE_LOCALE(ShadowResolution)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Schattenauflösung", "Stelle die Auflösung der Echtzeit-Schatten ein." } },
     { ELanguage::French,   { "Résolution des ombres", "Défini la résolution des ombres en temps réel." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Resolución de sombras", "Establece la resolución de las sombras de tiempo real." } },
     { ELanguage::Italian,  { "Risoluzione ombre", "Imposta la risoluzioni delle ombre in tempo reale." } }
 };
 
@@ -715,7 +715,7 @@ CONFIG_DEFINE_ENUM_LOCALE(EShadowResolution)
     {
         ELanguage::Spanish,
         {
-            { EShadowResolution::Original, { "", "" } }
+            { EShadowResolution::Original, { "ORIGINAL", "Original: el juego determinará de forma automática la resolución de las sombras." } }
         }
     },
     {
@@ -732,7 +732,7 @@ CONFIG_DEFINE_LOCALE(GITextureFiltering)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "GI Texturfilterung", "Ändere die Qualität der Filterung für Global-Illumination-Texturen." } },
     { ELanguage::French,   { "Filtre des textures IG", "Modifie la qualité du filtre utilisé pour les textures d'illumination globale." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Filtrado de texturas de GI", "Cambia la calidad del filtrado utilizado en las texturas de iluminación global." } },
     { ELanguage::Italian,  { "Filtraggio delle texture GI", "Regola la qualità del sistema di filtraggio utilizzato per le texture dell'illuminazione." } }
 };
 
@@ -769,8 +769,8 @@ CONFIG_DEFINE_ENUM_LOCALE(EGITextureFiltering)
     {
         ELanguage::Spanish,
         {
-            { EGITextureFiltering::Bilinear, { "", "" } },
-            { EGITextureFiltering::Bicubic,  { "", "" } }
+            { EGITextureFiltering::Bilinear, { "BILINEAR", "" } },
+            { EGITextureFiltering::Bicubic,  { "BICÚBICO", "" } },
         }
     },
     {
@@ -788,7 +788,7 @@ CONFIG_DEFINE_LOCALE(MotionBlur)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Bewegungsunschärfe", "Verändere die Qualität der Bewegungsunschärfe." } },
     { ELanguage::French,   { "Flou de mouvement", "Modifie la qualité du flou de mouvement." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Desenfoque de movimiento", "Cambia la calidad del desenfoque de movimiento." } },
     { ELanguage::Italian,  { "Sfocatura di movimento", "Regola la qualità della sfocatura di movimento." } }
 };
 
@@ -829,9 +829,9 @@ CONFIG_DEFINE_ENUM_LOCALE(EMotionBlur)
     {
         ELanguage::Spanish,
         {
-            { EMotionBlur::Off,      { "", "" } },
-            { EMotionBlur::Original, { "", "" } },
-            { EMotionBlur::Enhanced, { "", "" } }
+            { EMotionBlur::Off,      { "APAGADO", "" } },
+            { EMotionBlur::Original, { "ORIGINAL", "" } },
+            { EMotionBlur::Enhanced, { "MEJORADO", "Mejorado: utiliza más muestras para suavizar el desenfoque de movimiento a costa del rendimiento." } }
         }
     },
     {
@@ -850,7 +850,7 @@ CONFIG_DEFINE_LOCALE(XboxColorCorrection)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Xbox Farbkorrektur", "Benutzt den warmen Farbstich aus der Xbox-Version des Spiels." } },
     { ELanguage::French,   { "Correction couleurs Xbox", "Utilise le filtre de couleur provenant de la version Xbox du jeu." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Corrección de color de Xbox", "Utiliza el tono cálido de la versión Xbox del juego." } },
     { ELanguage::Italian,  { "Correzione dei colori Xbox", "Applica il filtro di colori più caldi utilizzato dalla versione Xbox del gioco." } }
 };
 
@@ -860,7 +860,7 @@ CONFIG_DEFINE_LOCALE(CutsceneAspectRatio)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Zwischensequenz-Seitenverhältnis", "Verändere das Seitenverhältnis der Echtzeit-Zwischensequenzen." } },
     { ELanguage::French,   { "Format des cinématiques", "Modifie le format d'image des cinématiques en temps réel." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Relación de aspecto de cinemáticas", "Cambia la relación de aspecto de las cinemáticas de tiempo real." } },
     { ELanguage::Italian,  { "Rapporto d'aspetto dei filmati", "Cambia il rapporto d'aspetto dei filmati in tempo reale." } }
 };
 
@@ -897,8 +897,8 @@ CONFIG_DEFINE_ENUM_LOCALE(ECutsceneAspectRatio)
     {
         ELanguage::Spanish,
         {
-            { ECutsceneAspectRatio::Original, { "", "" } },
-            { ECutsceneAspectRatio::Unlocked, { "", "" } }
+            { ECutsceneAspectRatio::Original, { "ORIGINAL", "Original: muestra las cinemáticas en su relación de aspecto original de 16:9." } },
+            { ECutsceneAspectRatio::Unlocked, { "DESBLOQUEADO", "Desbloqueado: permite que las cinemáticas ajusten su relación de aspecto al tamaño de la ventana.\n\nADVERTENCIA: esto introducirá rarezas visuales más allá de la relación de aspecto original de 16:9." } },
         }
     },
     {
@@ -916,7 +916,7 @@ CONFIG_DEFINE_LOCALE(UIAlignmentMode)
     { ELanguage::Japanese, { "", "" } },
     { ELanguage::German,   { "Benutzeroberflächenausrichtung", "Verändere wie die Benutzeroberfläche sich mit dem Bildschirm ausrichtet." } },
     { ELanguage::French,   { "Alignement de l'IU", "Modifie l'alignement de l'interface utilisateur sur l'écran." } },
-    { ELanguage::Spanish,  { "", "" } },
+    { ELanguage::Spanish,  { "Modo de alineamiento de UI", "Cambia la alineación de la interfaz de usuario con la pantalla." } },
     { ELanguage::Italian,  { "Modalità allineamento interfaccia", "Modifica come l'interfaccia si allinea con lo schermo." } }
 };
 
@@ -953,8 +953,8 @@ CONFIG_DEFINE_ENUM_LOCALE(EUIAlignmentMode)
     {
         ELanguage::Spanish,
         {
-            { EUIAlignmentMode::Edge,    { "", "" } },
-            { EUIAlignmentMode::Centre,  { "", "" } }
+            { EUIAlignmentMode::Edge,    { "BORDE", "Borde: la interfaz de usuario se alineará con los bordes de la pantalla." } },
+            { EUIAlignmentMode::Centre,  { "CENTRO", "Centro: la interfaz de usuario se alineará con el centro de la pantalla." } },
         }
     },
     {
