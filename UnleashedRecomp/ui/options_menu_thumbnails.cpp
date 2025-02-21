@@ -2,9 +2,9 @@
 #include <decompressor.h>
 #include <hid/hid.h>
 
-// TODO (Hyper): lower the resolution of these textures once final.
 #include <res/images/options_menu/thumbnails/achievement_notifications.dds.h>
-#include <res/images/options_menu/thumbnails/allow_background_input.dds.h>
+#include <res/images/options_menu/thumbnails/allow_background_input_xb.dds.h>
+#include <res/images/options_menu/thumbnails/allow_background_input_ps.dds.h>
 #include <res/images/options_menu/thumbnails/antialiasing_none.dds.h>
 #include <res/images/options_menu/thumbnails/antialiasing_2x.dds.h>
 #include <res/images/options_menu/thumbnails/antialiasing_4x.dds.h>
@@ -14,8 +14,8 @@
 #include <res/images/options_menu/thumbnails/brightness.dds.h>
 #include <res/images/options_menu/thumbnails/channel_stereo.dds.h>
 #include <res/images/options_menu/thumbnails/channel_surround.dds.h>
-#include <res/images/options_menu/thumbnails/control_tutorial_xb.dds.h>
 #include <res/images/options_menu/thumbnails/control_tutorial_ps.dds.h>
+#include <res/images/options_menu/thumbnails/control_tutorial_xb.dds.h>
 #include <res/images/options_menu/thumbnails/controller_icons.dds.h>
 #include <res/images/options_menu/thumbnails/default.dds.h>
 #include <res/images/options_menu/thumbnails/effects_volume.dds.h>
@@ -35,23 +35,21 @@
 #include <res/images/options_menu/thumbnails/movie_scale_fill.dds.h>
 #include <res/images/options_menu/thumbnails/music_attenuation.dds.h>
 #include <res/images/options_menu/thumbnails/music_volume.dds.h>
-#include <res/images/options_menu/thumbnails/resolution_scale.dds.h>
-#include <res/images/options_menu/thumbnails/shadow_resolution_original.dds.h>
 #include <res/images/options_menu/thumbnails/shadow_resolution_x512.dds.h>
 #include <res/images/options_menu/thumbnails/shadow_resolution_x1024.dds.h>
 #include <res/images/options_menu/thumbnails/shadow_resolution_x2048.dds.h>
 #include <res/images/options_menu/thumbnails/shadow_resolution_x4096.dds.h>
 #include <res/images/options_menu/thumbnails/shadow_resolution_x8192.dds.h>
-#include <res/images/options_menu/thumbnails/subtitles.dds.h>
-#include <res/images/options_menu/thumbnails/time_transition_xb.dds.h>
 #include <res/images/options_menu/thumbnails/time_transition_ps.dds.h>
+#include <res/images/options_menu/thumbnails/time_transition_xb.dds.h>
 #include <res/images/options_menu/thumbnails/transparency_antialiasing_false.dds.h>
 #include <res/images/options_menu/thumbnails/transparency_antialiasing_true.dds.h>
 #include <res/images/options_menu/thumbnails/ui_alignment_centre.dds.h>
 #include <res/images/options_menu/thumbnails/ui_alignment_edge.dds.h>
 #include <res/images/options_menu/thumbnails/vertical_camera.dds.h>
 #include <res/images/options_menu/thumbnails/voice_language.dds.h>
-#include <res/images/options_menu/thumbnails/vibration.dds.h>
+#include <res/images/options_menu/thumbnails/vibration_ps.dds.h>
+#include <res/images/options_menu/thumbnails/vibration_xb.dds.h>
 #include <res/images/options_menu/thumbnails/vsync_on.dds.h>
 #include <res/images/options_menu/thumbnails/vsync_off.dds.h>
 #include <res/images/options_menu/thumbnails/window_size.dds.h>
@@ -63,6 +61,10 @@ static std::unique_ptr<GuestTexture> g_defaultThumbnail;
 
 static std::unique_ptr<GuestTexture> g_controlTutorialXBThumbnail;
 static std::unique_ptr<GuestTexture> g_controlTutorialPSThumbnail;
+static std::unique_ptr<GuestTexture> g_vibrationXBThumbnail;
+static std::unique_ptr<GuestTexture> g_vibrationPSThumbnail;
+static std::unique_ptr<GuestTexture> g_backgroundInputXBThumbnail;
+static std::unique_ptr<GuestTexture> g_backgroundInputPSThumbnail;
 
 static std::unordered_map<const IConfigDef*, std::unique_ptr<GuestTexture>> g_configThumbnails;
 
@@ -84,10 +86,13 @@ void LoadThumbnails()
 
     g_controlTutorialXBThumbnail = LOAD_ZSTD_TEXTURE(g_control_tutorial_xb);
     g_controlTutorialPSThumbnail = LOAD_ZSTD_TEXTURE(g_control_tutorial_ps);
+    g_vibrationXBThumbnail = LOAD_ZSTD_TEXTURE(g_vibration_xb);
+    g_vibrationPSThumbnail = LOAD_ZSTD_TEXTURE(g_vibration_ps);
+    g_backgroundInputXBThumbnail = LOAD_ZSTD_TEXTURE(g_allow_background_input_xb);
+    g_backgroundInputPSThumbnail = LOAD_ZSTD_TEXTURE(g_allow_background_input_ps);
 
     g_configThumbnails[&Config::Language] = LOAD_ZSTD_TEXTURE(g_language);
     g_configThumbnails[&Config::VoiceLanguage] = LOAD_ZSTD_TEXTURE(g_voice_language);
-    g_configThumbnails[&Config::Subtitles] = LOAD_ZSTD_TEXTURE(g_subtitles);
     g_configThumbnails[&Config::Hints] = LOAD_ZSTD_TEXTURE(g_hints);
     g_configThumbnails[&Config::AchievementNotifications] = LOAD_ZSTD_TEXTURE(g_achievement_notifications);
 
@@ -96,8 +101,6 @@ void LoadThumbnails()
 
     g_configThumbnails[&Config::HorizontalCamera] = LOAD_ZSTD_TEXTURE(g_horizontal_camera);
     g_configThumbnails[&Config::VerticalCamera] = LOAD_ZSTD_TEXTURE(g_vertical_camera);
-    g_configThumbnails[&Config::Vibration] = LOAD_ZSTD_TEXTURE(g_vibration);
-    g_configThumbnails[&Config::AllowBackgroundInput] = LOAD_ZSTD_TEXTURE(g_allow_background_input);
     g_configThumbnails[&Config::ControllerIcons] = LOAD_ZSTD_TEXTURE(g_controller_icons);
     g_configThumbnails[&Config::MasterVolume] = LOAD_ZSTD_TEXTURE(g_master_volume);
     g_configThumbnails[&Config::MusicVolume] = LOAD_ZSTD_TEXTURE(g_music_volume);
@@ -111,7 +114,6 @@ void LoadThumbnails()
     g_configThumbnails[&Config::WindowSize] = LOAD_ZSTD_TEXTURE(g_window_size);
     g_configThumbnails[&Config::Monitor] = LOAD_ZSTD_TEXTURE(g_monitor);
     g_configThumbnails[&Config::AspectRatio] = LOAD_ZSTD_TEXTURE(g_aspect_ratio);
-    g_configThumbnails[&Config::ResolutionScale] = LOAD_ZSTD_TEXTURE(g_resolution_scale);
     g_configThumbnails[&Config::Fullscreen] = LOAD_ZSTD_TEXTURE(g_fullscreen);
     g_configThumbnails[&Config::XboxColorCorrection] = LOAD_ZSTD_TEXTURE(g_xbox_color_correction);
 
@@ -129,7 +131,6 @@ void LoadThumbnails()
     g_transparencyAntiAliasingThumbnails[false] = LOAD_ZSTD_TEXTURE(g_transparency_antialiasing_false);
     g_transparencyAntiAliasingThumbnails[true] = LOAD_ZSTD_TEXTURE(g_transparency_antialiasing_true);
 
-    g_shadowResolutionThumbnails[EShadowResolution::Original] = LOAD_ZSTD_TEXTURE(g_shadow_resolution_original);
     g_shadowResolutionThumbnails[EShadowResolution::x512] = LOAD_ZSTD_TEXTURE(g_shadow_resolution_x512);
     g_shadowResolutionThumbnails[EShadowResolution::x1024] = LOAD_ZSTD_TEXTURE(g_shadow_resolution_x1024);
     g_shadowResolutionThumbnails[EShadowResolution::x2048] = LOAD_ZSTD_TEXTURE(g_shadow_resolution_x2048);
@@ -159,7 +160,15 @@ bool TryGetValueThumbnail(const IConfigDef* cfg, VALUE_THUMBNAIL_MAP(T)* thumbna
     if (!cfg->GetValue())
         return false;
 
-    auto findResult = thumbnails->find(*(T*)cfg->GetValue());
+    T value = *(T*)cfg->GetValue();
+
+    if constexpr (std::is_same_v<T, EShadowResolution>)
+    {
+        if (value == EShadowResolution::Original)
+            value = EShadowResolution::x1024;
+    }
+
+    auto findResult = thumbnails->find(value);
 
     if (findResult != thumbnails->end())
     {
@@ -177,16 +186,24 @@ GuestTexture* GetThumbnail(const IConfigDef* cfg)
     {
         auto texture = g_defaultThumbnail.get();
 
+        bool isPlayStation = Config::ControllerIcons == EControllerIcons::PlayStation;
+
+        if (Config::ControllerIcons == EControllerIcons::Auto)
+            isPlayStation = hid::g_inputDeviceController == hid::EInputDevice::PlayStation;
+
         if (cfg == &Config::ControlTutorial)
         {
-            bool isPlayStation = Config::ControllerIcons == EControllerIcons::PlayStation;
-
-            if (Config::ControllerIcons == EControllerIcons::Auto)
-                isPlayStation = hid::g_inputDeviceController == hid::EInputDevice::PlayStation;
-
             texture = isPlayStation ? g_controlTutorialPSThumbnail.get() : g_controlTutorialXBThumbnail.get();
         }
-        if (cfg == &Config::TimeOfDayTransition)
+        else if (cfg == &Config::Vibration)
+        {
+            texture = isPlayStation ? g_vibrationPSThumbnail.get() : g_vibrationXBThumbnail.get();
+        }
+        else if (cfg == &Config::AllowBackgroundInput)
+        {
+            texture = isPlayStation ? g_backgroundInputPSThumbnail.get() : g_backgroundInputXBThumbnail.get();
+        }
+        else if (cfg == &Config::TimeOfDayTransition)
         {
             TryGetValueThumbnail<ETimeOfDayTransition>(cfg, &g_timeOfDayTransitionThumbnails, &texture);
         }
