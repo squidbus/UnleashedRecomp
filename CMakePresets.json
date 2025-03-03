@@ -121,14 +121,9 @@
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "installDir": "${sourceDir}/out/install/${presetName}",
             "cacheVariables": {
-                "CMAKE_OSX_ARCHITECTURES": "x86_64",
                 "CMAKE_TOOLCHAIN_FILE": {
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                     "type": "FILEPATH"
-                },
-                "VCPKG_TARGET_TRIPLET": {
-                    "value": "x64-osx",
-                    "type": "STRING"
                 }
             },
             "environment": {
