@@ -574,14 +574,16 @@ namespace plume {
         }
     }
     
-    static VkPipelineStageFlags toStageFlags(RenderBarrierStages stages, bool rtSupported) {
+    static VkPipelineStageFlags toStageFlags(RenderBarrierStages stages, bool geometrySupported, bool rtSupported) {
         VkPipelineStageFlags flags = 0;
 
         if (stages & RenderBarrierStage::GRAPHICS) {
             flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
             flags |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
             flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-            flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+            if (geometrySupported) {
+                flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+            }
             flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
             flags |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
@@ -2696,9 +2698,10 @@ namespace plume {
 
         endActiveRenderPass();
 
+        const bool geometryEnabled = device->capabilities.geometryShader;
         const bool rtEnabled = device->capabilities.raytracing;
         VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT | toStageFlags(stages, rtEnabled);
+        VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT | toStageFlags(stages, geometryEnabled, rtEnabled);
         thread_local std::vector<VkBufferMemoryBarrier> bufferMemoryBarriers;
         thread_local std::vector<VkImageMemoryBarrier> imageMemoryBarriers;
         bufferMemoryBarriers.clear();
@@ -2717,7 +2720,7 @@ namespace plume {
             bufferMemoryBarrier.offset = 0;
             bufferMemoryBarrier.size = interfaceBuffer->desc.size;
             bufferMemoryBarriers.emplace_back(bufferMemoryBarrier);
-            srcStageMask |= toStageFlags(interfaceBuffer->barrierStages, rtEnabled);
+            srcStageMask |= toStageFlags(interfaceBuffer->barrierStages, geometryEnabled, rtEnabled);
             interfaceBuffer->barrierStages = stages;
         }
 
@@ -2737,7 +2740,7 @@ namespace plume {
             imageMemoryBarrier.subresourceRange.layerCount = interfaceTexture->desc.arraySize;
             imageMemoryBarrier.subresourceRange.aspectMask = (interfaceTexture->desc.flags & RenderTextureFlag::DEPTH_TARGET) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
             imageMemoryBarriers.emplace_back(imageMemoryBarrier);
-            srcStageMask |= toStageFlags(interfaceTexture->barrierStages, rtEnabled);
+            srcStageMask |= toStageFlags(interfaceTexture->barrierStages, geometryEnabled, rtEnabled);
             interfaceTexture->textureLayout = textureBarrier.layout;
             interfaceTexture->barrierStages = stages;
         }
@@ -2903,6 +2906,9 @@ namespace plume {
             offsetVector.clear();
             for (uint32_t i = 0; i < viewCount; i++) {
                 const VulkanBuffer *interfaceBuffer = static_cast<const VulkanBuffer *>(views[i].buffer.ref);
+                if (interfaceBuffer == nullptr && !device->nullDescriptorSupported) {
+                    interfaceBuffer = static_cast<const VulkanBuffer *>(device->nullBuffer.get());
+                }
                 bufferVector.emplace_back((interfaceBuffer != nullptr) ? interfaceBuffer->vk : VK_NULL_HANDLE);
                 offsetVector.emplace_back(views[i].buffer.offset);
             }
@@ -2917,7 +2923,9 @@ namespace plume {
             viewportVector.clear();
 
             for (uint32_t i = 0; i < count; i++) {
-                viewportVector.emplace_back(VkViewport{ viewports[i].x, viewports[i].y, viewports[i].width, viewports[i].height, viewports[i].minDepth, viewports[i].maxDepth });
+                float width = std::max(viewports[i].width, 1.f);
+                float height = std::max(viewports[i].height, 1.f);
+                viewportVector.emplace_back(VkViewport{ viewports[i].x, viewports[i].y, width, height, viewports[i].minDepth, viewports[i].maxDepth });
             }
 
             if (!viewportVector.empty()) {
@@ -2926,7 +2934,9 @@ namespace plume {
         }
         else {
             // Single element fast path.
-            VkViewport viewport = VkViewport{ viewports[0].x, viewports[0].y, viewports[0].width, viewports[0].height, viewports[0].minDepth, viewports[0].maxDepth };
+            float width = std::max(viewports[0].width, 1.f);
+            float height = std::max(viewports[0].height, 1.f);
+            VkViewport viewport = VkViewport{ viewports[0].x, viewports[0].y, width, height, viewports[0].minDepth, viewports[0].maxDepth };
             vkCmdSetViewport(vk, 0, 1, &viewport);
         }
     }
@@ -3928,6 +3938,7 @@ namespace plume {
         description.dedicatedVideoMemory = memoryHeapSize;
 
         // Fill capabilities.
+        capabilities.geometryShader = deviceFeatures.features.geometryShader;
         capabilities.raytracing = rtSupported;
         capabilities.raytracingStateUpdate = false;
         capabilities.sampleLocations = sampleLocationsSupported;
@@ -3941,6 +3952,11 @@ namespace plume {
 
         // Fill Vulkan-only capabilities.
         loadStoreOpNoneSupported = supportedOptionalExtensions.find(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME) != supportedOptionalExtensions.end();
+        nullDescriptorSupported = nullDescriptor;
+
+        if (!nullDescriptorSupported) {
+            nullBuffer = createBuffer(RenderBufferDesc::DefaultBuffer(16, RenderBufferFlag::VERTEX));
+        }
     }
 
     VulkanDevice::~VulkanDevice() {

@@ -407,7 +407,9 @@ namespace plume {
         RenderDeviceDescription description;
         VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtPipelineProperties = {};
         VkPhysicalDeviceSampleLocationsPropertiesEXT sampleLocationProperties = {};
+        std::unique_ptr<RenderBuffer> nullBuffer = nullptr;
         bool loadStoreOpNoneSupported = false;
+        bool nullDescriptorSupported = false;
 
         VulkanDevice(VulkanInterface *renderInterface, const std::string &preferredDeviceName);
         ~VulkanDevice() override;

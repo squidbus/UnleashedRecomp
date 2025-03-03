@@ -1783,6 +1783,9 @@ namespace plume {
     };
 
     struct RenderDeviceCapabilities {
+        // Geometry shaders.
+        bool geometryShader = false;
+
         // Raytracing.
         bool raytracing = false;
         bool raytracingStateUpdate = false;
