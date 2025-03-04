@@ -2055,10 +2055,11 @@ namespace plume {
             return;
         }
 #   elif defined(__APPLE__)
-        assert(renderWindow.layer != nullptr);
+        assert(renderWindow.window != 0);
+        assert(renderWindow.view != 0);
         VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
         surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
-        surfaceCreateInfo.pLayer = renderWindow.layer;
+        surfaceCreateInfo.pLayer = renderWindow.view;
 
         VulkanInterface *renderInterface = commandQueue->device->renderInterface;
         res = vkCreateMetalSurfaceEXT(renderInterface->instance, &surfaceCreateInfo, nullptr, &surface);
@@ -2375,6 +2376,8 @@ namespace plume {
         // The attributes width and height members do not include the border.
         dstWidth = attributes.width;
         dstHeight = attributes.height;
+#   elif defined(__APPLE__)
+        SDL_GetWindowSizeInPixels(renderWindow.window, (int *)(&dstWidth), (int *)(&dstHeight));
 #   endif
     }
 
@@ -4283,6 +4286,10 @@ namespace plume {
         createInfo.ppEnabledLayerNames = nullptr;
         createInfo.enabledLayerCount = 0;
 
+#   ifdef __APPLE__
+        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#   endif
+
         // Check for extensions.
         uint32_t extensionCount;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -4367,10 +4374,6 @@ namespace plume {
                 break;
             }
         }
-#   endif
-
-#   ifdef __APPLE__
-        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #   endif
         
         res = vkCreateInstance(&createInfo, nullptr, &instance);

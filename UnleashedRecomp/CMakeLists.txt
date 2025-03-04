@@ -325,7 +325,24 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_compile_definitions(UnleashedRecomp PRIVATE SDL_VULKAN_ENABLED)
 endif()
 
-find_package(directx-dxc REQUIRED)
+if (WIN32)
+    set(DXC "${PROJECT_SOURCE_DIR}/thirdparty/dxc-bin/bin/x64/dxc.exe")
+else()
+    if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        if (APPLE)
+            set(DXC "DYLD_LIBRARY_PATH=${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/lib/x64" "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/bin/x64/dxc")
+        else()
+            set(DXC "LD_LIBRARY_PATH=${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/dxc/lib/x64" "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/bin/x64/dxc")
+        endif()
+    else()
+        if (APPLE)
+            set(DXC "DYLD_LIBRARY_PATH=${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/lib/arm64" "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/bin/arm64/dxc-macos")
+        else()
+            set(DXC "LD_LIBRARY_PATH=${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/lib/arm64" "${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/dxc-bin/bin/arm64/dxc-linux")
+        endif()
+    endif()
+endif()
+
 find_package(CURL REQUIRED)
 
 if (UNLEASHED_RECOMP_D3D12)
@@ -335,7 +352,7 @@ if (UNLEASHED_RECOMP_D3D12)
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Layers,IMPORTED_LOCATION_DEBUG> ${CMAKE_CURRENT_BINARY_DIR}/D3D12
        COMMAND_EXPAND_LISTS
     )
-    
+
     find_file(DIRECTX_DXIL_LIBRARY "dxil.dll")
     file(COPY ${DIRECTX_DXIL_LIBRARY} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -343,13 +360,9 @@ if (UNLEASHED_RECOMP_D3D12)
         Microsoft::DirectX-Headers 
         Microsoft::DirectX-Guids 
         Microsoft::DirectX12-Agility
-        Microsoft::DirectXShaderCompiler
-        Microsoft::DXIL
         dxgi
     )
 endif()
-
-file(CHMOD ${DIRECTX_DXC_TOOL} PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE)
 
 if (WIN32)
     target_link_libraries(UnleashedRecomp PRIVATE
@@ -397,14 +410,14 @@ function(compile_shader FILE_PATH TARGET_NAME)
     if (UNLEASHED_RECOMP_D3D12)
         add_custom_command(
             OUTPUT ${FILE_PATH}.dxil.h
-            COMMAND ${DIRECTX_DXC_TOOL} -T ${TARGET_NAME} -HV 2021 -all-resources-bound -Wno-ignored-attributes -Fh ${FILE_PATH}.dxil.h ${FILE_PATH} -Vn g_${VARIABLE_NAME}_dxil
+            COMMAND ${DXC} -T ${TARGET_NAME} -HV 2021 -all-resources-bound -Wno-ignored-attributes -Fh ${FILE_PATH}.dxil.h ${FILE_PATH} -Vn g_${VARIABLE_NAME}_dxil
             DEPENDS ${FILE_PATH}
         )
         target_sources(UnleashedRecomp PRIVATE ${FILE_PATH}.dxil.h)
     endif()
     add_custom_command(
         OUTPUT ${FILE_PATH}.spirv.h
-        COMMAND ${DIRECTX_DXC_TOOL} -T ${TARGET_NAME} -HV 2021 -all-resources-bound -spirv -fvk-use-dx-layout ${ARGN} -Fh ${FILE_PATH}.spirv.h ${FILE_PATH} -Vn g_${VARIABLE_NAME}_spirv
+        COMMAND ${DXC} -T ${TARGET_NAME} -HV 2021 -all-resources-bound -spirv -fvk-use-dx-layout ${ARGN} -Fh ${FILE_PATH}.spirv.h ${FILE_PATH} -Vn g_${VARIABLE_NAME}_spirv
         DEPENDS ${FILE_PATH}
     )
     target_sources(UnleashedRecomp PRIVATE ${FILE_PATH}.spirv.h)

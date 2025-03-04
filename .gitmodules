@@ -58,3 +58,6 @@
 [submodule "thirdparty/json"]
 	path = thirdparty/json
 	url = https://github.com/nlohmann/json
+[submodule "thirdparty/dxc-bin"]
+	path = thirdparty/dxc-bin
+	url = https://github.com/rt64/dxc-bin

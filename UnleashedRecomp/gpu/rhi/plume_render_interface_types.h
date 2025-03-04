@@ -26,7 +26,7 @@
 #undef ControlMask
 #undef Success
 #elif defined(__APPLE__)
-typedef void CAMetalLayer;
+#include <SDL.h>
 #endif
 
 #ifdef SDL_VULKAN_ENABLED
@@ -52,9 +52,11 @@ namespace plume {
     };
 #elif defined(__APPLE__)
     struct RenderWindow {
-        CAMetalLayer* layer;
+        SDL_Window* window;
+        void* view;
+
         bool operator==(const struct RenderWindow& rhs) const {
-            return layer == rhs.layer;
+            return window == rhs.window;
         }
         bool operator!=(const struct RenderWindow& rhs) const { return !(*this == rhs); }
     };
