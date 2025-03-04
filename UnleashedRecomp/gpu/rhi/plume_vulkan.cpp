@@ -62,7 +62,7 @@ namespace plume {
         VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
 #   endif
     };
-    
+
     static const std::unordered_set<std::string> RequiredDeviceExtensions = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME,
@@ -71,10 +71,6 @@ namespace plume {
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
 #   ifdef VULKAN_OBJECT_NAMES_ENABLED
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-#   endif
-#   ifdef __APPLE__
-        // Vulkan spec requires this to be enabled if supported.
-        VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
 #   endif
     };
     
@@ -88,6 +84,10 @@ namespace plume {
         VK_KHR_PRESENT_ID_EXTENSION_NAME,
         VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
         VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME,
+#   ifdef __APPLE__
+        // Vulkan spec requires this to be enabled if supported.
+        VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
+#   endif
     };
 
     // Common functions.
