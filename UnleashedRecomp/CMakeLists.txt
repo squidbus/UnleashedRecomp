@@ -325,6 +325,26 @@ elseif (APPLE)
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${MACOS_BUNDLE_VERSION}
         MACOSX_BUNDLE_ICON_FILE "game_icon.icns"
     )
+
+    # Linking with MoltenVK directly would prevent using the system Vulkan loader to load with debug layers.
+    # Instead, copy the MoltenVK dylib to the app bundle along with an ICD file for the loader to find it.
+    # In the event the loader is not installed, the MoltenVK dylib can still be picked up directly in the app bundle.
+    set(MVK_ICD ${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/MoltenVK/MoltenVK_icd.json)
+    target_sources(UnleashedRecomp PRIVATE ${MVK_ICD})
+    set_source_files_properties(${MVK_ICD} PROPERTIES MACOSX_PACKAGE_LOCATION Resources/vulkan/icd.d)
+
+    # Unfortunately using the MoltenVK target output as a resource file does not quite create the correct
+    # dependency chain, so we need to resolve the paths manually and create a copy target dependency chain.
+    set(MVK_DYLIB_SRC ${CMAKE_BINARY_DIR}/thirdparty/MoltenVK/libMoltenVK.dylib)
+    set(MVK_DYLIB_DST ${CMAKE_CURRENT_BINARY_DIR}/UnleashedRecomp.app/Contents/Frameworks/libMoltenVK.dylib)
+    add_custom_command(
+        OUTPUT ${MVK_DYLIB_DST}
+        DEPENDS ${MVK_DYLIB_SRC}
+        COMMAND cmake -E copy ${MVK_DYLIB_SRC} ${MVK_DYLIB_DST})
+    add_custom_target(CopyMoltenVK DEPENDS ${MVK_DYLIB_DST})
+    add_dependencies(CopyMoltenVK MoltenVK)
+    add_dependencies(UnleashedRecomp CopyMoltenVK)
+    set_property(TARGET UnleashedRecomp APPEND PROPERTY BUILD_RPATH "@executable_path/../Frameworks")
 else()
     add_executable(UnleashedRecomp ${UNLEASHED_RECOMP_CXX_SOURCES})
 endif()
