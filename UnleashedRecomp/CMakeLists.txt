@@ -318,7 +318,7 @@ elseif (APPLE)
     set_source_files_properties(res/macos/game_icon.icns PROPERTIES
         MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(UnleashedRecomp PROPERTIES
-        BUNDLE True
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/res/macos/MacOSXBundleInfo.plist.in
         MACOSX_BUNDLE_GUI_IDENTIFIER hedge-dev.UnleashedRecomp
         MACOSX_BUNDLE_BUNDLE_NAME "Unleashed Recompiled"
         MACOSX_BUNDLE_BUNDLE_VERSION ${MACOS_BUNDLE_VERSION}
