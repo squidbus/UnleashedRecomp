@@ -304,6 +304,27 @@ if (WIN32)
     if (${CMAKE_BUILD_TYPE} MATCHES "Release")
         target_link_options(UnleashedRecomp PRIVATE "/SUBSYSTEM:WINDOWS" "/ENTRY:mainCRTStartup")
     endif()
+elseif (APPLE)
+    # Create version number for app bundle.
+    CreateVersionString(
+        VERSION_TXT ${VERSION_TXT}
+        OUTPUT_VAR MACOS_BUNDLE_VERSION
+    )
+
+    add_executable(UnleashedRecomp MACOSX_BUNDLE
+        ${UNLEASHED_RECOMP_CXX_SOURCES}
+        res/macos/game_icon.icns
+    )
+    set_source_files_properties(res/macos/game_icon.icns PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources)
+    set_target_properties(UnleashedRecomp PROPERTIES
+        BUNDLE True
+        MACOSX_BUNDLE_GUI_IDENTIFIER hedge-dev.UnleashedRecomp
+        MACOSX_BUNDLE_BUNDLE_NAME UnleashedRecomp
+        MACOSX_BUNDLE_BUNDLE_VERSION ${MACOS_BUNDLE_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${MACOS_BUNDLE_VERSION}
+        MACOSX_BUNDLE_ICON_FILE "game_icon.icns"
+    )
 else()
     add_executable(UnleashedRecomp ${UNLEASHED_RECOMP_CXX_SOURCES})
 endif()
