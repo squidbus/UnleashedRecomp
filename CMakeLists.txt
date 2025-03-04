@@ -18,6 +18,10 @@ endif()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+if (APPLE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
+endif()
+
 project("UnleashedRecomp-ALL")
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMakeModules")
