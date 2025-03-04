@@ -53,6 +53,8 @@ namespace plume {
         VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
 #   elif defined(__APPLE__)
         VK_EXT_METAL_SURFACE_EXTENSION_NAME,
+        // Used to configure MoltenVK.
+        VK_EXT_LAYER_SETTINGS_EXTENSION_NAME,
 #   endif
     };
 
@@ -4290,6 +4292,18 @@ namespace plume {
 
 #   ifdef __APPLE__
         createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+
+        // Enable specialized queue families, ensuring that the queue family heuristics
+        // will pick up correct families for the graphics and copy queues.
+        constexpr VkBool32 specializedQueueFamilies = true;
+        const VkLayerSettingEXT settings[] = {
+            {"MoltenVK", "MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &specializedQueueFamilies},
+        };
+        VkLayerSettingsCreateInfoEXT settingsCreateInfo = {};
+        settingsCreateInfo.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
+        settingsCreateInfo.settingCount = std::size(settings);
+        settingsCreateInfo.pSettings = settings;
+        createInfo.pNext = &settingsCreateInfo;
 #   endif
 
         // Check for extensions.
