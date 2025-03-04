@@ -53,12 +53,14 @@ namespace plume {
         VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
 #   elif defined(__APPLE__)
         VK_EXT_METAL_SURFACE_EXTENSION_NAME,
-        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
 #   endif
     };
 
     static const std::unordered_set<std::string> OptionalInstanceExtensions = {
-        // No optional instance extensions yet.
+#   if defined(__APPLE__)
+        // Optional, as it is only needed for system libvulkan loader.
+        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
+#   endif
     };
     
     static const std::unordered_set<std::string> RequiredDeviceExtensions = {
