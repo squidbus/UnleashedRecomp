@@ -4295,9 +4295,13 @@ namespace plume {
 
         // Enable specialized queue families, ensuring that the queue family heuristics
         // will pick up correct families for the graphics and copy queues.
+        // Additionally, make sure the semaphore support style ensures support
+        // for multiple queues.
         constexpr VkBool32 specializedQueueFamilies = true;
+        const uint32_t semaphoreSupportStyle = 2; // METAL_EVENTS
         const VkLayerSettingEXT settings[] = {
             {"MoltenVK", "MVK_CONFIG_SPECIALIZED_QUEUE_FAMILIES", VK_LAYER_SETTING_TYPE_BOOL32_EXT, 1, &specializedQueueFamilies},
+            {"MoltenVK", "MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE", VK_LAYER_SETTING_TYPE_UINT32_EXT, 1, &semaphoreSupportStyle},
         };
         VkLayerSettingsCreateInfoEXT settingsCreateInfo = {};
         settingsCreateInfo.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
