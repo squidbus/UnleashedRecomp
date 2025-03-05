@@ -1,7 +1,7 @@
 #include "paths.h"
 #include <os/process.h>
 
-std::filesystem::path g_executableRoot = os::process::GetExecutablePath().remove_filename();
+std::filesystem::path g_executableRoot = os::process::GetExecutableRoot();
 std::filesystem::path g_userPath = BuildUserPath();
 
 bool CheckPortable()
