@@ -50,7 +50,7 @@ static CFURLRef UntranslocateBundlePath(const CFURLRef bundlePath)
 
 std::filesystem::path os::process::GetExecutableRoot()
 {
-    std::filesystem::path appPath = GetExecutablePath();
+    std::filesystem::path resultPath = GetExecutablePath().remove_filename();
     if (CFBundleRef bundleRef = CFBundleGetMainBundle())
     {
         if (CFURLRef bundleUrlRef = CFBundleCopyBundleURL(bundleRef))
@@ -66,7 +66,7 @@ std::filesystem::path os::process::GetExecutableRoot()
                     untranslocatedUrlRef ? untranslocatedUrlRef : bundleUrlRef, true,
                     reinterpret_cast<uint8_t*>(appBundlePath), sizeof(appBundlePath)))
             {
-                appPath = std::filesystem::path(appBundlePath);
+                resultPath = std::filesystem::path(appBundlePath).parent_path();
             }
 
             if (untranslocatedUrlRef)
@@ -76,7 +76,7 @@ std::filesystem::path os::process::GetExecutableRoot()
             CFRelease(bundleUrlRef);
         }
     }
-    return appPath.remove_filename();
+    return resultPath;
 }
 
 std::filesystem::path os::process::GetWorkingDirectory()
