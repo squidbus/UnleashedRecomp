@@ -2211,7 +2211,14 @@ namespace plume {
         }
 
         // Handle the error silently.
+#if defined(__APPLE__)
+        // Under MoltenVK, VK_SUBOPTIMAL_KHR does not result in a valid state for rendering. We intentionally
+        // only check for this error during present to avoid having to synchronize manually against the semaphore
+        // signalled by vkAcquireNextImageKHR.
+        if (res != VK_SUCCESS) {
+#else
         if ((res != VK_SUCCESS) && (res != VK_SUBOPTIMAL_KHR)) {
+#endif
             return false;
         }
 
