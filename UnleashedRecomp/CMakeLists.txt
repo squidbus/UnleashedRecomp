@@ -381,7 +381,7 @@ else()
     elseif (APPLE)
         set(DXC "DYLD_LIBRARY_PATH=${DXC_BIN_PATH}/lib/arm64" "${DXC_BIN_PATH}/bin/arm64/dxc-macos")
     else()
-        set(DXC "LD_LIBRARY_PATH=${DXC_BIN_PATH}n/lib/arm64" "${DXC_BIN_PATH}/bin/arm64/dxc-linux")
+        set(DXC "LD_LIBRARY_PATH=${DXC_BIN_PATH}/lib/arm64" "${DXC_BIN_PATH}/bin/arm64/dxc-linux")
     endif()
 endif()
 
