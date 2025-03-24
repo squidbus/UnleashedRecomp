@@ -99,6 +99,7 @@ static bool g_isEnterKeyBuffered = false;
 static bool g_canReset = false;
 static bool g_isLanguageOptionChanged = false;
 static bool g_titleAnimBegin = true;
+static EChannelConfiguration g_currentChannelConfig;
 
 static double g_appearTime = 0.0;
 
@@ -803,7 +804,6 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                             config->Callback(config);
 
                         VideoConfigValueChangedCallback(config);
-                        XAudioConfigValueChangedCallback(config);
 
                         Game_PlaySound("sys_worldmap_finaldecide");
                     }
@@ -836,7 +836,6 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                             if (config->Value != s_oldValue)
                             {
                                 VideoConfigValueChangedCallback(config);
-                                XAudioConfigValueChangedCallback(config);
 
                                 if (config->ApplyCallback)
                                     config->ApplyCallback(config);
@@ -865,7 +864,6 @@ static void DrawConfigOption(int32_t rowIndex, float yOffset, ConfigDef<T>* conf
                         config->MakeDefault();
 
                         VideoConfigValueChangedCallback(config);
-                        XAudioConfigValueChangedCallback(config);
 
                         if (config->Callback)
                             config->Callback(config);
@@ -1250,7 +1248,7 @@ static void DrawConfigOptions()
             DrawConfigOption(rowCount++, yOffset, &Config::MasterVolume, true);
             DrawConfigOption(rowCount++, yOffset, &Config::MusicVolume, true);
             DrawConfigOption(rowCount++, yOffset, &Config::EffectsVolume, true);
-            DrawConfigOption(rowCount++, yOffset, &Config::ChannelConfiguration, true);
+            DrawConfigOption(rowCount++, yOffset, &Config::ChannelConfiguration, !OptionsMenu::s_isPause, cmnReason);
             DrawConfigOption(rowCount++, yOffset, &Config::MusicAttenuation, AudioPatches::CanAttenuate(), &Localise("Options_Desc_OSNotSupported"));
             DrawConfigOption(rowCount++, yOffset, &Config::BattleTheme, true);
             break;
@@ -1791,7 +1789,7 @@ void OptionsMenu::Draw()
             DrawFadeTransition();
     }
 
-    s_isRestartRequired = Config::Language != App::s_language;
+    s_isRestartRequired = Config::Language != App::s_language || Config::ChannelConfiguration != g_currentChannelConfig;
 }
 
 void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
@@ -1807,6 +1805,7 @@ void OptionsMenu::Open(bool isPause, SWA::EMenuType pauseMenuType)
     g_categoryAnimMax = { 0.0f, 0.0f };
     g_selectedItem = nullptr;
     g_titleAnimBegin = true;
+    g_currentChannelConfig = Config::ChannelConfiguration;
 
     /* Store button state so we can track it later
        and prevent the first item being selected. */
