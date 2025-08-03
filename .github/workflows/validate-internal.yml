@@ -2,7 +2,7 @@ name: validate-internal
 on:
   push:
     branches:
-      - main
+      - generate-build
   pull_request:
     types: [opened, synchronize]
 jobs:
