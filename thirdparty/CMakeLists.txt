@@ -16,7 +16,7 @@ set(SDL2MIXER_VORBIS "VORBISFILE")
 set(SDL2MIXER_WAVPACK OFF)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    set(SDL_VULKAN_ENABLED ON CACHE BOOL "")
+    set(PLUME_SDL2_VULKAN_ENABLED ON CACHE BOOL "")
 endif()
 
 if (WIN32)
@@ -38,7 +38,3 @@ add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/o1heap")
 add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/SDL")
 add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/SDL_mixer")
 add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/plume")
-
-if (APPLE)
-    add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/MoltenVK")
-endif()
