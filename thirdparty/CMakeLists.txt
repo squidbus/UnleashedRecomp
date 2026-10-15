@@ -23,6 +23,11 @@ if (WIN32)
     set(D3D12_AGILITY_SDK_ENABLED ON CACHE BOOL "")
 endif()
 
+if (WIN32 AND ARCHITECTURE STREQUAL "arm64")
+    # Workaround for https://github.com/libsdl-org/SDL/issues/16481
+    set(SDL_LIBC ON CACHE BOOL "" FORCE)
+endif()
+
 add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/msdf-atlas-gen")
 add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/nativefiledialog-extended")
 add_subdirectory("${UNLEASHED_RECOMP_THIRDPARTY_ROOT}/o1heap")
