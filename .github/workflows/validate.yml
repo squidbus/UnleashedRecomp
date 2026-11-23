@@ -101,10 +101,11 @@ jobs:
           token: ${{ secrets.ASSET_REPO_TOKEN }}
           path: .\private
 
-      - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ccache-${{ runner.os }}-${{ matrix.preset.name }}
+      # Disabled: Breaks with pre-compiled headers
+      #- name: Setup ccache
+      #  uses: hendrikmuhs/ccache-action@v1.2
+      #  with:
+      #    key: ccache-${{ runner.os }}-${{ matrix.preset.name }}
 
       - name: Cache vcpkg
         uses: actions/cache@v6
@@ -133,7 +134,8 @@ jobs:
           copy .\private\* .\UnleashedRecompLib\private
 
       - name: Configure Project
-        run: cmake . --preset ${{ env.CMAKE_PRESET }} -DSDL2MIXER_VORBIS=VORBISFILE -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
+        run: cmake . --preset ${{ env.CMAKE_PRESET }} -DSDL2MIXER_VORBIS=VORBISFILE
+        # -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_COMPILER_LAUNCHER=ccache
 
       - name: Build Project
         run: cmake --build .\out\build\${{ env.CMAKE_PRESET }} --target UnleashedRecomp
