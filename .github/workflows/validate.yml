@@ -127,6 +127,12 @@ jobs:
         with:
           arch: ${{ matrix.preset.arch }}
 
+      - name: Configure Visual Studio LLVM
+        run: |
+          $llvm = "$env:VCINSTALLDIR\Tools\Llvm\${{ matrix.preset.arch }}\bin"
+          "Path=$llvm;$env:Path" >> $env:GITHUB_ENV
+          & "$llvm\clang-cl.exe" --version
+
       - name: Prepare Project
         run: |
           $commitMessage = git log -1 --pretty=%s
