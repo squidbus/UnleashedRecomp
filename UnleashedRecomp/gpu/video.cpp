@@ -1367,6 +1367,9 @@ static void CreateImGuiBackend()
     io.IniFilename = nullptr;
     io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
     io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    // We scale and offset ImGui mouse events to adjust for viewports that differ from the window size.
+    // With ImGui's default trickle behavior, we may scale the same event multiple times, so disable it.
+    io.ConfigInputTrickleEventQueue = false;
 
 #ifdef ENABLE_IM_FONT_ATLAS_SNAPSHOT
     IM_DELETE(io.Fonts);
